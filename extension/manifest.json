@@ -6,7 +6,7 @@
   "permissions": [],
   "host_permissions": [
     "https://horizon.ucp.edu.pk/*",
-    "https://ucp-noticeboard-production.up.railway.app/*"
+    "https://ucp-noticeboard-api-production.up.railway.app/*"
   ],
   "content_scripts": [
     {
