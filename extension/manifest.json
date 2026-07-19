@@ -6,12 +6,16 @@
   "permissions": [],
   "host_permissions": [
     "https://horizon.ucp.edu.pk/*",
-    "http://localhost:5000/*"
+    "https://ucp-noticeboard-api-production.up.railway.app/*"
   ],
   "content_scripts": [
     {
-      "matches": ["https://horizon.ucp.edu.pk/student/dashboard*"],
-      "js": ["content.js"],
+      "matches": [
+        "https://horizon.ucp.edu.pk/student/dashboard*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
