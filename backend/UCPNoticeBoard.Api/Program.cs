@@ -66,13 +66,38 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+// CORS goes FIRST, before anything else — including the exception handler
+// below. This guarantees every response, even a crash/error response, gets
+// the CORS header attached. Without this ordering, a server-side crash can
+// show up in the browser as a confusing "blocked by CORS policy" message
+// instead of the real error, because the crashed response never got as far
+// as the CORS middleware.
 app.UseCors("Extension");
+
+// Turns any unhandled exception into a readable JSON error instead of a
+// raw connection failure. This is what lets you actually SEE what broke
+// (open the failed request in Chrome's Network tab → Response) instead of
+// just seeing "500" with no explanation.
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var message = feature?.Error?.Message ?? "An unexpected error occurred.";
+        await context.Response.WriteAsync(
+            System.Text.Json.JsonSerializer.Serialize(new { error = message }));
+    });
+});
+
+// Swagger stays on in every environment on purpose (not just Development).
+// It's just API documentation — nothing sensitive — and having it always
+// available is what makes it possible to quickly check "did my deployment
+// actually work?" by visiting /swagger.
+app.UseSwagger();
+app.UseSwaggerUI();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
