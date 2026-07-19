@@ -1,0 +1,15 @@
+# Node / extension
+node_modules/
+dist/
+
+# .NET
+bin/
+obj/
+
+# Editor
+.vscode/
+.idea/
+*.user
+
+# Env
+.env
