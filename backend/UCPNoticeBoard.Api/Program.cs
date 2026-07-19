@@ -17,8 +17,38 @@ if (!string.IsNullOrWhiteSpace(port))
 }
 
 // --- Database ---
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Built from individual PGHOST / PGPORT / PGDATABASE / PGUSER / PGPASSWORD
+// variables (Railway's standard names for a linked Postgres) instead of one
+// hand-typed combined connection string — a single mistyped or malformed
+// combined string is a common, hard-to-spot source of startup crashes.
+// Npgsql's own builder assembles and escapes it correctly. Falls back to
+// ConnectionStrings:DefaultConnection from appsettings.json for local dev,
+// where PGHOST etc. won't be set.
+var pgHost = Environment.GetEnvironmentVariable("PGHOST");
+string connectionString;
+if (!string.IsNullOrWhiteSpace(pgHost))
+{
+    var pgPort = int.TryParse(Environment.GetEnvironmentVariable("PGPORT"), out var parsedPort)
+        ? parsedPort
+        : 5432;
+
+    var csb = new Npgsql.NpgsqlConnectionStringBuilder
+    {
+        Host = pgHost,
+        Port = pgPort,
+        Database = Environment.GetEnvironmentVariable("PGDATABASE"),
+        Username = Environment.GetEnvironmentVariable("PGUSER"),
+        Password = Environment.GetEnvironmentVariable("PGPASSWORD"),
+    };
+    connectionString = csb.ConnectionString;
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("No database connection configured.");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // --- Services ---
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
