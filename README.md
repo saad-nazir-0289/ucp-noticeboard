@@ -67,8 +67,7 @@ flowchart LR
 
 ## Screenshots
 
-> _Add screenshots of the injected carousel, the notice detail view, and the Admin analytics panel here._
-
+> _Add screen
 ## Getting started
 
 Full setup — local development, database migrations, and step-by-step production deployment — is documented separately:
