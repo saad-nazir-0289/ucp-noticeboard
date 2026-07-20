@@ -67,7 +67,7 @@ flowchart LR
 
 ## Screenshots
 
-> _Add screen
+
 ## Getting started
 
 Full setup — local development, database migrations, and step-by-step production deployment — is documented separately:
