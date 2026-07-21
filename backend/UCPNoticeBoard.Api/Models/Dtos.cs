@@ -1,6 +1,6 @@
 namespace UCPNoticeBoard.Api.Models;
 
-public record LoginRequest(string RollNumber, string Name);
+public record LoginRequest(string RollNumber, string Name, string? ActivationCode);
 
 public record LoginResponse(int Id, string Name, string RollNumber, string Role, string Token);
 
@@ -8,7 +8,13 @@ public record UserDto(int Id, string Name, string RollNumber, string Role, DateT
 
 public record UpdateUserRoleRequest(string Role);
 
-public record AddUserRequest(string RollNumber, string Name, string Role);
+public record AddUserRequest(string RollNumber, string Name);
+
+// Returned once, at the moment a Publisher is added — never re-exposed
+// afterward. The Admin is expected to relay the activation link
+// out-of-band (WhatsApp, in person, etc.), not through the guessable
+// Roll Number channel.
+public record AddUserResponse(int Id, string Name, string RollNumber, string Role, string ActivationCode);
 
 public record NoticeDto(
     int Id,

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,42 +31,47 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Lets the Admin pre-register a student/publisher by Roll Number before
-    /// they ever open the dashboard. If that Roll Number later shows up via
-    /// /login, the existing record (and role) is reused instead of creating
-    /// a duplicate Student account.
+    /// Generates a one-time activation code for this Roll Number. The
+    /// Roll Number alone does NOT grant Publisher access — that only
+    /// happens when this exact code is redeemed (via a link containing it
+    /// that you share with that person directly). If they already have an
+    /// account (e.g. they've opened the dashboard before as a Student),
+    /// their existing account is reused rather than erroring out — this is
+    /// the common case, not the exception.
     /// </summary>
     [HttpPost]
-    public async Task<ActionResult<UserDto>> AddUser([FromBody] AddUserRequest request)
+    public async Task<ActionResult<AddUserResponse>> AddUser([FromBody] AddUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber) || string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest("rollNumber and name are required.");
         }
 
-        if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var role))
-        {
-            return BadRequest("role must be Student, Publisher, or Admin.");
-        }
-
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
-        var existing = await _db.Users.FirstOrDefaultAsync(u => u.RollNumber == rollNumber);
-        if (existing is not null)
+        var code = RandomNumberGenerator.GetHexString(20);
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.RollNumber == rollNumber);
+        if (user is null)
         {
-            return Conflict("A user with this Roll Number already exists.");
+            user = new User
+            {
+                Name = request.Name.Trim(),
+                RollNumber = rollNumber,
+                Role = UserRole.Student,
+                CreatedAt = DateTime.UtcNow,
+                PendingActivationCode = code
+            };
+            _db.Users.Add(user);
+        }
+        else
+        {
+            user.Name = request.Name.Trim();
+            user.PendingActivationCode = code;
         }
 
-        var user = new User
-        {
-            Name = request.Name.Trim(),
-            RollNumber = rollNumber,
-            Role = role,
-            CreatedAt = DateTime.UtcNow
-        };
-        _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        return Ok(new UserDto(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));
+        return Ok(new AddUserResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), code));
     }
 
     [HttpPatch("{id}/role")]

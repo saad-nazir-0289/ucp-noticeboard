@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
             entity.Property(u => u.Name).IsRequired().HasMaxLength(200);
             entity.Property(u => u.RollNumber).IsRequired().HasMaxLength(40);
             entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
+            entity.Property(u => u.PendingActivationCode).HasMaxLength(40);
         });
 
         modelBuilder.Entity<Notice>(entity =>

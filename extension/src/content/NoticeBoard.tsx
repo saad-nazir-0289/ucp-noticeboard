@@ -31,9 +31,25 @@ export function NoticeBoard() {
         return;
       }
 
+      // A one-time Publisher/Admin activation link looks like
+      // ...dashboard?ucpnb_activate=<code>. Read it if present, then
+      // immediately scrub it from the visible URL so it's never left
+      // sitting in the address bar, browser history, or re-sent on a
+      // plain refresh.
+      const params = new URLSearchParams(window.location.search);
+      const activationCode = params.get("ucpnb_activate") ?? undefined;
+      if (activationCode) {
+        params.delete("ucpnb_activate");
+        const cleanUrl =
+          window.location.pathname +
+          (params.toString() ? `?${params.toString()}` : "") +
+          window.location.hash;
+        window.history.replaceState({}, "", cleanUrl);
+      }
+
       let loggedInUser: AuthUser;
       try {
-        loggedInUser = await api.login(identity.rollNumber, identity.name);
+        loggedInUser = await api.login(identity.rollNumber, identity.name, activationCode);
       } catch {
         if (!cancelled) setStatus("error");
         return;

@@ -35,3 +35,11 @@ export interface UserListItem {
   role: UserRole;
   createdAt: string;
 }
+
+export interface AddUserResult {
+  id: number;
+  name: string;
+  rollNumber: string;
+  role: UserRole;
+  activationCode: string;
+}

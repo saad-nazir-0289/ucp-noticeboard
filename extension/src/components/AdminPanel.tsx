@@ -7,6 +7,7 @@ interface Props {
 }
 
 const ROLES: UserRole[] = ["Student", "Publisher", "Admin"];
+const DASHBOARD_URL = "https://horizon.ucp.edu.pk/student/dashboard";
 
 export function AdminPanel({ user }: Props) {
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -16,6 +17,8 @@ export function AdminPanel({ user }: Props) {
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
+  const [activationLink, setActivationLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -42,6 +45,8 @@ export function AdminPanel({ user }: Props) {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddError(null);
+    setActivationLink(null);
+    setCopied(false);
     if (!rollNumber.trim() || !name.trim()) {
       setAddError("Roll Number and Name are required.");
       return;
@@ -49,13 +54,27 @@ export function AdminPanel({ user }: Props) {
     try {
       // Only Publishers are ever added here on purpose. Students don't need
       // to be added by anyone — they're identified and registered
-      // automatically the first time they open the dashboard.
-      await api.addUser({ rollNumber: rollNumber.trim(), name: name.trim(), role: "Publisher" }, user.token);
+      // automatically the first time they open the dashboard. Adding
+      // someone here does NOT grant Publisher access by itself — that only
+      // happens once they open the link below, exactly once.
+      const result = await api.addUser({ rollNumber: rollNumber.trim(), name: name.trim() }, user.token);
+      setActivationLink(`${DASHBOARD_URL}?ucpnb_activate=${result.activationCode}`);
       setRollNumber("");
       setName("");
       load();
     } catch {
-      setAddError("Could not add user — Roll Number may already exist.");
+      setAddError("Could not add user.");
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!activationLink) return;
+    try {
+      await navigator.clipboard.writeText(activationLink);
+      setCopied(true);
+    } catch {
+      // Clipboard access can fail silently in some contexts — the link
+      // text is still visible and selectable manually either way.
     }
   };
 
@@ -67,7 +86,9 @@ export function AdminPanel({ user }: Props) {
       <p className="ucpnb-status">
         Only add people who should be able to publish notices. Students don't need
         to be added — they can already see notices as soon as they open the
-        dashboard.
+        dashboard. Adding someone here does not grant access by itself — send
+        them the one-time link that appears below after adding, and only opening
+        that link (once) actually activates Publisher access for them.
       </p>
       <form className="ucpnb-form" onSubmit={handleAddUser}>
         <input
@@ -89,6 +110,21 @@ export function AdminPanel({ user }: Props) {
           </button>
         </div>
       </form>
+
+      {activationLink && (
+        <div className="ucpnb-activation-box">
+          <p className="ucpnb-status">
+            Send this link directly to that person (WhatsApp, in person, etc.) —
+            not through any public or guessable channel. It only works once.
+          </p>
+          <div className="ucpnb-activation-row">
+            <input type="text" readOnly value={activationLink} onFocus={(e) => e.target.select()} />
+            <button type="button" className="ucpnb-btn" onClick={handleCopy}>
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <h4>All Users</h4>
       {error && <p className="ucpnb-error">{error}</p>}

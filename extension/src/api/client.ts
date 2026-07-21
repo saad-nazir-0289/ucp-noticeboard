@@ -1,7 +1,7 @@
-import type { AnalyticsSummary, AuthUser, Notice, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Notice, UserListItem, UserRole } from "../types";
 
 // Change this to your deployed backend URL in production.
-const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
+const API_BASE_URL = "http://localhost:5000";
 
 class ApiError extends Error {
   status: number;
@@ -43,11 +43,13 @@ async function request<T>(
 
 export const api = {
   // Identifies the student by the Roll Number already visible on the
-  // (already-authenticated) portal page. No password or OAuth step.
-  login: (rollNumber: string, name: string) =>
+  // (already-authenticated) portal page. This alone only ever grants
+  // Student access. activationCode, if present (from a one-time link),
+  // is what actually grants Publisher/Admin — see AuthController.
+  login: (rollNumber: string, name: string, activationCode?: string) =>
     request<AuthUser>("/login", {
       method: "POST",
-      body: JSON.stringify({ rollNumber, name }),
+      body: JSON.stringify({ rollNumber, name, activationCode }),
     }),
 
   getNotices: (token: string) => request<Notice[]>("/notices", {}, token),
@@ -81,11 +83,8 @@ export const api = {
 
   getUsers: (token: string) => request<UserListItem[]>("/users", {}, token),
 
-  addUser: (
-    data: { rollNumber: string; name: string; role: UserRole },
-    token: string
-  ) =>
-    request<UserListItem>(
+  addUser: (data: { rollNumber: string; name: string }, token: string) =>
+    request<AddUserResult>(
       "/users",
       { method: "POST", body: JSON.stringify(data) },
       token

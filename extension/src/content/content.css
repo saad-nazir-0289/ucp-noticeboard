@@ -381,6 +381,30 @@
   font-size: 13px;
 }
 
+.ucpnb-activation-box {
+  background: #eef6ff;
+  border: 1px solid #bcdcff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.ucpnb-activation-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.ucpnb-activation-row input {
+  flex: 1;
+  border: 1px solid #d6dde5;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  background: #ffffff;
+}
+
 .ucpnb-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
