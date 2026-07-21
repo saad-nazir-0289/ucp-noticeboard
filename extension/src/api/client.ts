@@ -1,7 +1,7 @@
 import type { AddUserResult, AnalyticsSummary, AuthUser, Notice, UserListItem, UserRole } from "../types";
 
 // Change this to your deployed backend URL in production.
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
 
 class ApiError extends Error {
   status: number;

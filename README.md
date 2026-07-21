@@ -67,7 +67,6 @@ flowchart LR
 
 ## Screenshots
 
-> _Add screenshots of the injected carousel, the notice detail view, and the Admin analytics panel here._
 
 ## Getting started
 
