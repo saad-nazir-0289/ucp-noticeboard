@@ -13,10 +13,18 @@ export interface Notice {
   title: string;
   description: string;
   imageUrl: string | null;
+  linkUrl: string | null;
+  categoryId: number | null;
+  categoryName: string | null;
   createdByUserId: number;
   createdByName: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
 }
 
 export interface AnalyticsSummary {

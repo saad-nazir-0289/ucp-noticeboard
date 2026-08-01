@@ -1,4 +1,4 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Notice, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Category, Notice, UserListItem, UserRole } from "../types";
 
 // Change this to your deployed backend URL in production.
 const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
@@ -52,13 +52,14 @@ export const api = {
       body: JSON.stringify({ rollNumber, name, activationCode }),
     }),
 
-  getNotices: (token: string) => request<Notice[]>("/notices", {}, token),
+  getNotices: (token: string, includeDismissed = false) =>
+    request<Notice[]>(`/notices${includeDismissed ? "?includeDismissed=true" : ""}`, {}, token),
 
   getNotice: (id: number, token: string) =>
     request<Notice>(`/notices/${id}`, {}, token),
 
   createNotice: (
-    data: { title: string; description: string; imageUrl: string },
+    data: { title: string; description: string; imageUrl: string; linkUrl: string; categoryId: number | null },
     token: string
   ) =>
     request<Notice>(
@@ -69,7 +70,7 @@ export const api = {
 
   updateNotice: (
     id: number,
-    data: { title: string; description: string; imageUrl: string },
+    data: { title: string; description: string; imageUrl: string; linkUrl: string; categoryId: number | null },
     token: string
   ) =>
     request<Notice>(
@@ -80,6 +81,19 @@ export const api = {
 
   deleteNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}`, { method: "DELETE" }, token),
+
+  // Hides a notice from only the current user's own feed.
+  dismissNotice: (id: number, token: string) =>
+    request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),
+
+  getCategories: (token: string) => request<Category[]>("/categories", {}, token),
+
+  createCategory: (name: string, token: string) =>
+    request<Category>(
+      "/categories",
+      { method: "POST", body: JSON.stringify({ name }) },
+      token
+    ),
 
   getUsers: (token: string) => request<UserListItem[]>("/users", {}, token),
 

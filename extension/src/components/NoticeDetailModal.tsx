@@ -22,10 +22,13 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
         </button>
 
         {notice.imageUrl && (
-          <img className="ucpnb-modal-image" src={notice.imageUrl} alt="" />
+          <div className="ucpnb-modal-image-wrap">
+            <img className="ucpnb-modal-image" src={notice.imageUrl} alt="" />
+          </div>
         )}
 
         <div className="ucpnb-modal-content">
+          {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
           <h2 className="ucpnb-modal-title">{notice.title}</h2>
           <div className="ucpnb-modal-meta">
             <span>By {notice.createdByName}</span>
@@ -33,6 +36,16 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
             <span>{formatDate(notice.createdAt)}</span>
           </div>
           <p className="ucpnb-modal-desc">{notice.description}</p>
+          {notice.linkUrl && (
+            <a
+              className="ucpnb-btn ucpnb-btn-primary ucpnb-modal-link"
+              href={notice.linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open Link
+            </a>
+          )}
         </div>
       </div>
     </div>

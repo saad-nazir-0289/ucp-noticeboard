@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { AuthUser, UserListItem, UserRole } from "../types";
+import type { AuthUser, Category, UserListItem, UserRole } from "../types";
 
 interface Props {
   user: AuthUser;
@@ -20,16 +20,38 @@ export function AdminPanel({ user }: Props) {
   const [activationLink, setActivationLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+
   const load = () => {
     setLoading(true);
-    api
-      .getUsers(user.token)
-      .then(setUsers)
+    Promise.all([api.getUsers(user.token), api.getCategories(user.token)])
+      .then(([u, c]) => {
+        setUsers(u);
+        setCategories(c);
+      })
       .catch(() => setError("Could not load users."))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [user]);
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCategoryError(null);
+    if (!newCategoryName.trim()) {
+      setCategoryError("Category name is required.");
+      return;
+    }
+    try {
+      const category = await api.createCategory(newCategoryName.trim(), user.token);
+      setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewCategoryName("");
+    } catch {
+      setCategoryError("Could not add category — it may already exist.");
+    }
+  };
 
   const handleRoleChange = async (id: number, newRole: UserRole) => {
     const previous = users;
@@ -161,6 +183,33 @@ export function AdminPanel({ user }: Props) {
           ))}
         </tbody>
       </table>
+
+      <h4>Manage Categories</h4>
+      <p className="ucpnb-status">
+        Only Admins can create categories. Publishers pick from this list when
+        creating a notice.
+      </p>
+      <form className="ucpnb-form ucpnb-form-inline" onSubmit={handleAddCategory}>
+        <input
+          type="text"
+          placeholder="New category name"
+          value={newCategoryName}
+          onChange={(e) => setNewCategoryName(e.target.value)}
+        />
+        <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
+          Add Category
+        </button>
+      </form>
+      {categoryError && <p className="ucpnb-error">{categoryError}</p>}
+      {categories.length > 0 && (
+        <div className="ucpnb-category-chips">
+          {categories.map((c) => (
+            <span key={c.id} className="ucpnb-category-chip">
+              {c.name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

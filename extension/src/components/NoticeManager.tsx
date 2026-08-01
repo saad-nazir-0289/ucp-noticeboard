@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
-import type { AuthUser, Notice } from "../types";
+import type { AuthUser, Category, Notice } from "../types";
 
 interface Props {
   user: AuthUser;
@@ -9,21 +9,30 @@ interface Props {
 
 export function NoticeManager({ user, scope }: Props) {
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Notice | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [categoryId, setCategoryId] = useState<number | "">("");
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
-    api
-      .getNotices(user.token)
-      .then((all) =>
-        setNotices(scope === "mine" ? all.filter((n) => n.createdByUserId === user.id) : all)
-      )
+    Promise.all([
+      // Management views always see everything they're allowed to manage,
+      // regardless of anything they've personally dismissed while browsing
+      // the main feed — those are unrelated concepts.
+      api.getNotices(user.token, true),
+      api.getCategories(user.token),
+    ])
+      .then(([all, cats]) => {
+        setNotices(scope === "mine" ? all.filter((n) => n.createdByUserId === user.id) : all);
+        setCategories(cats);
+      })
       .catch(() => setError("Could not load notices."))
       .finally(() => setLoading(false));
   };
@@ -36,6 +45,8 @@ export function NoticeManager({ user, scope }: Props) {
     setTitle("");
     setDescription("");
     setImageUrl("");
+    setLinkUrl("");
+    setCategoryId("");
     setError(null);
   };
 
@@ -50,6 +61,8 @@ export function NoticeManager({ user, scope }: Props) {
     setTitle(notice.title);
     setDescription(notice.description);
     setImageUrl(notice.imageUrl ?? "");
+    setLinkUrl(notice.linkUrl ?? "");
+    setCategoryId(notice.categoryId ?? "");
   };
 
   // A Publisher can only edit/delete notices they created themselves.
@@ -62,11 +75,18 @@ export function NoticeManager({ user, scope }: Props) {
       setError("Title and description are required.");
       return;
     }
+    const payload = {
+      title,
+      description,
+      imageUrl,
+      linkUrl,
+      categoryId: categoryId === "" ? null : categoryId,
+    };
     try {
       if (editing) {
-        await api.updateNotice(editing.id, { title, description, imageUrl }, user.token);
+        await api.updateNotice(editing.id, payload, user.token);
       } else {
-        await api.createNotice({ title, description, imageUrl }, user.token);
+        await api.createNotice(payload, user.token);
       }
       resetForm();
       load();
@@ -108,11 +128,28 @@ export function NoticeManager({ user, scope }: Props) {
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
           />
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}
+          >
+            <option value="">No category</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             placeholder="Poster image URL (optional)"
             value={imageUrl}
             onChange={(e) => setImageUrl(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Link URL — e.g. a registration form (optional)"
+            value={linkUrl}
+            onChange={(e) => setLinkUrl(e.target.value)}
           />
           {error && <p className="ucpnb-error">{error}</p>}
           <div className="ucpnb-form-actions">
@@ -137,6 +174,7 @@ export function NoticeManager({ user, scope }: Props) {
           <thead>
             <tr>
               <th>Title</th>
+              <th>Category</th>
               {scope === "all" && <th>Published By</th>}
               <th>Date</th>
               <th></th>
@@ -146,6 +184,7 @@ export function NoticeManager({ user, scope }: Props) {
             {notices.map((n) => (
               <tr key={n.id}>
                 <td>{n.title}</td>
+                <td>{n.categoryName ?? "—"}</td>
                 {scope === "all" && <td>{n.createdByName}</td>}
                 <td>{new Date(n.createdAt).toLocaleDateString()}</td>
                 <td className="ucpnb-table-actions">
