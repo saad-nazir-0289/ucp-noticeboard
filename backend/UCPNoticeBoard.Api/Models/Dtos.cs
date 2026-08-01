@@ -21,15 +21,22 @@ public record NoticeDto(
     string Title,
     string Description,
     string? ImageUrl,
+    string? LinkUrl,
+    int? CategoryId,
+    string? CategoryName,
     int CreatedByUserId,
     string CreatedByName,
     DateTime CreatedAt,
     DateTime UpdatedAt
 );
 
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl);
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId);
+
+public record CategoryDto(int Id, string Name);
+
+public record CreateCategoryRequest(string Name);
 
 public record AnalyticsSummaryDto(
     int TotalUsers,

@@ -32,6 +32,9 @@ public class NoticesController : ControllerBase
         n.Title,
         n.Description,
         n.ImageUrl,
+        n.LinkUrl,
+        n.CategoryId,
+        n.Category?.Name,
         n.CreatedByUserId,
         n.CreatedByUser?.Name ?? "Unknown",
         n.CreatedAt,
@@ -39,13 +42,22 @@ public class NoticesController : ControllerBase
     );
 
     [HttpGet]
-    public async Task<ActionResult<List<NoticeDto>>> GetNotices()
+    public async Task<ActionResult<List<NoticeDto>>> GetNotices([FromQuery] bool includeDismissed = false)
     {
         var cutoff = DateTime.UtcNow - NoticeLifetime;
+        var userId = CurrentUserId;
+
+        var dismissedIds = includeDismissed
+            ? new List<int>()
+            : await _db.NoticeDismissals
+                .Where(d => d.UserId == userId)
+                .Select(d => d.NoticeId)
+                .ToListAsync();
 
         var notices = await _db.Notices
             .Include(n => n.CreatedByUser)
-            .Where(n => n.CreatedAt >= cutoff)
+            .Include(n => n.Category)
+            .Where(n => n.CreatedAt >= cutoff && !dismissedIds.Contains(n.Id))
             // Newest first — as new notices are added, older ones naturally
             // drift toward the end of the horizontally scrolling carousel.
             .OrderByDescending(n => n.CreatedAt)
@@ -57,9 +69,34 @@ public class NoticesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<NoticeDto>> GetNotice(int id)
     {
-        var notice = await _db.Notices.Include(n => n.CreatedByUser).FirstOrDefaultAsync(n => n.Id == id);
+        var notice = await _db.Notices
+            .Include(n => n.CreatedByUser)
+            .Include(n => n.Category)
+            .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
         return Ok(ToDto(notice));
+    }
+
+    /// <summary>
+    /// Hides this notice from ONLY the current user's own feed — a
+    /// personal read-state, not a moderation action. Everyone else still
+    /// sees it normally. Redoing this is harmless (unique index makes it
+    /// a no-op).
+    /// </summary>
+    [HttpPost("{id}/dismiss")]
+    public async Task<IActionResult> DismissNotice(int id)
+    {
+        var userId = CurrentUserId;
+        var alreadyDismissed = await _db.NoticeDismissals
+            .AnyAsync(d => d.UserId == userId && d.NoticeId == id);
+
+        if (!alreadyDismissed)
+        {
+            _db.NoticeDismissals.Add(new NoticeDismissal { UserId = userId, NoticeId = id });
+            await _db.SaveChangesAsync();
+        }
+
+        return NoContent();
     }
 
     [HttpPost]
@@ -76,6 +113,8 @@ public class NoticesController : ControllerBase
             Title = request.Title,
             Description = request.Description,
             ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
+            LinkUrl = string.IsNullOrWhiteSpace(request.LinkUrl) ? null : request.LinkUrl.Trim(),
+            CategoryId = request.CategoryId,
             CreatedByUserId = CurrentUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -85,6 +124,10 @@ public class NoticesController : ControllerBase
         await _db.SaveChangesAsync();
 
         await _db.Entry(notice).Reference(n => n.CreatedByUser).LoadAsync();
+        if (notice.CategoryId is not null)
+        {
+            await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
+        }
 
         return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, ToDto(notice));
     }
@@ -93,7 +136,10 @@ public class NoticesController : ControllerBase
     [Authorize(Roles = "Publisher,Admin")]
     public async Task<ActionResult<NoticeDto>> UpdateNotice(int id, [FromBody] UpdateNoticeRequest request)
     {
-        var notice = await _db.Notices.Include(n => n.CreatedByUser).FirstOrDefaultAsync(n => n.Id == id);
+        var notice = await _db.Notices
+            .Include(n => n.CreatedByUser)
+            .Include(n => n.Category)
+            .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
 
         // A Publisher can only ever touch their own notices. Admin can touch any.
@@ -111,9 +157,12 @@ public class NoticesController : ControllerBase
         notice.Title = request.Title;
         notice.Description = request.Description;
         notice.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
+        notice.LinkUrl = string.IsNullOrWhiteSpace(request.LinkUrl) ? null : request.LinkUrl.Trim();
+        notice.CategoryId = request.CategoryId;
         notice.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
 
         return Ok(ToDto(notice));
     }
