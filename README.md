@@ -121,9 +121,9 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [T] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight)
-- [ ] Push-style notifications for new notices
-- [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling
+- [ ] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight -- maybwe in another lifetime where db space is unlimited).
+- [ ] Push-style notifications for new notices (workin on it).
+- [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling (done).
 
 ## License
 
