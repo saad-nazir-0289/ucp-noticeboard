@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace UCPNoticeBoard.Api.Migrations
 {
-    /// <inheritdoc />
     public partial class AddImageAndAnalytics : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -32,7 +30,6 @@ namespace UCPNoticeBoard.Api.Migrations
                 defaultValue: 0);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(name: "ImageUrl", table: "Notices");

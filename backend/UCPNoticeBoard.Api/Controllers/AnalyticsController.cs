@@ -22,11 +22,6 @@ public class AnalyticsController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
-    /// <summary>
-    /// Called once every time the NoticeBoard mounts on the dashboard (i.e.
-    /// every page load), regardless of whether the user's session was
-    /// already cached. This is what "views"/"visitors" are counted from.
-    /// </summary>
     [HttpPost("visit")]
     public async Task<IActionResult> RecordVisit()
     {

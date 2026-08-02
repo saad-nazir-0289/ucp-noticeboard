@@ -6,12 +6,14 @@ import { NoticeDetailModal } from "./NoticeDetailModal";
 
 interface Props {
   token: string;
+  initialNotices?: Notice[];
+  initialCategories?: Category[];
 }
 
-export function NoticeFeed({ token }: Props) {
-  const [notices, setNotices] = useState<Notice[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+export function NoticeFeed({ token, initialNotices, initialCategories }: Props) {
+  const [notices, setNotices] = useState<Notice[]>(initialNotices ?? []);
+  const [categories, setCategories] = useState<Category[]>(initialCategories ?? []);
+  const [loading, setLoading] = useState(!initialNotices);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Notice | null>(null);
 
@@ -19,7 +21,16 @@ export function NoticeFeed({ token }: Props) {
   const [categoryId, setCategoryId] = useState<number | "all">("all");
   const [showGrid, setShowGrid] = useState(false);
 
+  const [showHidden, setShowHidden] = useState(false);
+  const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
+  const [dismissedLoading, setDismissedLoading] = useState(false);
+
   useEffect(() => {
+    // Already have data from the login bootstrap — nothing to fetch on
+    // mount. This is the whole point: first paint costs zero extra
+    // round trips when bootstrap data was provided.
+    if (initialNotices) return;
+
     let cancelled = false;
     setLoading(true);
     Promise.all([api.getNotices(token), api.getCategories(token)])
@@ -38,6 +49,7 @@ export function NoticeFeed({ token }: Props) {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const filtered = useMemo(() => {
@@ -58,6 +70,30 @@ export function NoticeFeed({ token }: Props) {
     setNotices((prev) => prev.filter((n) => n.id !== notice.id));
     api.dismissNotice(notice.id, token).catch(() => {
       /* if this fails, it just reappears on the next reload — not critical */
+    });
+  };
+
+  const openHidden = () => {
+    setShowHidden(true);
+    setDismissedLoading(true);
+    api
+      .getDismissedNotices(token)
+      .then(setDismissedNotices)
+      .catch(() => setDismissedNotices([]))
+      .finally(() => setDismissedLoading(false));
+  };
+
+  const handleRestore = (notice: Notice) => {
+    setDismissedNotices((prev) => prev.filter((n) => n.id !== notice.id));
+    // Bring it straight back into the main feed too, in the right position,
+    // rather than waiting for a full reload to notice it's back.
+    setNotices((prev) =>
+      [notice, ...prev.filter((n) => n.id !== notice.id)].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+    );
+    api.restoreNotice(notice.id, token).catch(() => {
+      /* if this fails, it just stays hidden until the next reload — not critical */
     });
   };
 
@@ -89,6 +125,9 @@ export function NoticeFeed({ token }: Props) {
       )}
       <button className="ucpnb-btn" onClick={() => setShowGrid(true)}>
         View All
+      </button>
+      <button className="ucpnb-btn" onClick={openHidden}>
+        Hidden Notices
       </button>
     </div>
   );
@@ -125,6 +164,38 @@ export function NoticeFeed({ token }: Props) {
               <div className="ucpnb-grid">
                 {filtered.map((notice) => (
                   <NoticeCard key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showHidden && (
+        <div className="ucpnb-grid-overlay" onClick={() => setShowHidden(false)}>
+          <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-grid-header">
+              <h3>Hidden Notices</h3>
+              <button className="ucpnb-modal-close" onClick={() => setShowHidden(false)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <p className="ucpnb-status">
+              Notices you've hidden from your own feed. Restoring one brings it back for you only.
+            </p>
+            {dismissedLoading ? (
+              <p className="ucpnb-status">Loading...</p>
+            ) : dismissedNotices.length === 0 ? (
+              <p className="ucpnb-status">Nothing hidden right now.</p>
+            ) : (
+              <div className="ucpnb-grid">
+                {dismissedNotices.map((notice) => (
+                  <NoticeCard
+                    key={notice.id}
+                    notice={notice}
+                    onView={setSelected}
+                    onRestore={handleRestore}
+                  />
                 ))}
               </div>
             )}

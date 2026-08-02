@@ -1,4 +1,3 @@
-// Copies files Chrome needs alongside the built JS/CSS (Vite doesn't touch these).
 import { copyFileSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";

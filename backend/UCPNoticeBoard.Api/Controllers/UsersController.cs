@@ -30,15 +30,6 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    /// <summary>
-    /// Generates a one-time activation code for this Roll Number. The
-    /// Roll Number alone does NOT grant Publisher access — that only
-    /// happens when this exact code is redeemed (via a link containing it
-    /// that you share with that person directly). If they already have an
-    /// account (e.g. they've opened the dashboard before as a Student),
-    /// their existing account is reused rather than erroring out — this is
-    /// the common case, not the exception.
-    /// </summary>
     [HttpPost]
     public async Task<ActionResult<AddUserResponse>> AddUser([FromBody] AddUserRequest request)
     {

@@ -14,7 +14,6 @@ namespace UCPNoticeBoard.Api.Migrations
     [Migration("20260721000000_AddCategoriesLinksAndDismissals")]
     partial class AddCategoriesLinksAndDismissals
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

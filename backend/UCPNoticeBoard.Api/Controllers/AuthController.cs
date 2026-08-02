@@ -13,12 +13,18 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IConfiguration _configuration;
+    private readonly INoticeQueryService _noticeQuery;
 
-    public AuthController(AppDbContext db, IJwtTokenService jwtTokenService, IConfiguration configuration)
+    public AuthController(
+        AppDbContext db,
+        IJwtTokenService jwtTokenService,
+        IConfiguration configuration,
+        INoticeQueryService noticeQuery)
     {
         _db = db;
         _jwtTokenService = jwtTokenService;
         _configuration = configuration;
+        _noticeQuery = noticeQuery;
     }
 
     /// <summary>
@@ -68,7 +74,6 @@ public class AuthController : ControllerBase
         }
         else if (!string.IsNullOrWhiteSpace(request.Name) && user.Name != request.Name.Trim())
         {
-            // Keep the display name in sync with the portal in case it changes.
             user.Name = request.Name.Trim();
             needsSave = true;
         }
@@ -80,10 +85,6 @@ public class AuthController : ControllerBase
 
             if (isAdminClaim)
             {
-                // Only ever works ONCE — the very first Admin claim. After
-                // that, this secret is permanently inert, even if it later
-                // leaks. Further Admins must be promoted by an existing
-                // Admin via Manage Users.
                 var anyAdminExists = await _db.Users.AnyAsync(u => u.Role == UserRole.Admin);
                 if (!anyAdminExists && user.Role != UserRole.Admin)
                 {
@@ -106,6 +107,14 @@ public class AuthController : ControllerBase
 
         var token = _jwtTokenService.CreateToken(user);
 
-        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token));
+        // Bundled here so the extension's very first paint needs only ONE
+        // round trip (login) instead of two (login, then a separate fetch
+        // for notices/categories) — this is what most of the "5 seconds on
+        // first load" was actually going toward: a second full network +
+        // database round trip that this makes unnecessary.
+        var notices = await _noticeQuery.GetActiveNoticesAsync(user.Id, includeDismissed: false);
+        var categories = await _noticeQuery.GetCategoriesAsync();
+
+        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token, notices, categories));
     }
 }

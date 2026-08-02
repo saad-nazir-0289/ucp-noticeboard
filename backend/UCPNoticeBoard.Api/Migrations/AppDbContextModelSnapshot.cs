@@ -87,6 +87,8 @@ namespace UCPNoticeBoard.Api.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("CreatedByUserId");
 
                     b.ToTable("Notices");

@@ -1,4 +1,4 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Category, Notice, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UserListItem, UserRole } from "../types";
 
 // Change this to your deployed backend URL in production.
 const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
@@ -42,12 +42,8 @@ async function request<T>(
 }
 
 export const api = {
-  // Identifies the student by the Roll Number already visible on the
-  // (already-authenticated) portal page. This alone only ever grants
-  // Student access. activationCode, if present (from a one-time link),
-  // is what actually grants Publisher/Admin — see AuthController.
   login: (rollNumber: string, name: string, activationCode?: string) =>
-    request<AuthUser>("/login", {
+    request<LoginResult>("/login", {
       method: "POST",
       body: JSON.stringify({ rollNumber, name, activationCode }),
     }),
@@ -57,6 +53,9 @@ export const api = {
 
   getNotice: (id: number, token: string) =>
     request<Notice>(`/notices/${id}`, {}, token),
+
+  getDismissedNotices: (token: string) =>
+    request<Notice[]>("/notices/dismissed", {}, token),
 
   createNotice: (
     data: { title: string; description: string; imageUrl: string; linkUrl: string; categoryId: number | null },
@@ -82,9 +81,11 @@ export const api = {
   deleteNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}`, { method: "DELETE" }, token),
 
-  // Hides a notice from only the current user's own feed.
   dismissNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),
+
+  restoreNotice: (id: number, token: string) =>
+    request<void>(`/notices/${id}/dismiss`, { method: "DELETE" }, token),
 
   getCategories: (token: string) => request<Category[]>("/categories", {}, token),
 
@@ -111,7 +112,6 @@ export const api = {
       token
     ),
 
-  // Fire-and-forget: counted once per dashboard page load.
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),
 

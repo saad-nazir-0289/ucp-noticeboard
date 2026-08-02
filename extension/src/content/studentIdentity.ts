@@ -1,27 +1,5 @@
-/**
- * The UCP portal doesn't expose the student's email anywhere the extension
- * can read, but the dashboard always shows the Roll Number (e.g.
- * "L1S23BSCS0285"). The most reliable place it appears is the account menu
- * in the top navigation bar, which — per DevTools inspection of the real
- * portal — looks like this:
- *
- *   <h2 class="heading_b">
- *     <span class="uk-text-truncate">Muhammad Raafay</span>
- *     <span class="sub-heading">L1S23BSCS0285</span>
- *     <span class="sub-heading">Faculty of Information Technology...</span>
- *   </h2>
- *
- * That's what PRIMARY_SELECTOR below targets. If the portal's markup ever
- * changes and this stops finding a match, a looser page-wide scan is used
- * as a fallback automatically — no code changes needed unless that also
- * fails, in which case re-inspect the page and update PRIMARY_SELECTOR.
- */
-
 const PRIMARY_HEADING_SELECTOR = "h2.heading_b";
 
-// Matches UCP-style roll numbers such as L1S23BSCS0285 (letter, digit,
-// letter, 2 digits, program code, 4 digits). Kept slightly loose so small
-// format variations across programs still match.
 const ROLL_NUMBER_REGEX = /\b[A-Z]{1,2}\d[A-Z]\d{2}[A-Z]{2,8}\d{3,6}\b/;
 
 export interface StudentIdentity {
@@ -41,8 +19,6 @@ function findFromAccountHeading(): StudentIdentity | null {
   const subHeadings = Array.from(heading.querySelectorAll(".sub-heading"));
 
   const name = nameEl?.textContent?.trim();
-  // The Roll Number is the first ".sub-heading" span; a second one (Faculty
-  // name) may follow it, so we only ever look at index 0.
   const rollCandidate = subHeadings[0]?.textContent?.trim();
 
   if (name && rollCandidate && ROLL_NUMBER_REGEX.test(rollCandidate)) {
@@ -66,8 +42,6 @@ function findNearbyName(rollNumberEl: Element): string | null {
   return null;
 }
 
-// Fallback: scan the whole page for anything roll-number-shaped, in case
-// PRIMARY_HEADING_SELECTOR doesn't match (different page, portal update).
 function findByPageScan(): StudentIdentity | null {
   const leafElements = Array.from(document.querySelectorAll("body *")).filter(
     (el) => el.children.length === 0

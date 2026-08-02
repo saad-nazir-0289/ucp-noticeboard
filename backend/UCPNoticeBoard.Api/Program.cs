@@ -51,7 +51,9 @@ else
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // --- Services ---
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<INoticeQueryService, NoticeQueryService>();
 
 // --- Auth ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -94,6 +96,33 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Compresses JSON responses (notice lists, especially) — meaningfully
+// faster over slower/mobile connections, essentially free to enable.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
+// A generous global limit — this isn't meant to throttle normal usage
+// (a real page load is only a handful of requests), it's a safety net
+// against a broken client stuck in a retry loop, or abuse, either of
+// which could otherwise hammer the database directly. Legitimate traffic,
+// even a genuine burst of many different students at once, should never
+// come close to this per-client limit.
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+    options.RejectionStatusCode = 429;
+});
+
 var app = builder.Build();
 
 // CORS goes FIRST, before anything else — including the exception handler
@@ -103,6 +132,9 @@ var app = builder.Build();
 // instead of the real error, because the crashed response never got as far
 // as the CORS middleware.
 app.UseCors("Extension");
+
+app.UseResponseCompression();
+app.UseRateLimiter();
 
 // Turns any unhandled exception into a readable JSON error instead of a
 // raw connection failure. This is what lets you actually SEE what broke

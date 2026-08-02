@@ -2,7 +2,15 @@ namespace UCPNoticeBoard.Api.Models;
 
 public record LoginRequest(string RollNumber, string Name, string? ActivationCode);
 
-public record LoginResponse(int Id, string Name, string RollNumber, string Role, string Token);
+public record LoginResponse(
+    int Id,
+    string Name,
+    string RollNumber,
+    string Role,
+    string Token,
+    List<NoticeDto> Notices,
+    List<CategoryDto> Categories
+);
 
 public record UserDto(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 

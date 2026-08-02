@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
+using UCPNoticeBoard.Api.Services;
 
 namespace UCPNoticeBoard.Api.Controllers;
 
@@ -12,21 +13,18 @@ namespace UCPNoticeBoard.Api.Controllers;
 public class CategoriesController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly INoticeQueryService _noticeQuery;
 
-    public CategoriesController(AppDbContext db)
+    public CategoriesController(AppDbContext db, INoticeQueryService noticeQuery)
     {
         _db = db;
+        _noticeQuery = noticeQuery;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<CategoryDto>>> GetCategories()
     {
-        var categories = await _db.Categories
-            .OrderBy(c => c.Name)
-            .Select(c => new CategoryDto(c.Id, c.Name))
-            .ToListAsync();
-
-        return Ok(categories);
+        return Ok(await _noticeQuery.GetCategoriesAsync());
     }
 
     [HttpPost]
@@ -48,6 +46,7 @@ public class CategoriesController : ControllerBase
         var category = new Category { Name = name, CreatedAt = DateTime.UtcNow };
         _db.Categories.Add(category);
         await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateCategoriesCache();
 
         return Ok(new CategoryDto(category.Id, category.Name));
     }

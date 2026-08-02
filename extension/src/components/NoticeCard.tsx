@@ -3,7 +3,8 @@ import type { Notice } from "../types";
 interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
-  onDismiss: (notice: Notice) => void;
+  onDismiss?: (notice: Notice) => void;
+  onRestore?: (notice: Notice) => void;
 }
 
 function formatDate(iso: string) {
@@ -14,20 +15,22 @@ function formatDate(iso: string) {
   });
 }
 
-export function NoticeCard({ notice, onView, onDismiss }: Props) {
+export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
   return (
     <div className="ucpnb-card" onClick={() => onView(notice)} role="button" tabIndex={0}>
-      <button
-        className="ucpnb-card-dismiss"
-        aria-label="Hide this notice"
-        title="Hide this notice"
-        onClick={(e) => {
-          e.stopPropagation();
-          onDismiss(notice);
-        }}
-      >
-        ×
-      </button>
+      {onDismiss && (
+        <button
+          className="ucpnb-card-dismiss"
+          aria-label="Hide this notice"
+          title="Hide this notice"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss(notice);
+          }}
+        >
+          ×
+        </button>
+      )}
 
       <div className="ucpnb-card-image-wrap">
         {notice.imageUrl ? (
@@ -48,6 +51,17 @@ export function NoticeCard({ notice, onView, onDismiss }: Props) {
         </p>
         <div className="ucpnb-card-footer">
           <span className="ucpnb-card-date">{formatDate(notice.createdAt)}</span>
+          {onRestore && (
+            <button
+              className="ucpnb-btn ucpnb-btn-link"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestore(notice);
+              }}
+            >
+              Restore
+            </button>
+          )}
         </div>
       </div>
     </div>

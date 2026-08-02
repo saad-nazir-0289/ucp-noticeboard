@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
+using UCPNoticeBoard.Api.Services;
 
 namespace UCPNoticeBoard.Api.Controllers;
 
@@ -12,58 +13,22 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Authorize]
 public class NoticesController : ControllerBase
 {
-    // Notices older than this stop showing up anywhere in the extension.
-    // They are NOT deleted from the database — just filtered out of every
-    // query below — so nothing is lost if you ever want to change this.
-    private static readonly TimeSpan NoticeLifetime = TimeSpan.FromDays(7);
-
     private readonly AppDbContext _db;
+    private readonly INoticeQueryService _noticeQuery;
 
-    public NoticesController(AppDbContext db)
+    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery)
     {
         _db = db;
+        _noticeQuery = noticeQuery;
     }
 
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
-    private static NoticeDto ToDto(Notice n) => new(
-        n.Id,
-        n.Title,
-        n.Description,
-        n.ImageUrl,
-        n.LinkUrl,
-        n.CategoryId,
-        n.Category?.Name,
-        n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown",
-        n.CreatedAt,
-        n.UpdatedAt
-    );
-
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices([FromQuery] bool includeDismissed = false)
     {
-        var cutoff = DateTime.UtcNow - NoticeLifetime;
-        var userId = CurrentUserId;
-
-        var dismissedIds = includeDismissed
-            ? new List<int>()
-            : await _db.NoticeDismissals
-                .Where(d => d.UserId == userId)
-                .Select(d => d.NoticeId)
-                .ToListAsync();
-
-        var notices = await _db.Notices
-            .Include(n => n.CreatedByUser)
-            .Include(n => n.Category)
-            .Where(n => n.CreatedAt >= cutoff && !dismissedIds.Contains(n.Id))
-            // Newest first — as new notices are added, older ones naturally
-            // drift toward the end of the horizontally scrolling carousel.
-            .OrderByDescending(n => n.CreatedAt)
-            .ToListAsync();
-
-        return Ok(notices.Select(ToDto));
+        return Ok(await _noticeQuery.GetActiveNoticesAsync(CurrentUserId, includeDismissed));
     }
 
     [HttpGet("{id}")]
@@ -74,15 +39,19 @@ public class NoticesController : ControllerBase
             .Include(n => n.Category)
             .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
-        return Ok(ToDto(notice));
+
+        return Ok(new NoticeDto(
+            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
+            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
+            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt));
     }
 
-    /// <summary>
-    /// Hides this notice from ONLY the current user's own feed — a
-    /// personal read-state, not a moderation action. Everyone else still
-    /// sees it normally. Redoing this is harmless (unique index makes it
-    /// a no-op).
-    /// </summary>
+    [HttpGet("dismissed")]
+    public async Task<ActionResult<List<NoticeDto>>> GetDismissedNotices()
+    {
+        return Ok(await _noticeQuery.GetDismissedNoticesAsync(CurrentUserId));
+    }
+
     [HttpPost("{id}/dismiss")]
     public async Task<IActionResult> DismissNotice(int id)
     {
@@ -93,6 +62,22 @@ public class NoticesController : ControllerBase
         if (!alreadyDismissed)
         {
             _db.NoticeDismissals.Add(new NoticeDismissal { UserId = userId, NoticeId = id });
+            await _db.SaveChangesAsync();
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/dismiss")]
+    public async Task<IActionResult> UndismissNotice(int id)
+    {
+        var userId = CurrentUserId;
+        var dismissal = await _db.NoticeDismissals
+            .FirstOrDefaultAsync(d => d.UserId == userId && d.NoticeId == id);
+
+        if (dismissal is not null)
+        {
+            _db.NoticeDismissals.Remove(dismissal);
             await _db.SaveChangesAsync();
         }
 
@@ -122,6 +107,7 @@ public class NoticesController : ControllerBase
 
         _db.Notices.Add(notice);
         await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
 
         await _db.Entry(notice).Reference(n => n.CreatedByUser).LoadAsync();
         if (notice.CategoryId is not null)
@@ -129,7 +115,12 @@ public class NoticesController : ControllerBase
             await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
         }
 
-        return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, ToDto(notice));
+        var dto = new NoticeDto(
+            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
+            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
+            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt);
+
+        return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, dto);
     }
 
     [HttpPut("{id}")]
@@ -142,7 +133,6 @@ public class NoticesController : ControllerBase
             .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
 
-        // A Publisher can only ever touch their own notices. Admin can touch any.
         var isAdmin = User.IsInRole("Admin");
         if (!isAdmin && notice.CreatedByUserId != CurrentUserId)
         {
@@ -162,9 +152,13 @@ public class NoticesController : ControllerBase
         notice.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
         await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
 
-        return Ok(ToDto(notice));
+        return Ok(new NoticeDto(
+            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
+            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
+            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt));
     }
 
     [HttpDelete("{id}")]
@@ -182,6 +176,7 @@ public class NoticesController : ControllerBase
 
         _db.Notices.Remove(notice);
         await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
 
         return NoContent();
     }

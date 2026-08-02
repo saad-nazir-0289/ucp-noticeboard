@@ -8,6 +8,14 @@ export interface AuthUser {
   token: string;
 }
 
+// What /login actually returns — AuthUser plus the first page load's data
+// bundled in, so the extension doesn't need a second round trip just to
+// show something on screen.
+export interface LoginResult extends AuthUser {
+  notices: Notice[];
+  categories: Category[];
+}
+
 export interface Notice {
   id: number;
   title: string;

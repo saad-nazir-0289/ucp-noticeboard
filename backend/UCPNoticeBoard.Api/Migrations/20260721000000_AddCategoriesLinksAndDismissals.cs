@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace UCPNoticeBoard.Api.Migrations
 {
-    /// <inheritdoc />
     public partial class AddCategoriesLinksAndDismissals : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -79,7 +77,6 @@ namespace UCPNoticeBoard.Api.Migrations
                 unique: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(name: "NoticeDismissals");

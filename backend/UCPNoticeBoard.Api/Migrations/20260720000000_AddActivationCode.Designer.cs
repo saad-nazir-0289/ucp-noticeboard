@@ -14,7 +14,6 @@ namespace UCPNoticeBoard.Api.Migrations
     [Migration("20260720000000_AddActivationCode")]
     partial class AddActivationCode
     {
-        /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618

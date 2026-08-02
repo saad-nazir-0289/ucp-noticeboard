@@ -4,7 +4,7 @@ import type { AuthUser, Category, Notice } from "../types";
 
 interface Props {
   user: AuthUser;
-  scope: "mine" | "all"; // "mine" = Publisher managing only their own notices; "all" = Admin managing every notice
+  scope: "mine" | "all";
 }
 
 export function NoticeManager({ user, scope }: Props) {
@@ -22,13 +22,7 @@ export function NoticeManager({ user, scope }: Props) {
 
   const load = () => {
     setLoading(true);
-    Promise.all([
-      // Management views always see everything they're allowed to manage,
-      // regardless of anything they've personally dismissed while browsing
-      // the main feed — those are unrelated concepts.
-      api.getNotices(user.token, true),
-      api.getCategories(user.token),
-    ])
+    Promise.all([api.getNotices(user.token, true), api.getCategories(user.token)])
       .then(([all, cats]) => {
         setNotices(scope === "mine" ? all.filter((n) => n.createdByUserId === user.id) : all);
         setCategories(cats);
@@ -65,8 +59,6 @@ export function NoticeManager({ user, scope }: Props) {
     setCategoryId(notice.categoryId ?? "");
   };
 
-  // A Publisher can only edit/delete notices they created themselves.
-  // Admin can act on any notice. This mirrors what the backend enforces.
   const canManage = (notice: Notice) => user.role === "Admin" || notice.createdByUserId === user.id;
 
   const handleSubmit = async (e: React.FormEvent) => {

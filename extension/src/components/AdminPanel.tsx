@@ -37,22 +37,6 @@ export function AdminPanel({ user }: Props) {
 
   useEffect(load, [user]);
 
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCategoryError(null);
-    if (!newCategoryName.trim()) {
-      setCategoryError("Category name is required.");
-      return;
-    }
-    try {
-      const category = await api.createCategory(newCategoryName.trim(), user.token);
-      setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewCategoryName("");
-    } catch {
-      setCategoryError("Could not add category — it may already exist.");
-    }
-  };
-
   const handleRoleChange = async (id: number, newRole: UserRole) => {
     const previous = users;
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
@@ -74,11 +58,6 @@ export function AdminPanel({ user }: Props) {
       return;
     }
     try {
-      // Only Publishers are ever added here on purpose. Students don't need
-      // to be added by anyone — they're identified and registered
-      // automatically the first time they open the dashboard. Adding
-      // someone here does NOT grant Publisher access by itself — that only
-      // happens once they open the link below, exactly once.
       const result = await api.addUser({ rollNumber: rollNumber.trim(), name: name.trim() }, user.token);
       setActivationLink(`${DASHBOARD_URL}?ucpnb_activate=${result.activationCode}`);
       setRollNumber("");
@@ -95,8 +74,23 @@ export function AdminPanel({ user }: Props) {
       await navigator.clipboard.writeText(activationLink);
       setCopied(true);
     } catch {
-      // Clipboard access can fail silently in some contexts — the link
-      // text is still visible and selectable manually either way.
+      /* clipboard access can fail silently in some contexts */
+    }
+  };
+
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCategoryError(null);
+    if (!newCategoryName.trim()) {
+      setCategoryError("Category name is required.");
+      return;
+    }
+    try {
+      const category = await api.createCategory(newCategoryName.trim(), user.token);
+      setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
+      setNewCategoryName("");
+    } catch {
+      setCategoryError("Could not add category — it may already exist.");
     }
   };
 

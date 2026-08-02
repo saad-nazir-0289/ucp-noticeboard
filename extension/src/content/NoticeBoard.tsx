@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { AuthUser } from "../types";
+import type { AuthUser, Category, Notice } from "../types";
 import { api } from "../api/client";
 import { findStudentIdentity } from "./studentIdentity";
 import { NoticeFeed } from "../components/NoticeFeed";
@@ -15,27 +15,21 @@ export function NoticeBoard() {
   const [status, setStatus] = useState<Status>("loading");
   const [tab, setTab] = useState<Tab>("feed");
 
+  // Bundled in the /login response — lets the feed render on the very
+  // first paint without waiting on a second network round trip.
+  const [bootstrapNotices, setBootstrapNotices] = useState<Notice[]>([]);
+  const [bootstrapCategories, setBootstrapCategories] = useState<Category[]>([]);
+
   useEffect(() => {
     let cancelled = false;
 
     async function identify() {
-      // Deliberately NOT cached in chrome.storage.local across page loads.
-      // Roles can change at any time (Admin promotes/demotes someone), and
-      // a stale cached session would keep showing the OLD role/tabs until
-      // someone manually cleared extension storage. Re-identifying every
-      // page load is cheap (one lightweight request) and guarantees the
-      // UI always reflects your current role.
       const identity = findStudentIdentity();
       if (!identity) {
         if (!cancelled) setStatus("identity-not-found");
         return;
       }
 
-      // A one-time Publisher/Admin activation link looks like
-      // ...dashboard?ucpnb_activate=<code>. Read it if present, then
-      // immediately scrub it from the visible URL so it's never left
-      // sitting in the address bar, browser history, or re-sent on a
-      // plain refresh.
       const params = new URLSearchParams(window.location.search);
       const activationCode = params.get("ucpnb_activate") ?? undefined;
       if (activationCode) {
@@ -49,7 +43,10 @@ export function NoticeBoard() {
 
       let loggedInUser: AuthUser;
       try {
-        loggedInUser = await api.login(identity.rollNumber, identity.name, activationCode);
+        const result = await api.login(identity.rollNumber, identity.name, activationCode);
+        loggedInUser = result;
+        setBootstrapNotices(result.notices);
+        setBootstrapCategories(result.categories);
       } catch {
         if (!cancelled) setStatus("error");
         return;
@@ -59,8 +56,6 @@ export function NoticeBoard() {
       setUser(loggedInUser);
       setStatus("ready");
 
-      // Counted every page load — this is what "views"/"visitors" in the
-      // Admin analytics tab are based on.
       api.recordVisit(loggedInUser.token).catch(() => {
         /* non-critical: don't block the UI if this fails */
       });
@@ -143,7 +138,13 @@ export function NoticeBoard() {
         )}
       </div>
 
-      {tab === "feed" && <NoticeFeed token={user.token} />}
+      {tab === "feed" && (
+        <NoticeFeed
+          token={user.token}
+          initialNotices={bootstrapNotices}
+          initialCategories={bootstrapCategories}
+        />
+      )}
       {tab === "myNotices" && user.role === "Publisher" && (
         <NoticeManager user={user} scope="mine" />
       )}

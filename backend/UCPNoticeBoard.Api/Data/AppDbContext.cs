@@ -45,12 +45,12 @@ public class AppDbContext : DbContext
                   .WithMany(c => c.Notices)
                   .HasForeignKey(n => n.CategoryId)
                   .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(n => n.CreatedAt);
         });
 
         modelBuilder.Entity<NoticeDismissal>(entity =>
         {
-            // A user can only dismiss a given notice once — re-dismissing
-            // is just a no-op, not a duplicate row.
             entity.HasIndex(d => new { d.UserId, d.NoticeId }).IsUnique();
         });
     }
