@@ -16,7 +16,7 @@
 
 UCP NoticeBoard injects a native-feeling notice feed directly into the UCP Student Portal dashboard the moment a student logs in — no separate account, no browser popup, no extra password. It reads the Roll Number the portal already displays, silently identifies the student against the backend, and renders a horizontally-scrolling carousel of notices right above the Classes/Grades section.
 
-Behind that simple experience is a full three-tier system: a Manifest V3 Chrome extension, an ASP.NET Core 8 API, and a PostgreSQL database — built as a real deployable product, not a toy demo.
+Behind that simple experience is a full three-tier system: a Manifest V3 Chrome extension, an ASP.NET Core 8 API, and a PostgreSQL database.
 
 ## Why it's interesting (the actual engineering)
 
