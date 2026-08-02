@@ -70,12 +70,9 @@ flowchart LR
 
 ## Getting started
 
-Full setup — local development, database migrations, and step-by-step production deployment — is documented separately:
+Full setup — local development, database migrations, and step-by-step production deployment.
 
-- [`SETUP.md`](./SETUP.md) — local dev environment, one step at a time
-- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — deploying the API + database, and publishing the extension
-
-Quick version, for anyone who just wants to see it run:
+Quick version, for anyone who just wants to see it run locally instead of installing from chrome web store (which is recommended btw):
 
 ```bash
 # Backend
@@ -124,7 +121,7 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [ ] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight)
+- [T] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight)
 - [ ] Push-style notifications for new notices
 - [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling
 
