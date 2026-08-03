@@ -16,7 +16,7 @@
 
 UCP NoticeBoard injects a native-feeling notice feed directly into the UCP Student Portal dashboard the moment a student logs in — no separate account, no browser popup, no extra password. It reads the Roll Number the portal already displays, silently identifies the student against the backend, and renders a horizontally-scrolling carousel of notices right above the Classes/Grades section.
 
-Behind that simple experience is a full three-tier system: a Manifest V3 Chrome extension, an ASP.NET Core 8 API, and a PostgreSQL database — built as a real deployable product, not a toy demo.
+Behind that simple experience is a full three-tier system: a Manifest V3 Chrome extension, an ASP.NET Core 8 API, and a PostgreSQL database.
 
 ## Why it's interesting (the actual engineering)
 
@@ -70,12 +70,9 @@ flowchart LR
 
 ## Getting started
 
-Full setup — local development, database migrations, and step-by-step production deployment — is documented separately:
+Full setup — local development, database migrations, and step-by-step production deployment.
 
-- [`SETUP.md`](./SETUP.md) — local dev environment, one step at a time
-- [`DEPLOYMENT.md`](./DEPLOYMENT.md) — deploying the API + database, and publishing the extension
-
-Quick version, for anyone who just wants to see it run:
+Quick version, for anyone who just wants to see it run locally instead of installing from chrome web store (which is recommended btw):
 
 ```bash
 # Backend
@@ -124,9 +121,9 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [ ] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight)
-- [ ] Push-style notifications for new notices
-- [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling
+- [ ] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight -- maybwe in another lifetime where db space is unlimited).
+- [ ] Push-style notifications for new notices (workin on it).
+- [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling (done).
 
 ## License
 
