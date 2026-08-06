@@ -65,7 +65,6 @@ flowchart LR
 **Database** — PostgreSQL
 **Deployment** — Docker · Railway
 
-## Screenshots
 
 
 ## Getting started
