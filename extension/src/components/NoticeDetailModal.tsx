@@ -23,6 +23,11 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
 
         {notice.imageUrl && (
           <div className="ucpnb-modal-image-wrap">
+            <div
+              className="ucpnb-modal-image-bg"
+              style={{ backgroundImage: `url(${notice.imageUrl})` }}
+              aria-hidden="true"
+            />
             <img className="ucpnb-modal-image" src={notice.imageUrl} alt="" />
           </div>
         )}
@@ -34,6 +39,12 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
             <span>By {notice.createdByName}</span>
             <span>·</span>
             <span>{formatDate(notice.createdAt)}</span>
+            {notice.deadline && (
+              <>
+                <span>·</span>
+                <span>Deadline: {formatDate(notice.deadline)}</span>
+              </>
+            )}
           </div>
           <p className="ucpnb-modal-desc">{notice.description}</p>
           {notice.linkUrl && (

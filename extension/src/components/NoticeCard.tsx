@@ -34,7 +34,14 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
 
       <div className="ucpnb-card-image-wrap">
         {notice.imageUrl ? (
-          <img className="ucpnb-card-image" src={notice.imageUrl} alt="" loading="lazy" />
+          <>
+            <div
+              className="ucpnb-card-image-bg"
+              style={{ backgroundImage: `url(${notice.imageUrl})` }}
+              aria-hidden="true"
+            />
+            <img className="ucpnb-card-image" src={notice.imageUrl} alt="" loading="lazy" />
+          </>
         ) : (
           <div className="ucpnb-card-image ucpnb-card-image-placeholder" aria-hidden="true">
             📌
@@ -63,6 +70,9 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
             </button>
           )}
         </div>
+        {notice.deadline && (
+          <div className="ucpnb-card-deadline">Deadline: {formatDate(notice.deadline)}</div>
+        )}
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ export interface Notice {
   linkUrl: string | null;
   categoryId: number | null;
   categoryName: string | null;
+  deadline: string | null;
   createdByUserId: number;
   createdByName: string;
   createdAt: string;

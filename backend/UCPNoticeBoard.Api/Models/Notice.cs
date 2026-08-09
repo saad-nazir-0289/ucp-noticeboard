@@ -8,6 +8,7 @@ public class Notice
     public string? ImageUrl { get; set; }
     public string? LinkUrl { get; set; }
     public int? CategoryId { get; set; }
+    public DateTime? Deadline { get; set; }
     public int CreatedByUserId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

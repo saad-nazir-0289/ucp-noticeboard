@@ -25,10 +25,23 @@ public class NoticesController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
+    private static NoticeDto ToDto(Notice n) => new(
+        n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
+        n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt);
+
+    /// <summary>
+    /// includeExpired=true is for Admin/Publisher management views ONLY —
+    /// it shows every notice regardless of whether it's currently visible
+    /// to students, so they can review/edit/delete old ones. The student
+    /// feed never sets this.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<NoticeDto>>> GetNotices([FromQuery] bool includeDismissed = false)
+    public async Task<ActionResult<List<NoticeDto>>> GetNotices(
+        [FromQuery] bool includeDismissed = false,
+        [FromQuery] bool includeExpired = false)
     {
-        return Ok(await _noticeQuery.GetActiveNoticesAsync(CurrentUserId, includeDismissed));
+        return Ok(await _noticeQuery.GetActiveNoticesAsync(CurrentUserId, includeDismissed, includeExpired));
     }
 
     [HttpGet("{id}")]
@@ -39,11 +52,7 @@ public class NoticesController : ControllerBase
             .Include(n => n.Category)
             .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
-
-        return Ok(new NoticeDto(
-            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
-            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
-            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt));
+        return Ok(ToDto(notice));
     }
 
     [HttpGet("dismissed")]
@@ -100,6 +109,7 @@ public class NoticesController : ControllerBase
             ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim(),
             LinkUrl = string.IsNullOrWhiteSpace(request.LinkUrl) ? null : request.LinkUrl.Trim(),
             CategoryId = request.CategoryId,
+            Deadline = request.Deadline?.ToUniversalTime(),
             CreatedByUserId = CurrentUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -115,12 +125,7 @@ public class NoticesController : ControllerBase
             await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
         }
 
-        var dto = new NoticeDto(
-            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
-            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
-            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt);
-
-        return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, dto);
+        return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, ToDto(notice));
     }
 
     [HttpPut("{id}")]
@@ -149,16 +154,14 @@ public class NoticesController : ControllerBase
         notice.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
         notice.LinkUrl = string.IsNullOrWhiteSpace(request.LinkUrl) ? null : request.LinkUrl.Trim();
         notice.CategoryId = request.CategoryId;
+        notice.Deadline = request.Deadline?.ToUniversalTime();
         notice.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
         await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
 
-        return Ok(new NoticeDto(
-            notice.Id, notice.Title, notice.Description, notice.ImageUrl, notice.LinkUrl,
-            notice.CategoryId, notice.Category?.Name, notice.CreatedByUserId,
-            notice.CreatedByUser?.Name ?? "Unknown", notice.CreatedAt, notice.UpdatedAt));
+        return Ok(ToDto(notice));
     }
 
     [HttpDelete("{id}")]

@@ -48,8 +48,13 @@ export const api = {
       body: JSON.stringify({ rollNumber, name, activationCode }),
     }),
 
-  getNotices: (token: string, includeDismissed = false) =>
-    request<Notice[]>(`/notices${includeDismissed ? "?includeDismissed=true" : ""}`, {}, token),
+  getNotices: (token: string, includeDismissed = false, includeExpired = false) => {
+    const params = new URLSearchParams();
+    if (includeDismissed) params.set("includeDismissed", "true");
+    if (includeExpired) params.set("includeExpired", "true");
+    const query = params.toString();
+    return request<Notice[]>(`/notices${query ? `?${query}` : ""}`, {}, token);
+  },
 
   getNotice: (id: number, token: string) =>
     request<Notice>(`/notices/${id}`, {}, token),
@@ -58,7 +63,14 @@ export const api = {
     request<Notice[]>("/notices/dismissed", {}, token),
 
   createNotice: (
-    data: { title: string; description: string; imageUrl: string; linkUrl: string; categoryId: number | null },
+    data: {
+      title: string;
+      description: string;
+      imageUrl: string;
+      linkUrl: string;
+      categoryId: number | null;
+      deadline: string | null;
+    },
     token: string
   ) =>
     request<Notice>(
@@ -69,7 +81,14 @@ export const api = {
 
   updateNotice: (
     id: number,
-    data: { title: string; description: string; imageUrl: string; linkUrl: string; categoryId: number | null },
+    data: {
+      title: string;
+      description: string;
+      imageUrl: string;
+      linkUrl: string;
+      categoryId: number | null;
+      deadline: string | null;
+    },
     token: string
   ) =>
     request<Notice>(

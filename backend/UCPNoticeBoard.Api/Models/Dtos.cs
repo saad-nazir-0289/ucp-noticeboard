@@ -32,15 +32,16 @@ public record NoticeDto(
     string? LinkUrl,
     int? CategoryId,
     string? CategoryName,
+    DateTime? Deadline,
     int CreatedByUserId,
     string CreatedByName,
     DateTime CreatedAt,
     DateTime UpdatedAt
 );
 
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId);
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline);
 
 public record CategoryDto(int Id, string Name);
 

@@ -3,7 +3,7 @@ namespace UCPNoticeBoard.Api.Models;
 /// <summary>
 /// A user "crossing out" a notice only hides it from THEIR OWN feed — it's
 /// a personal read-state, not a moderation action. The notice itself is
-/// untouched and still visible to everyone else. i like the explanation.
+/// untouched and still visible to everyone else.
 /// </summary>
 public class NoticeDismissal
 {
