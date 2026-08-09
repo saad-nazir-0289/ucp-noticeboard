@@ -65,7 +65,6 @@ flowchart LR
 **Database** — PostgreSQL
 **Deployment** — Docker · Railway
 
-## Screenshots
 
 
 ## Getting started
@@ -121,7 +120,7 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [ ] Real image uploads (currently poster images are URL-based, to keep the MVP scope tight -- maybwe in another lifetime where db space is unlimited).
+- [ ] Real image uploads (currently poster images are URL-based, to keep the db space tight -- maybwe in another lifetime where db space is unlimited).
 - [ ] Push-style notifications for new notices (workin on it).
 - [ ] Public Chrome Web Store listing, pending university sign-off on branding/data handling (done).
 
