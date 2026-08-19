@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Notice> Notices => Set<Notice>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<NoticeDismissal> NoticeDismissals => Set<NoticeDismissal>();
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +53,18 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<NoticeDismissal>(entity =>
         {
             entity.HasIndex(d => new { d.UserId, d.NoticeId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PushSubscription>(entity =>
+        {
+            entity.Property(p => p.Endpoint).IsRequired().HasMaxLength(2000);
+            entity.Property(p => p.P256dh).IsRequired().HasMaxLength(500);
+            entity.Property(p => p.Auth).IsRequired().HasMaxLength(500);
+            // A given browser subscription (endpoint) should only ever map
+            // to one row — re-subscribing with the same endpoint updates
+            // it rather than creating a duplicate.
+            entity.HasIndex(p => p.Endpoint).IsUnique();
+            entity.HasIndex(p => p.UserId);
         });
     }
 }

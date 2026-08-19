@@ -15,11 +15,13 @@ public class NoticesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly INoticeQueryService _noticeQuery;
+    private readonly IPushNotificationService _pushNotification;
 
-    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery)
+    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery, IPushNotificationService pushNotification)
     {
         _db = db;
         _noticeQuery = noticeQuery;
+        _pushNotification = pushNotification;
     }
 
     private int CurrentUserId =>
@@ -125,8 +127,25 @@ public class NoticesController : ControllerBase
             await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
         }
 
+        // Fire-and-forget-safe: a failure here should never make notice
+        // creation itself fail. NotifyAllAsync already catches its own
+        // per-subscription errors, but this outer try/catch is a second
+        // safety net in case something unexpected happens before that.
+        try
+        {
+            await _pushNotification.NotifyAllAsync(notice.Title, TrimForPush(notice.Description));
+        }
+        catch (Exception)
+        {
+            // Notice creation already succeeded — a push failure shouldn't
+            // surface as an error to the Publisher/Admin who just posted it.
+        }
+
         return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, ToDto(notice));
     }
+
+    private static string TrimForPush(string description) =>
+        description.Length > 120 ? description[..120] + "..." : description;
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Publisher,Admin")]

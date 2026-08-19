@@ -54,6 +54,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INoticeQueryService, NoticeQueryService>();
+builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
 
 // --- Auth ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");

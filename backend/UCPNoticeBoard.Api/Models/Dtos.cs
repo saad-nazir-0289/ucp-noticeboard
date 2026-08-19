@@ -55,3 +55,7 @@ public record AnalyticsSummaryDto(
     int TotalViews,
     int ActiveLast7Days
 );
+
+public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
+
+public record VapidPublicKeyResponse(string PublicKey);
