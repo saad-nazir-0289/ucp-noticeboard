@@ -14,3 +14,4 @@ obj/
 # Env
 .env
 appsettings.Development.json
+context.md
