@@ -150,9 +150,9 @@ export function App() {
                 {pushState === "working" ? "Enabling..." : "🔔 Enable Notifications"}
               </button>
             )}
-            <button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
+            {/* <button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
               Not you?
-            </button>
+            </button> */}
           </div>
         </div>
 
