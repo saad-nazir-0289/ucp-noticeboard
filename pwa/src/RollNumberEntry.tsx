@@ -35,7 +35,7 @@ export function RollNumberEntry({ onSubmit }: Props) {
       <div className="ucpnb-onboarding-card">
         <h2>Welcome to UCP NoticeBoard</h2>
         <p className="ucpnb-status">
-          Enter your Roll Number once - this device will remember it, no need
+          Enter your Roll Number once — this device will remember it, no need
           to type it again.
         </p>
         <form onSubmit={handleSubmit} className="ucpnb-form">

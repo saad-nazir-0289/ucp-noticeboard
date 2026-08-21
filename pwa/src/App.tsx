@@ -20,9 +20,28 @@ export function App() {
   const [bootstrapNotices, setBootstrapNotices] = useState<Notice[]>([]);
   const [bootstrapCategories, setBootstrapCategories] = useState<Category[]>([]);
   const [pushState, setPushState] = useState<PushState>("not-subscribed");
+  const [deepLinkNoticeId, setDeepLinkNoticeId] = useState<number | undefined>(undefined);
 
   useEffect(() => {
     registerServiceWorker();
+
+    // A shared notice link looks like ...?notice=<id>. Captured into state
+    // here (not left in the URL) so it survives the onboarding step too —
+    // someone opening a shared link for the very first time still goes
+    // through Roll Number entry first, then lands on the actual notice
+    // instead of just the plain feed.
+    const params = new URLSearchParams(window.location.search);
+    const noticeParam = params.get("notice");
+    if (noticeParam) {
+      const id = Number(noticeParam);
+      if (!Number.isNaN(id)) setDeepLinkNoticeId(id);
+      params.delete("notice");
+      const cleanUrl =
+        window.location.pathname +
+        (params.toString() ? `?${params.toString()}` : "") +
+        window.location.hash;
+      window.history.replaceState({}, "", cleanUrl);
+    }
   }, []);
 
   const login = async (rollNumber: string) => {
@@ -131,10 +150,9 @@ export function App() {
                 {pushState === "working" ? "Enabling..." : "🔔 Enable Notifications"}
               </button>
             )}
-            { /**
-            *<button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
-              * Not you?
-              *</button>*/}
+            <button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
+              Not you?
+            </button>
           </div>
         </div>
 
@@ -142,6 +160,7 @@ export function App() {
           token={user.token}
           initialNotices={bootstrapNotices}
           initialCategories={bootstrapCategories}
+          deepLinkNoticeId={deepLinkNoticeId}
         />
       </div>
     </div>

@@ -8,9 +8,10 @@ interface Props {
   token: string;
   initialNotices?: Notice[];
   initialCategories?: Category[];
+  deepLinkNoticeId?: number;
 }
 
-export function NoticeFeed({ token, initialNotices, initialCategories }: Props) {
+export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId }: Props) {
   const [notices, setNotices] = useState<Notice[]>(initialNotices ?? []);
   const [categories, setCategories] = useState<Category[]>(initialCategories ?? []);
   const [loading, setLoading] = useState(!initialNotices);
@@ -51,6 +52,20 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  useEffect(() => {
+    // Deliberately fetches by ID directly rather than searching the
+    // already-loaded notices list — /notices/{id} has no expiry filter,
+    // so a shared link still opens correctly even if the notice has since
+    // aged out of the normal feed for everyone else.
+    if (!deepLinkNoticeId) return;
+    api
+      .getNotice(deepLinkNoticeId, token)
+      .then(setSelected)
+      .catch(() => {
+        /* notice may have been deleted since the link was shared — just show the normal feed */
+      });
+  }, [deepLinkNoticeId, token]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();

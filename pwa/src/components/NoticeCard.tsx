@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Notice } from "../types";
+import { shareNotice } from "../share";
 
 interface Props {
   notice: Notice;
@@ -16,6 +18,17 @@ function formatDate(iso: string) {
 }
 
 export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const result = await shareNotice(notice);
+    if (result === "copied") {
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   return (
     <div className="ucpnb-card" onClick={() => onView(notice)} role="button" tabIndex={0}>
       {onDismiss && (
@@ -47,6 +60,14 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
             📌
           </div>
         )}
+        <button
+          className="ucpnb-card-share"
+          aria-label="Share this notice"
+          title={shared ? "Link copied!" : "Share this notice"}
+          onClick={handleShare}
+        >
+          {shared ? "✓" : "🔗"}
+        </button>
       </div>
       <div className="ucpnb-card-body">
         {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}

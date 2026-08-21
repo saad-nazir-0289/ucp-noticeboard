@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Notice } from "../types";
+import { shareNotice } from "../share";
 
 interface Props {
   notice: Notice;
@@ -14,6 +16,16 @@ function formatDate(iso: string) {
 }
 
 export function NoticeDetailModal({ notice, onClose }: Props) {
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async () => {
+    const result = await shareNotice(notice);
+    if (result === "copied") {
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   return (
     <div className="ucpnb-modal-overlay" onClick={onClose}>
       <div className="ucpnb-modal" onClick={(e) => e.stopPropagation()}>
@@ -47,16 +59,21 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
             )}
           </div>
           <p className="ucpnb-modal-desc">{notice.description}</p>
-          {notice.linkUrl && (
-            <a
-              className="ucpnb-btn ucpnb-btn-primary ucpnb-modal-link"
-              href={notice.linkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Open Link
-            </a>
-          )}
+          <div className="ucpnb-modal-actions">
+            {notice.linkUrl && (
+              <a
+                className="ucpnb-btn ucpnb-btn-primary"
+                href={notice.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open Link
+              </a>
+            )}
+            <button className="ucpnb-btn" onClick={handleShare}>
+              {shared ? "Link copied!" : "🔗 Share"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

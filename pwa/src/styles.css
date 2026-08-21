@@ -228,6 +228,28 @@ body {
   background: rgba(15, 23, 42, 0.8);
 }
 
+.ucpnb-card-share {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ucpnb-card-share:active {
+  background: rgba(15, 23, 42, 0.8);
+}
+
 /* Bigger image area than the extension's version — full card width now,
    not squeezed into a 210-280px carousel tile, so it can afford to breathe. */
 .ucpnb-card-image-wrap {
@@ -482,10 +504,16 @@ body {
   z-index: 1;
 }
 
-.ucpnb-modal-link {
-  display: block;
-  text-align: center;
+.ucpnb-modal-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-top: 8px;
+}
+
+.ucpnb-modal-actions .ucpnb-btn {
+  flex: 1;
+  text-align: center;
 }
 
 .ucpnb-modal-content {
