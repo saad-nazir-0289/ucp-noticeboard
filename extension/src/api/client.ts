@@ -131,6 +131,13 @@ export const api = {
       token
     ),
 
+  updateUserName: (id: number, name: string, token: string) =>
+    request<UserListItem>(
+      `/users/${id}/name`,
+      { method: "PATCH", body: JSON.stringify({ name }) },
+      token
+    ),
+
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),
 

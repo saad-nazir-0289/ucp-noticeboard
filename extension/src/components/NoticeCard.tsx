@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { Notice } from "../types";
+import { shareNotice } from "../content/share";
+import { optimizeImageUrl } from "../content/imageOptimize";
 
 interface Props {
   notice: Notice;
@@ -16,6 +19,17 @@ function formatDate(iso: string) {
 }
 
 export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
+  const [shared, setShared] = useState(false);
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const result = await shareNotice(notice);
+    if (result === "copied") {
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   return (
     <div className="ucpnb-card" onClick={() => onView(notice)} role="button" tabIndex={0}>
       {onDismiss && (
@@ -37,28 +51,35 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
           <>
             <div
               className="ucpnb-card-image-bg"
-              style={{ backgroundImage: `url(${notice.imageUrl})` }}
+              style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 40)})` }}
               aria-hidden="true"
             />
-            <img className="ucpnb-card-image" src={notice.imageUrl} alt="" loading="lazy" />
+            <img
+              className="ucpnb-card-image"
+              src={optimizeImageUrl(notice.imageUrl, 400) ?? undefined}
+              alt=""
+              loading="lazy"
+            />
           </>
         ) : (
           <div className="ucpnb-card-image ucpnb-card-image-placeholder" aria-hidden="true">
             📌
           </div>
         )}
+        <button
+          className="ucpnb-card-share"
+          aria-label="Share this notice"
+          title={shared ? "Link copied!" : "Share this notice"}
+          onClick={handleShare}
+        >
+          {shared ? "✓" : "🔗"}
+        </button>
       </div>
       <div className="ucpnb-card-body">
         {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
         <h4 className="ucpnb-card-title">{notice.title}</h4>
-        <p className="ucpnb-card-desc">
-          {notice.description.length > 90
-            ? `${notice.description.slice(0, 90)}...`
-            : notice.description}
-        </p>
-        <div className="ucpnb-card-footer">
-          <span className="ucpnb-card-date">{formatDate(notice.createdAt)}</span>
-          {onRestore && (
+        {onRestore && (
+          <div className="ucpnb-card-footer">
             <button
               className="ucpnb-btn ucpnb-btn-link"
               onClick={(e) => {
@@ -68,8 +89,8 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
             >
               Restore
             </button>
-          )}
-        </div>
+          </div>
+        )}
         {notice.deadline && (
           <div className="ucpnb-card-deadline">Deadline: {formatDate(notice.deadline)}</div>
         )}

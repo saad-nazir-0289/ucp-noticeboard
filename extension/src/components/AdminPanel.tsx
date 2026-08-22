@@ -14,6 +14,9 @@ export function AdminPanel({ user }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [editingNameId, setEditingNameId] = useState<number | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState("");
+
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -45,6 +48,33 @@ export function AdminPanel({ user }: Props) {
     } catch {
       setUsers(previous);
       setError("Could not update role.");
+    }
+  };
+
+  const startEditName = (u: UserListItem) => {
+    setEditingNameId(u.id);
+    setEditingNameValue(u.name);
+  };
+
+  const cancelEditName = () => {
+    setEditingNameId(null);
+    setEditingNameValue("");
+  };
+
+  const saveEditName = async (id: number) => {
+    const trimmed = editingNameValue.trim();
+    if (!trimmed) {
+      cancelEditName();
+      return;
+    }
+    const previous = users;
+    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, name: trimmed } : u)));
+    cancelEditName();
+    try {
+      await api.updateUserName(id, trimmed, user.token);
+    } catch {
+      setUsers(previous);
+      setError("Could not update name.");
     }
   };
 
@@ -146,7 +176,9 @@ export function AdminPanel({ user }: Props) {
       {error && <p className="ucpnb-error">{error}</p>}
       <p className="ucpnb-status">
         Change anyone's role here — e.g. remove Publisher access, or promote
-        someone to Admin.
+        someone to Admin. Click a name to correct it — this is now the only
+        way a name can change; students can no longer rename themselves (or
+        anyone else) just by guessing a Roll Number.
       </p>
       <table className="ucpnb-table">
         <thead>
@@ -159,7 +191,29 @@ export function AdminPanel({ user }: Props) {
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td>{u.name}</td>
+              <td>
+                {editingNameId === u.id ? (
+                  <input
+                    type="text"
+                    value={editingNameValue}
+                    autoFocus
+                    onChange={(e) => setEditingNameValue(e.target.value)}
+                    onBlur={() => saveEditName(u.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveEditName(u.id);
+                      if (e.key === "Escape") cancelEditName();
+                    }}
+                  />
+                ) : (
+                  <button
+                    className="ucpnb-btn ucpnb-btn-link"
+                    onClick={() => startEditName(u)}
+                    title="Click to edit name"
+                  >
+                    {u.name}
+                  </button>
+                )}
+              </td>
               <td>{u.rollNumber}</td>
               <td>
                 <select
