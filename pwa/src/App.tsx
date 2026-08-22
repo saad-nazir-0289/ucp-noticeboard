@@ -188,6 +188,16 @@ export function App() {
           initialCategories={bootstrapCategories}
           deepLinkNoticeId={deepLinkNoticeId}
         />
+
+        <div className="ucpnb-footer">
+          <a
+            href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            💬 Enjoying this? Leave feedback & a review
+          </a>
+        </div>
       </div>
     </div>
   );

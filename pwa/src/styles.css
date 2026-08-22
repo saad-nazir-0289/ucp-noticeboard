@@ -830,3 +830,19 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+.ucpnb-footer {
+  margin-top: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.ucpnb-footer a {
+  font-size: 13px;
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.ucpnb-footer a:active {
+  color: #1a5da8;
+}
