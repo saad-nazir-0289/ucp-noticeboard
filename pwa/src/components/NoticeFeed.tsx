@@ -13,10 +13,10 @@ interface Props {
   deepLinkNoticeId?: number;
 }
 
-type ViewMode = "card" | "list";
+export type ViewMode = "card" | "list";
 const VIEW_MODE_KEY = "ucpnb_viewMode";
 
-function getSavedViewMode(): ViewMode {
+export function getSavedViewMode(): ViewMode {
   const saved = localStorage.getItem(VIEW_MODE_KEY);
   return saved === "list" ? "list" : "card";
 }

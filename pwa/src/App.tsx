@@ -9,7 +9,8 @@ import {
   unsubscribeFromPush,
 } from "./push";
 import { RollNumberEntry } from "./RollNumberEntry";
-import { NoticeFeed } from "./components/NoticeFeed";
+import { NoticeFeed, getSavedViewMode } from "./components/NoticeFeed";
+import { NoticeSkeleton } from "./components/NoticeSkeleton";
 
 type Status = "loading" | "needs-identity" | "ready" | "error";
 type PushState = "unsupported" | "subscribed" | "not-subscribed" | "working";
@@ -112,7 +113,12 @@ export function App() {
   if (status === "loading") {
     return (
       <div className="ucpnb-page">
-        <p className="ucpnb-status">Loading...</p>
+        <div className="ucpnb-section">
+          <div className="ucpnb-header">
+            <h3>Latest Updates</h3>
+          </div>
+          <NoticeSkeleton viewMode={getSavedViewMode()} />
+        </div>
       </div>
     );
   }
