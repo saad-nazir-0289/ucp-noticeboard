@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AuthUser, Category, Notice } from "../types";
 import { api } from "../api/client";
 import { findStudentIdentity } from "./studentIdentity";
+import { PWA_BASE_URL } from "./share";
 import { NoticeFeed } from "../components/NoticeFeed";
 import { NoticeManager } from "../components/NoticeManager";
 import { AdminPanel } from "../components/AdminPanel";
@@ -96,46 +97,57 @@ export function NoticeBoard() {
     <div className="ucpnb-section">
       <div className="ucpnb-header">
         <h3>Latest Updates</h3>
-        {(user.role === "Publisher" || user.role === "Admin") && (
-          <nav className="ucpnb-tabs">
-            <button
-              className={tab === "feed" ? "ucpnb-tab active" : "ucpnb-tab"}
-              onClick={() => setTab("feed")}
-            >
-              Notices
-            </button>
-            {user.role === "Publisher" && (
+        <div className="ucpnb-header-actions">
+          {(user.role === "Publisher" || user.role === "Admin") && (
+            <nav className="ucpnb-tabs">
               <button
-                className={tab === "myNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
-                onClick={() => setTab("myNotices")}
+                className={tab === "feed" ? "ucpnb-tab active" : "ucpnb-tab"}
+                onClick={() => setTab("feed")}
               >
-                My Notices
+                Notices
               </button>
-            )}
-            {user.role === "Admin" && (
-              <>
+              {user.role === "Publisher" && (
                 <button
-                  className={tab === "allNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
-                  onClick={() => setTab("allNotices")}
+                  className={tab === "myNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
+                  onClick={() => setTab("myNotices")}
                 >
-                  All Notices
+                  My Notices
                 </button>
-                <button
-                  className={tab === "users" ? "ucpnb-tab active" : "ucpnb-tab"}
-                  onClick={() => setTab("users")}
-                >
-                  Manage Users
-                </button>
-                <button
-                  className={tab === "analytics" ? "ucpnb-tab active" : "ucpnb-tab"}
-                  onClick={() => setTab("analytics")}
-                >
-                  Analytics
-                </button>
-              </>
-            )}
-          </nav>
-        )}
+              )}
+              {user.role === "Admin" && (
+                <>
+                  <button
+                    className={tab === "allNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
+                    onClick={() => setTab("allNotices")}
+                  >
+                    All Notices
+                  </button>
+                  <button
+                    className={tab === "users" ? "ucpnb-tab active" : "ucpnb-tab"}
+                    onClick={() => setTab("users")}
+                  >
+                    Manage Users
+                  </button>
+                  <button
+                    className={tab === "analytics" ? "ucpnb-tab active" : "ucpnb-tab"}
+                    onClick={() => setTab("analytics")}
+                  >
+                    Analytics
+                  </button>
+                </>
+              )}
+            </nav>
+          )}
+          <a
+            className="ucpnb-btn"
+            href={`${PWA_BASE_URL}/?enableNotifications=1`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Notifications aren't available inside the extension itself — this opens the mobile-friendly site, where they are"
+          >
+            🔔 Notifications
+          </a>
+        </div>
       </div>
 
       {tab === "feed" && (

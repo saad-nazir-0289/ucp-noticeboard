@@ -29,6 +29,13 @@
   color: #12395c;
 }
 
+.ucpnb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .ucpnb-tabs {
   display: flex;
   gap: 6px;

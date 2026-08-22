@@ -8,7 +8,7 @@ import type { Notice } from "../types";
  * points at the standalone PWA — the only surface that's actually a real,
  * openable webpage on its own.
  */
-const PWA_BASE_URL = "https://ucp-noticeboard.msndev.workers.dev";
+export const PWA_BASE_URL = "https://ucp-noticeboard.msndev.workers.dev";
 
 export async function shareNotice(notice: Notice): Promise<"shared" | "copied" | "failed"> {
   const url = `${PWA_BASE_URL}/?notice=${notice.id}`;
