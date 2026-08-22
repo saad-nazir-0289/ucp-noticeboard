@@ -2,13 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api/client";
 import type { Category, Notice } from "../types";
 import { NoticeCard } from "./NoticeCard";
+import { NoticeListItem } from "./NoticeListItem";
 import { NoticeDetailModal } from "./NoticeDetailModal";
+import { NoticeSkeleton } from "./NoticeSkeleton";
 
 interface Props {
   token: string;
   initialNotices?: Notice[];
   initialCategories?: Category[];
   deepLinkNoticeId?: number;
+}
+
+type ViewMode = "card" | "list";
+const VIEW_MODE_KEY = "ucpnb_viewMode";
+
+function getSavedViewMode(): ViewMode {
+  const saved = localStorage.getItem(VIEW_MODE_KEY);
+  return saved === "list" ? "list" : "card";
 }
 
 export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId }: Props) {
@@ -21,15 +31,13 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "all">("all");
   const [showGrid, setShowGrid] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
 
   const [showHidden, setShowHidden] = useState(false);
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
 
   useEffect(() => {
-    // Already have data from the login bootstrap — nothing to fetch on
-    // mount. This is the whole point: first paint costs zero extra
-    // round trips when bootstrap data was provided.
     if (initialNotices) return;
 
     let cancelled = false;
@@ -54,10 +62,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   }, [token]);
 
   useEffect(() => {
-    // Deliberately fetches by ID directly rather than searching the
-    // already-loaded notices list — /notices/{id} has no expiry filter,
-    // so a shared link still opens correctly even if the notice has since
-    // aged out of the normal feed for everyone else.
     if (!deepLinkNoticeId) return;
     api
       .getNotice(deepLinkNoticeId, token)
@@ -80,12 +84,15 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   }, [notices, search, categoryId]);
 
   const handleDismiss = (notice: Notice) => {
-    // Optimistic: remove immediately, don't make the user wait on a request
-    // just to hide something they've already decided they don't want to see.
     setNotices((prev) => prev.filter((n) => n.id !== notice.id));
     api.dismissNotice(notice.id, token).catch(() => {
       /* if this fails, it just reappears on the next reload — not critical */
     });
+  };
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_MODE_KEY, mode);
   };
 
   const openHidden = () => {
@@ -100,8 +107,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
 
   const handleRestore = (notice: Notice) => {
     setDismissedNotices((prev) => prev.filter((n) => n.id !== notice.id));
-    // Bring it straight back into the main feed too, in the right position,
-    // rather than waiting for a full reload to notice it's back.
     setNotices((prev) =>
       [notice, ...prev.filter((n) => n.id !== notice.id)].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -112,7 +117,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     });
   };
 
-  if (loading) return <p className="ucpnb-status">Loading notices...</p>;
   if (error) return <p className="ucpnb-error">{error}</p>;
 
   const toolbar = (
@@ -139,7 +143,23 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
             ))}
           </select>
         )}
-        <button className="ucpnb-btn" onClick={() => setShowGrid(true)}>
+        <div className="ucpnb-view-toggle" role="group" aria-label="Choose view">
+          <button
+            className={viewMode === "card" ? "ucpnb-view-toggle-btn active" : "ucpnb-view-toggle-btn"}
+            onClick={() => handleViewModeChange("card")}
+            title="Card view"
+          >
+            ▦
+          </button>
+          <button
+            className={viewMode === "list" ? "ucpnb-view-toggle-btn active" : "ucpnb-view-toggle-btn"}
+            onClick={() => handleViewModeChange("list")}
+            title="List view"
+          >
+            ☰
+          </button>
+        </div>
+        <button className="ucpnb-btn ucpnb-btn-viewall" onClick={() => setShowGrid(true)}>
           View All
         </button>
         <button className="ucpnb-btn" onClick={openHidden}>
@@ -153,10 +173,18 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     <>
       {toolbar}
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <NoticeSkeleton viewMode={viewMode} />
+      ) : filtered.length === 0 ? (
         <p className="ucpnb-status">
           {notices.length === 0 ? "No notices yet." : "No notices match your search/filter."}
         </p>
+      ) : viewMode === "list" ? (
+        <div className="ucpnb-list">
+          {filtered.map((notice) => (
+            <NoticeListItem key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+          ))}
+        </div>
       ) : (
         <div className="ucpnb-feed">
           {filtered.map((notice) => (

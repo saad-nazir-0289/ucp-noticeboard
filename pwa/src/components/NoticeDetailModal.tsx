@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
+import { optimizeImageUrl } from "../imageOptimize";
 
 interface Props {
   notice: Notice;
@@ -37,10 +38,10 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
           <div className="ucpnb-modal-image-wrap">
             <div
               className="ucpnb-modal-image-bg"
-              style={{ backgroundImage: `url(${notice.imageUrl})` }}
+              style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 60)})` }}
               aria-hidden="true"
             />
-            <img className="ucpnb-modal-image" src={notice.imageUrl} alt="" />
+            <img className="ucpnb-modal-image" src={optimizeImageUrl(notice.imageUrl, 900) ?? undefined} alt="" />
           </div>
         )}
 

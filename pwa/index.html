@@ -13,6 +13,11 @@
          Screen" behave like a real installed app rather than a bookmark. -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Starts the DNS lookup + TLS handshake for these before the app's
+         JS even runs its first fetch — shaves that round trip off the
+         very first request instead of paying for it inline. -->
+    <link rel="preconnect" href="https://ucp-noticeboard-api-production.up.railway.app" />
+    <link rel="preconnect" href="https://res.cloudinary.com" />
   </head>
   <body>
     <div id="root"></div>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
+import { optimizeImageUrl } from "../imageOptimize";
 
 interface Props {
   notice: Notice;
@@ -50,10 +51,15 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
           <>
             <div
               className="ucpnb-card-image-bg"
-              style={{ backgroundImage: `url(${notice.imageUrl})` }}
+              style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 40)})` }}
               aria-hidden="true"
             />
-            <img className="ucpnb-card-image" src={notice.imageUrl} alt="" loading="lazy" />
+            <img
+              className="ucpnb-card-image"
+              src={optimizeImageUrl(notice.imageUrl, 600) ?? undefined}
+              alt=""
+              loading="lazy"
+            />
           </>
         ) : (
           <div className="ucpnb-card-image ucpnb-card-image-placeholder" aria-hidden="true">
