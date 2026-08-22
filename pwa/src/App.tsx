@@ -22,6 +22,7 @@ export function App() {
   const [bootstrapCategories, setBootstrapCategories] = useState<Category[]>([]);
   const [pushState, setPushState] = useState<PushState>("not-subscribed");
   const [deepLinkNoticeId, setDeepLinkNoticeId] = useState<number | undefined>(undefined);
+  const [autoEnableNotifications, setAutoEnableNotifications] = useState(false);
 
   useEffect(() => {
     registerServiceWorker();
@@ -37,12 +38,24 @@ export function App() {
       const id = Number(noticeParam);
       if (!Number.isNaN(id)) setDeepLinkNoticeId(id);
       params.delete("notice");
-      const cleanUrl =
-        window.location.pathname +
-        (params.toString() ? `?${params.toString()}` : "") +
-        window.location.hash;
-      window.history.replaceState({}, "", cleanUrl);
     }
+
+    // The extension's notifications bell can't actually enable push itself
+    // (it runs inside the UCP portal page, not a context that can hold a
+    // push subscription), so it links here instead. This flag makes that
+    // one click actually feel like one click — the permission prompt
+    // fires automatically on arrival instead of making them find and tap
+    // yet another button once they land.
+    if (params.get("enableNotifications")) {
+      setAutoEnableNotifications(true);
+      params.delete("enableNotifications");
+    }
+
+    const cleanUrl =
+      window.location.pathname +
+      (params.toString() ? `?${params.toString()}` : "") +
+      window.location.hash;
+    window.history.replaceState({}, "", cleanUrl);
   }, []);
 
   const login = async (rollNumber: string) => {
@@ -109,6 +122,15 @@ export function App() {
     await unsubscribeFromPush(user.token);
     setPushState("not-subscribed");
   };
+
+  useEffect(() => {
+    if (status !== "ready" || !autoEnableNotifications || pushState !== "not-subscribed") return;
+    // Only ever fire once — reset immediately so a later re-render (or the
+    // user manually disabling notifications afterward) never re-triggers it.
+    setAutoEnableNotifications(false);
+    handleEnableNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, autoEnableNotifications, pushState]);
 
   if (status === "loading") {
     return (
