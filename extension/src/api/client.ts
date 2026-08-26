@@ -1,7 +1,7 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
 // Change this to your deployed backend URL in production.
-const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
+export const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
 
 class ApiError extends Error {
   status: number;
@@ -70,6 +70,7 @@ export const api = {
       linkUrl: string;
       categoryId: number | null;
       deadline: string | null;
+      pin: string;
     },
     token: string
   ) =>
@@ -88,6 +89,7 @@ export const api = {
       linkUrl: string;
       categoryId: number | null;
       deadline: string | null;
+      pin: string;
     },
     token: string
   ) =>
@@ -97,8 +99,8 @@ export const api = {
       token
     ),
 
-  deleteNotice: (id: number, token: string) =>
-    request<void>(`/notices/${id}`, { method: "DELETE" }, token),
+  deleteNotice: (id: number, pin: string, token: string) =>
+    request<void>(`/notices/${id}?pin=${encodeURIComponent(pin)}`, { method: "DELETE" }, token),
 
   dismissNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),
@@ -125,7 +127,7 @@ export const api = {
     ),
 
   updateUserRole: (id: number, role: UserRole, token: string) =>
-    request<UserListItem>(
+    request<UpdateUserRoleResult>(
       `/users/${id}/role`,
       { method: "PATCH", body: JSON.stringify({ role }) },
       token
@@ -137,6 +139,9 @@ export const api = {
       { method: "PATCH", body: JSON.stringify({ name }) },
       token
     ),
+
+  resetUserPin: (id: number, token: string) =>
+    request<void>(`/users/${id}/reset-pin`, { method: "POST" }, token),
 
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),

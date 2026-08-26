@@ -44,6 +44,7 @@ export function NoticeManager({ user, scope }: Props) {
   const [linkUrl, setLinkUrl] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [deadline, setDeadline] = useState("");
+  const [pin, setPin] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +75,7 @@ export function NoticeManager({ user, scope }: Props) {
     setLinkUrl("");
     setCategoryId("");
     setDeadline("");
+    setPin("");
     setError(null);
   };
 
@@ -103,7 +105,7 @@ export function NoticeManager({ user, scope }: Props) {
     setUploading(true);
     setError(null);
     try {
-      const url = await uploadImage(file);
+      const url = await uploadImage(file, user.token);
       setImageUrl(url);
     } catch (err) {
       setError(err instanceof ImageUploadError ? err.message : "Could not upload image.");
@@ -118,6 +120,10 @@ export function NoticeManager({ user, scope }: Props) {
       setError("Title and description are required.");
       return;
     }
+    if (!/^\d{4,6}$/.test(pin)) {
+      setError("Enter your 4-6 digit PIN to publish. First time publishing? Choose one now — you'll use it every time after this.");
+      return;
+    }
     const payload = {
       title,
       description,
@@ -125,6 +131,7 @@ export function NoticeManager({ user, scope }: Props) {
       linkUrl,
       categoryId: categoryId === "" ? null : categoryId,
       deadline: fromDatetimeLocalValue(deadline),
+      pin,
     };
     try {
       if (editing) {
@@ -134,18 +141,23 @@ export function NoticeManager({ user, scope }: Props) {
       }
       resetForm();
       load();
-    } catch {
-      setError("Could not save the notice.");
+    } catch (err) {
+      // Surfaces the backend's actual message ("Incorrect PIN.") rather
+      // than a generic failure — that distinction matters here.
+      setError(err instanceof Error ? err.message : "Could not save the notice.");
+      setPin("");
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Permanently delete this notice? This cannot be undone.")) return;
+    const deletePin = window.prompt("Enter your PIN to confirm deletion:");
+    if (!deletePin) return;
     try {
-      await api.deleteNotice(id, user.token);
+      await api.deleteNotice(id, deletePin, user.token);
       load();
-    } catch {
-      setError("Could not delete the notice.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete the notice.");
     }
   };
 
@@ -217,6 +229,17 @@ export function NoticeManager({ user, scope }: Props) {
             type="datetime-local"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
+          />
+          <label className="ucpnb-field-label">
+            Your PIN (4-6 digits) — first time publishing? Choose one now, you'll enter the same one every time after this.
+          </label>
+          <input
+            type="password"
+            inputMode="numeric"
+            placeholder="PIN"
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            maxLength={6}
           />
           {error && <p className="ucpnb-error">{error}</p>}
           <div className="ucpnb-form-actions">

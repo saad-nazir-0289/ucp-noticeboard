@@ -23,6 +23,13 @@ export function App() {
   const [pushState, setPushState] = useState<PushState>("not-subscribed");
   const [deepLinkNoticeId, setDeepLinkNoticeId] = useState<number | undefined>(undefined);
   const [autoEnableNotifications, setAutoEnableNotifications] = useState(false);
+  const [urlActivationCode, setUrlActivationCode] = useState<string | undefined>(undefined);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (message: string) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 2500);
+  };
 
   useEffect(() => {
     registerServiceWorker();
@@ -51,6 +58,15 @@ export function App() {
       params.delete("enableNotifications");
     }
 
+    // Same activation link the extension understands — someone might
+    // open it directly in a regular browser rather than via the
+    // extension, especially before they've installed it at all.
+    const activateParam = params.get("ucpnb_activate");
+    if (activateParam) {
+      setUrlActivationCode(activateParam);
+      params.delete("ucpnb_activate");
+    }
+
     const cleanUrl =
       window.location.pathname +
       (params.toString() ? `?${params.toString()}` : "") +
@@ -66,7 +82,14 @@ export function App() {
       // and falls back to the Roll Number itself if none is given. For
       // every returning user (the overwhelming majority), this field
       // would be silently ignored anyway.
-      const result = await api.login(rollNumber, "");
+      //
+      // A fresh activation link in the URL is only relevant for a
+      // brand-new Publisher's first-ever claim, or the one-time Admin
+      // bootstrap — both single-use. Role itself is granted directly
+      // from what's already stored for this account, so it shows up
+      // correctly on any device with zero extra steps.
+      const activationCode = urlActivationCode;
+      const result = await api.login(rollNumber, "", activationCode);
       setUser(result);
       setBootstrapNotices(result.notices);
       setBootstrapCategories(result.categories);
@@ -105,22 +128,40 @@ export function App() {
     setStatus("needs-identity");
   };
 
-  const handleEnableNotifications = async () => {
+  const enableNotifications = async () => {
     if (!user) return;
     setPushState("working");
     try {
       await subscribeToPush(user.token);
       setPushState("subscribed");
+      showToast("Notifications turned on");
     } catch {
       setPushState("not-subscribed");
+      showToast("Couldn't turn on notifications");
     }
   };
 
-  const handleDisableNotifications = async () => {
+  const disableNotifications = async () => {
     if (!user) return;
     setPushState("working");
-    await unsubscribeFromPush(user.token);
-    setPushState("not-subscribed");
+    try {
+      await unsubscribeFromPush(user.token);
+    } finally {
+      // Even if the unsubscribe call itself failed, the device-side
+      // subscription is gone either way — reflect that rather than
+      // leaving the button stuck showing "on".
+      setPushState("not-subscribed");
+      showToast("Notifications turned off");
+    }
+  };
+
+  const handleToggleNotifications = () => {
+    if (pushState === "working" || pushState === "unsupported") return;
+    if (pushState === "subscribed") {
+      disableNotifications();
+    } else {
+      enableNotifications();
+    }
   };
 
   useEffect(() => {
@@ -128,7 +169,7 @@ export function App() {
     // Only ever fire once — reset immediately so a later re-render (or the
     // user manually disabling notifications afterward) never re-triggers it.
     setAutoEnableNotifications(false);
-    handleEnableNotifications();
+    enableNotifications();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, autoEnableNotifications, pushState]);
 
@@ -161,24 +202,25 @@ export function App() {
 
   return (
     <div className="ucpnb-page">
+      {toast && <div className="ucpnb-toast">{toast}</div>}
       <div className="ucpnb-section">
         <div className="ucpnb-header">
           <h3>Latest Updates</h3>
           <div className="ucpnb-header-actions">
-            {pushState === "unsupported" ? null : pushState === "subscribed" ? (
-              <button className="ucpnb-btn" onClick={handleDisableNotifications}>
-                🔔 Notifications On
-              </button>
-            ) : (
+            {pushState !== "unsupported" && (
               <button
-                className="ucpnb-btn ucpnb-btn-primary"
-                onClick={handleEnableNotifications}
+                className="ucpnb-bell-btn"
+                onClick={handleToggleNotifications}
                 disabled={pushState === "working"}
+                aria-label={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
+                title={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
               >
-                {pushState === "working" ? "Enabling..." : "🔔 Enable Notifications"}
+                🔔
               </button>
             )}
-
+            <button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
+              Not you?
+            </button>
           </div>
         </div>
 

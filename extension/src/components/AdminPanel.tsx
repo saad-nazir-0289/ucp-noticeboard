@@ -7,7 +7,6 @@ interface Props {
 }
 
 const ROLES: UserRole[] = ["Student", "Publisher", "Admin"];
-const DASHBOARD_URL = "https://horizon.ucp.edu.pk/student/dashboard";
 
 export function AdminPanel({ user }: Props) {
   const [users, setUsers] = useState<UserListItem[]>([]);
@@ -20,8 +19,7 @@ export function AdminPanel({ user }: Props) {
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
-  const [activationLink, setActivationLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [addSuccess, setAddSuccess] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -48,6 +46,15 @@ export function AdminPanel({ user }: Props) {
     } catch {
       setUsers(previous);
       setError("Could not update role.");
+    }
+  };
+
+  const handleResetPin = async (id: number, name: string) => {
+    if (!confirm(`Reset ${name}'s PIN? They'll be asked to choose a new one next time they publish something.`)) return;
+    try {
+      await api.resetUserPin(id, user.token);
+    } catch {
+      setError("Could not reset PIN.");
     }
   };
 
@@ -81,30 +88,19 @@ export function AdminPanel({ user }: Props) {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setAddError(null);
-    setActivationLink(null);
-    setCopied(false);
+    setAddSuccess(null);
     if (!rollNumber.trim() || !name.trim()) {
       setAddError("Roll Number and Name are required.");
       return;
     }
     try {
       const result = await api.addUser({ rollNumber: rollNumber.trim(), name: name.trim() }, user.token);
-      setActivationLink(`${DASHBOARD_URL}?ucpnb_activate=${result.activationCode}`);
+      setAddSuccess(`${result.name} can publish immediately — no link needed. They'll set their own PIN the first time they publish something.`);
       setRollNumber("");
       setName("");
       load();
     } catch {
       setAddError("Could not add user.");
-    }
-  };
-
-  const handleCopy = async () => {
-    if (!activationLink) return;
-    try {
-      await navigator.clipboard.writeText(activationLink);
-      setCopied(true);
-    } catch {
-      /* clipboard access can fail silently in some contexts */
     }
   };
 
@@ -130,11 +126,10 @@ export function AdminPanel({ user }: Props) {
     <div className="ucpnb-panel">
       <h4>Add Publisher by Roll Number</h4>
       <p className="ucpnb-status">
-        Only add people who should be able to publish notices. Students don't need
-        to be added — they can already see notices as soon as they open the
-        dashboard. Adding someone here does not grant access by itself — send
-        them the one-time link that appears below after adding, and only opening
-        that link (once) actually activates Publisher access for them.
+        Adding someone here grants Publisher access immediately — no link to
+        send, no activation step. They'll be prompted to choose their own PIN
+        the first time they actually publish something, which is what
+        protects the account from then on, not the Roll Number itself.
       </p>
       <form className="ucpnb-form" onSubmit={handleAddUser}>
         <input
@@ -150,6 +145,7 @@ export function AdminPanel({ user }: Props) {
           onChange={(e) => setName(e.target.value)}
         />
         {addError && <p className="ucpnb-error">{addError}</p>}
+        {addSuccess && <p className="ucpnb-status">{addSuccess}</p>}
         <div className="ucpnb-form-actions">
           <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
             Add Publisher
@@ -157,28 +153,12 @@ export function AdminPanel({ user }: Props) {
         </div>
       </form>
 
-      {activationLink && (
-        <div className="ucpnb-activation-box">
-          <p className="ucpnb-status">
-            Send this link directly to that person (WhatsApp, in person, etc.) —
-            not through any public or guessable channel. It only works once.
-          </p>
-          <div className="ucpnb-activation-row">
-            <input type="text" readOnly value={activationLink} onFocus={(e) => e.target.select()} />
-            <button type="button" className="ucpnb-btn" onClick={handleCopy}>
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
-        </div>
-      )}
-
       <h4>All Users</h4>
       {error && <p className="ucpnb-error">{error}</p>}
       <p className="ucpnb-status">
-        Change anyone's role here — e.g. remove Publisher access, or promote
-        someone to Admin. Click a name to correct it — this is now the only
-        way a name can change; students can no longer rename themselves (or
-        anyone else) just by guessing a Roll Number.
+        Change anyone's role here — takes effect immediately, on any device.
+        Click a name to correct it. "Reset PIN" clears a forgotten PIN so
+        they can choose a new one next time they publish.
       </p>
       <table className="ucpnb-table">
         <thead>
@@ -186,6 +166,7 @@ export function AdminPanel({ user }: Props) {
             <th>Name</th>
             <th>Roll Number</th>
             <th>Role</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -226,6 +207,13 @@ export function AdminPanel({ user }: Props) {
                     </option>
                   ))}
                 </select>
+              </td>
+              <td>
+                {u.role !== "Student" && (
+                  <button className="ucpnb-btn ucpnb-btn-link" onClick={() => handleResetPin(u.id, u.name)}>
+                    Reset PIN
+                  </button>
+                )}
               </td>
             </tr>
           ))}

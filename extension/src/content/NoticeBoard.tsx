@@ -165,6 +165,8 @@ export function NoticeBoard() {
       )}
       {tab === "users" && user.role === "Admin" && <AdminPanel user={user} />}
       {tab === "analytics" && user.role === "Admin" && <AnalyticsPanel user={user} />}
+
+
     </div>
   );
 }

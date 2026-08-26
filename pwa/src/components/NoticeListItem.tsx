@@ -47,7 +47,14 @@ export function NoticeListItem({ notice, onView, onDismiss }: Props) {
       }
     },
     trackMouse: true, // lets this be tested with a mouse on desktop too
-    preventScrollOnSwipe: true,
+    // Deliberately NOT preventing default here. The page itself has no
+    // horizontal scroll to protect against (overflow-x: hidden), so
+    // there's nothing to gain from it — but it WAS the reason vertical
+    // scrolling silently stopped working in this view: it called
+    // preventDefault on every tracked touchmove before the library could
+    // even confirm the gesture was horizontal, which blocked normal
+    // scrolling too. The drag visual (CSS transform below) still works
+    // perfectly without it.
   });
 
   const handleShare = async (e: React.MouseEvent) => {

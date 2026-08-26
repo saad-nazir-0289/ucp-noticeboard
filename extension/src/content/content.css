@@ -710,3 +710,20 @@
   border-radius: 6px;
   padding: 4px;
 }
+.ucpnb-footer {
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f2f5;
+  text-align: center;
+}
+
+.ucpnb-footer a {
+  font-size: 12px;
+  color: #9ca3af;
+  text-decoration: none;
+}
+
+.ucpnb-footer a:hover {
+  color: #1a5da8;
+  text-decoration: underline;
+}

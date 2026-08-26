@@ -53,10 +53,21 @@ export interface UserListItem {
   createdAt: string;
 }
 
+// Adding a Publisher grants the role immediately now — no activation
+// link to relay. Role visibility works from Roll Number alone; the PIN
+// (set the first time they publish something) is the actual gate on
+// doing anything, not this.
 export interface AddUserResult {
   id: number;
   name: string;
   rollNumber: string;
   role: UserRole;
-  activationCode: string;
+}
+
+export interface UpdateUserRoleResult {
+  id: number;
+  name: string;
+  rollNumber: string;
+  role: UserRole;
+  createdAt: string;
 }
