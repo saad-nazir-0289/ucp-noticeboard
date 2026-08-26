@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { AuthUser, Category, UserListItem, UserRole } from "../types";
 
@@ -17,6 +17,7 @@ export function AdminPanel({ user }: Props) {
   const [editingNameValue, setEditingNameValue] = useState("");
   const [pendingId, setPendingId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<{ id: number; message: string } | null>(null);
 
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
@@ -47,11 +48,8 @@ export function AdminPanel({ user }: Props) {
 
     setPendingId(id);
     setSuccessMessage(null);
-    setError(null);
+    setRowError(null);
     const previous = users;
-    // Not shown optimistically anymore — the row now visibly shows
-    // "Saving..." until the request actually resolves, so there's never
-    // a moment where it looks done before it actually is.
     try {
       await api.updateUserRole(id, newRole, adminPin, user.token);
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
@@ -59,7 +57,7 @@ export function AdminPanel({ user }: Props) {
       setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err) {
       setUsers(previous);
-      setError(err instanceof Error ? err.message : "Could not update role.");
+      setRowError({ id, message: err instanceof Error ? err.message : "Could not update role." });
     } finally {
       setPendingId(null);
     }
@@ -72,13 +70,13 @@ export function AdminPanel({ user }: Props) {
 
     setPendingId(id);
     setSuccessMessage(null);
-    setError(null);
+    setRowError(null);
     try {
       await api.resetUserPin(id, adminPin, user.token);
       setSuccessMessage(`${name}'s PIN was reset.`);
       setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not reset PIN.");
+      setRowError({ id, message: err instanceof Error ? err.message : "Could not reset PIN." });
     } finally {
       setPendingId(null);
     }
@@ -217,57 +215,68 @@ export function AdminPanel({ user }: Props) {
         </thead>
         <tbody>
           {users.map((u) => (
-            <tr key={u.id}>
-              <td>
-                {editingNameId === u.id ? (
-                  <input
-                    type="text"
-                    value={editingNameValue}
-                    autoFocus
-                    onChange={(e) => setEditingNameValue(e.target.value)}
-                    onBlur={() => saveEditName(u.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") saveEditName(u.id);
-                      if (e.key === "Escape") cancelEditName();
-                    }}
-                  />
-                ) : (
-                  <button
-                    className="ucpnb-btn ucpnb-btn-link"
-                    onClick={() => startEditName(u)}
-                    title="Click to edit name"
-                  >
-                    {u.name}
-                  </button>
-                )}
-              </td>
-              <td>{u.rollNumber}</td>
-              <td>
-                <select
-                  value={u.role}
-                  disabled={pendingId === u.id}
-                  onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                {pendingId === u.id && <span className="ucpnb-status"> Saving...</span>}
-              </td>
-              <td>
-                {u.role !== "Student" && (
-                  <button
-                    className="ucpnb-btn ucpnb-btn-link"
+            <Fragment key={u.id}>
+              <tr>
+                <td>
+                  {editingNameId === u.id ? (
+                    <input
+                      type="text"
+                      value={editingNameValue}
+                      autoFocus
+                      onChange={(e) => setEditingNameValue(e.target.value)}
+                      onBlur={() => saveEditName(u.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditName(u.id);
+                        if (e.key === "Escape") cancelEditName();
+                      }}
+                    />
+                  ) : (
+                    <button
+                      className="ucpnb-btn ucpnb-btn-link"
+                      onClick={() => startEditName(u)}
+                      title="Click to edit name"
+                    >
+                      {u.name}
+                    </button>
+                  )}
+                </td>
+                <td>{u.rollNumber}</td>
+                <td>
+                  <select
+                    value={u.role}
                     disabled={pendingId === u.id}
-                    onClick={() => handleResetPin(u.id, u.name)}
+                    onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
                   >
-                    {pendingId === u.id ? "Saving..." : "Reset PIN"}
-                  </button>
-                )}
-              </td>
-            </tr>
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  {pendingId === u.id && <span className="ucpnb-status"> Saving...</span>}
+                </td>
+                <td>
+                  {u.role !== "Student" && (
+                    <button
+                      className="ucpnb-btn ucpnb-btn-link"
+                      disabled={pendingId === u.id}
+                      onClick={() => handleResetPin(u.id, u.name)}
+                    >
+                      {pendingId === u.id ? "Saving..." : "Reset PIN"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+              {rowError?.id === u.id && (
+                <tr>
+                  <td colSpan={4}>
+                    <p className="ucpnb-error" style={{ margin: "4px 0" }}>
+                      {rowError.message}
+                    </p>
+                  </td>
+                </tr>
+              )}
+            </Fragment>
           ))}
         </tbody>
       </table>
