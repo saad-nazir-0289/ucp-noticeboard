@@ -106,6 +106,19 @@ public class AuthController : ControllerBase
                     user.SecurityStamp = Guid.NewGuid().ToString("N");
                     needsSave = true;
                 }
+                else if (user.Role == UserRole.Admin)
+                {
+                    // Recovery path for a genuinely forgotten PIN: only
+                    // reachable by someone who has BOTH this Roll Number
+                    // AND the real AdminActivationSecret from Railway's
+                    // config — the same bar as claiming Admin in the
+                    // first place, not just knowing a Roll Number. Clears
+                    // the PIN; their next publish/manage-user action
+                    // prompts them to set a fresh one, same as first use.
+                    user.PinHash = null;
+                    user.SecurityStamp = Guid.NewGuid().ToString("N");
+                    needsSave = true;
+                }
             }
             else if (user.Role == UserRole.Student
                      && user.PrivilegedCredential is not null

@@ -14,13 +14,13 @@ public record LoginResponse(
 
 public record UserDto(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 
-public record UpdateUserRoleRequest(string Role);
+public record UpdateUserRoleRequest(string Role, string Pin);
 
 public record UpdateUserRoleResponse(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 
 public record UpdateUserNameRequest(string Name);
 
-public record AddUserRequest(string RollNumber, string Name);
+public record AddUserRequest(string RollNumber, string Name, string Pin);
 
 public record NoticeDto(
     int Id,

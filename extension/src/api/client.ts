@@ -119,17 +119,17 @@ export const api = {
 
   getUsers: (token: string) => request<UserListItem[]>("/users", {}, token),
 
-  addUser: (data: { rollNumber: string; name: string }, token: string) =>
+  addUser: (data: { rollNumber: string; name: string; pin: string }, token: string) =>
     request<AddUserResult>(
       "/users",
       { method: "POST", body: JSON.stringify(data) },
       token
     ),
 
-  updateUserRole: (id: number, role: UserRole, token: string) =>
+  updateUserRole: (id: number, role: UserRole, pin: string, token: string) =>
     request<UpdateUserRoleResult>(
       `/users/${id}/role`,
-      { method: "PATCH", body: JSON.stringify({ role }) },
+      { method: "PATCH", body: JSON.stringify({ role, pin }) },
       token
     ),
 
@@ -140,8 +140,8 @@ export const api = {
       token
     ),
 
-  resetUserPin: (id: number, token: string) =>
-    request<void>(`/users/${id}/reset-pin`, { method: "POST" }, token),
+  resetUserPin: (id: number, adminPin: string, token: string) =>
+    request<void>(`/users/${id}/reset-pin?adminPin=${encodeURIComponent(adminPin)}`, { method: "POST" }, token),
 
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),

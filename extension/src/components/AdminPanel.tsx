@@ -18,6 +18,7 @@ export function AdminPanel({ user }: Props) {
 
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
+  const [addPin, setAddPin] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
 
@@ -39,22 +40,26 @@ export function AdminPanel({ user }: Props) {
   useEffect(load, [user]);
 
   const handleRoleChange = async (id: number, newRole: UserRole) => {
+    const adminPin = window.prompt("Enter your PIN to confirm this role change:");
+    if (!adminPin) return;
     const previous = users;
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
     try {
-      await api.updateUserRole(id, newRole, user.token);
-    } catch {
+      await api.updateUserRole(id, newRole, adminPin, user.token);
+    } catch (err) {
       setUsers(previous);
-      setError("Could not update role.");
+      setError(err instanceof Error ? err.message : "Could not update role.");
     }
   };
 
   const handleResetPin = async (id: number, name: string) => {
     if (!confirm(`Reset ${name}'s PIN? They'll be asked to choose a new one next time they publish something.`)) return;
+    const adminPin = window.prompt("Enter your PIN to confirm this reset:");
+    if (!adminPin) return;
     try {
-      await api.resetUserPin(id, user.token);
-    } catch {
-      setError("Could not reset PIN.");
+      await api.resetUserPin(id, adminPin, user.token);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reset PIN.");
     }
   };
 
@@ -93,14 +98,23 @@ export function AdminPanel({ user }: Props) {
       setAddError("Roll Number and Name are required.");
       return;
     }
+    if (!/^\d{4,6}$/.test(addPin)) {
+      setAddError("Enter your own 4-6 digit PIN to confirm this action.");
+      return;
+    }
     try {
-      const result = await api.addUser({ rollNumber: rollNumber.trim(), name: name.trim() }, user.token);
+      const result = await api.addUser(
+        { rollNumber: rollNumber.trim(), name: name.trim(), pin: addPin },
+        user.token
+      );
       setAddSuccess(`${result.name} can publish immediately — no link needed. They'll set their own PIN the first time they publish something.`);
       setRollNumber("");
       setName("");
+      setAddPin("");
       load();
-    } catch {
-      setAddError("Could not add user.");
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : "Could not add user.");
+      setAddPin("");
     }
   };
 
@@ -128,8 +142,9 @@ export function AdminPanel({ user }: Props) {
       <p className="ucpnb-status">
         Adding someone here grants Publisher access immediately — no link to
         send, no activation step. They'll be prompted to choose their own PIN
-        the first time they actually publish something, which is what
-        protects the account from then on, not the Roll Number itself.
+        the first time they actually publish something. Requires your own
+        PIN below to confirm — this is what stops anyone who merely learns
+        your Roll Number from granting themselves access here.
       </p>
       <form className="ucpnb-form" onSubmit={handleAddUser}>
         <input
@@ -144,6 +159,14 @@ export function AdminPanel({ user }: Props) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+        <input
+          type="password"
+          inputMode="numeric"
+          placeholder="Your PIN"
+          value={addPin}
+          onChange={(e) => setAddPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          maxLength={6}
+        />
         {addError && <p className="ucpnb-error">{addError}</p>}
         {addSuccess && <p className="ucpnb-status">{addSuccess}</p>}
         <div className="ucpnb-form-actions">
@@ -156,7 +179,8 @@ export function AdminPanel({ user }: Props) {
       <h4>All Users</h4>
       {error && <p className="ucpnb-error">{error}</p>}
       <p className="ucpnb-status">
-        Change anyone's role here — takes effect immediately, on any device.
+        Change anyone's role here — takes effect immediately, on any device,
+        but now asks for your own PIN each time to confirm it's really you.
         Click a name to correct it. "Reset PIN" clears a forgotten PIN so
         they can choose a new one next time they publish.
       </p>
