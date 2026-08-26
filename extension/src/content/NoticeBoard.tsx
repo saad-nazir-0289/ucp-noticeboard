@@ -139,13 +139,24 @@ export function NoticeBoard() {
             </nav>
           )}
           <a
-            className="ucpnb-btn"
+            className="ucpnb-bell-btn"
             href={`${PWA_BASE_URL}/?enableNotifications=1`}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Notifications"
             title="Notifications aren't available inside the extension itself — this opens the mobile-friendly site, where they are"
           >
-            🔔 Notifications
+            🔔
+          </a>
+          <a
+            className="ucpnb-feedback-btn"
+            href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Leave feedback and a review"
+            title="Leave feedback and a review"
+          >
+            💬
           </a>
         </div>
       </div>
