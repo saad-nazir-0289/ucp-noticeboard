@@ -180,11 +180,7 @@ namespace UCPNoticeBoard.Api.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<string>("PinHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
-
-                    b.Property<string>("PrivilegedCredential")
+                    b.Property<string>("PendingActivationCode")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
@@ -197,10 +193,6 @@ namespace UCPNoticeBoard.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("integer");

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,14 +30,8 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    /// <summary>
-    /// Adds someone directly as a Publisher — immediately, no activation
-    /// link to relay. This is safe because role visibility alone no
-    /// longer grants anything dangerous: the actual gate is the PIN they
-    /// set the first time they create a notice.
-    /// </summary>
     [HttpPost]
-    public async Task<ActionResult<UserDto>> AddUser([FromBody] AddUserRequest request)
+    public async Task<ActionResult<AddUserResponse>> AddUser([FromBody] AddUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber) || string.IsNullOrWhiteSpace(request.Name))
         {
@@ -44,6 +39,7 @@ public class UsersController : ControllerBase
         }
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
+        var code = RandomNumberGenerator.GetHexString(20);
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.RollNumber == rollNumber);
         if (user is null)
@@ -52,33 +48,25 @@ public class UsersController : ControllerBase
             {
                 Name = request.Name.Trim(),
                 RollNumber = rollNumber,
-                Role = UserRole.Publisher,
+                Role = UserRole.Student,
                 CreatedAt = DateTime.UtcNow,
-                SecurityStamp = Guid.NewGuid().ToString("N")
+                PendingActivationCode = code
             };
             _db.Users.Add(user);
         }
         else
         {
             user.Name = request.Name.Trim();
-            user.Role = UserRole.Publisher;
-            user.SecurityStamp = Guid.NewGuid().ToString("N");
+            user.PendingActivationCode = code;
         }
 
         await _db.SaveChangesAsync();
 
-        return Ok(new UserDto(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));
+        return Ok(new AddUserResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), code));
     }
 
-    /// <summary>
-    /// Every role change — promotion or demotion — rotates the security
-    /// stamp, immediately invalidating any token this account currently
-    /// holds. Demoting away from Publisher/Admin also clears their PIN —
-    /// if they're ever re-promoted later, they set a fresh one rather
-    /// than an old one silently carrying over.
-    /// </summary>
     [HttpPatch("{id}/role")]
-    public async Task<ActionResult<UpdateUserRoleResponse>> UpdateRole(int id, [FromBody] UpdateUserRoleRequest request)
+    public async Task<ActionResult<UserDto>> UpdateRole(int id, [FromBody] UpdateUserRoleRequest request)
     {
         if (!Enum.TryParse<UserRole>(request.Role, ignoreCase: true, out var newRole))
         {
@@ -92,58 +80,6 @@ public class UsersController : ControllerBase
         }
 
         user.Role = newRole;
-        user.SecurityStamp = Guid.NewGuid().ToString("N");
-
-        if (newRole == UserRole.Student)
-        {
-            user.PinHash = null;
-        }
-
-        await _db.SaveChangesAsync();
-
-        return Ok(new UpdateUserRoleResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));
-    }
-
-    /// <summary>
-    /// For when a Publisher/Admin genuinely forgets their PIN — clears it
-    /// so their next notice action prompts them to set a new one, same as
-    /// a first-time Publisher. Doesn't touch their role at all.
-    /// </summary>
-    [HttpPost("{id}/reset-pin")]
-    public async Task<IActionResult> ResetPin(int id)
-    {
-        var user = await _db.Users.FindAsync(id);
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        user.PinHash = null;
-        await _db.SaveChangesAsync();
-
-        return NoContent();
-    }
-
-    /// <summary>
-    /// The only way a name can change after account creation, now that
-    /// /login no longer trusts a client-supplied name for existing users.
-    /// Admin-only and authenticated, unlike /login.
-    /// </summary>
-    [HttpPatch("{id}/name")]
-    public async Task<ActionResult<UserDto>> UpdateName(int id, [FromBody] UpdateUserNameRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest("name is required.");
-        }
-
-        var user = await _db.Users.FindAsync(id);
-        if (user is null)
-        {
-            return NotFound();
-        }
-
-        user.Name = request.Name.Trim();
         await _db.SaveChangesAsync();
 
         return Ok(new UserDto(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));

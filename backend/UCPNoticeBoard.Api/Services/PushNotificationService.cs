@@ -46,45 +46,37 @@ public class PushNotificationService : IPushNotificationService
         }
 
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
+        var webPushClient = new WebPushClient();
+
         var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, url });
         var subscriptions = await _db.PushSubscriptions.ToListAsync();
 
-        var deadSubscriptionIds = new System.Collections.Concurrent.ConcurrentBag<int>();
+        var deadSubscriptionIds = new List<int>();
 
-        // Bounded parallelism: fast enough to not scale linearly with
-        // subscriber count, but capped so a large broadcast doesn't open
-        // hundreds of simultaneous outbound connections at once. Each
-        // WebPushClient is used by only one task at a time — safer than
-        // sharing one instance across concurrent sends.
-        await Parallel.ForEachAsync(
-            subscriptions,
-            new ParallelOptions { MaxDegreeOfParallelism = 10 },
-            async (sub, cancellationToken) =>
+        foreach (var sub in subscriptions)
+        {
+            try
             {
-                try
-                {
-                    var webPushClient = new WebPushClient();
-                    var pushSubscription = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
-                    await webPushClient.SendNotificationAsync(pushSubscription, payload, vapidDetails);
-                }
-                catch (WebPushException ex) when (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone)
-                {
-                    // The browser has permanently unsubscribed (uninstalled,
-                    // cleared data, etc.) — clean up so we stop trying.
-                    deadSubscriptionIds.Add(sub.Id);
-                }
-                catch (Exception ex)
-                {
-                    // One failed device should never stop the rest from being notified.
-                    _logger.LogWarning(ex, "Failed to send push notification to subscription {Id}", sub.Id);
-                }
-            });
+                var pushSubscription = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
+                await webPushClient.SendNotificationAsync(pushSubscription, payload, vapidDetails);
+            }
+            catch (WebPushException ex) when (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone)
+            {
+                // The browser has permanently unsubscribed (uninstalled,
+                // cleared data, etc.) — clean up so we stop trying.
+                deadSubscriptionIds.Add(sub.Id);
+            }
+            catch (Exception ex)
+            {
+                // One failed device should never stop the rest from being notified.
+                _logger.LogWarning(ex, "Failed to send push notification to subscription {Id}", sub.Id);
+            }
+        }
 
         if (deadSubscriptionIds.Count > 0)
         {
-            var idsToRemove = deadSubscriptionIds.ToList();
             var deadSubs = await _db.PushSubscriptions
-                .Where(p => idsToRemove.Contains(p.Id))
+                .Where(p => deadSubscriptionIds.Contains(p.Id))
                 .ToListAsync();
             _db.PushSubscriptions.RemoveRange(deadSubs);
             await _db.SaveChangesAsync();

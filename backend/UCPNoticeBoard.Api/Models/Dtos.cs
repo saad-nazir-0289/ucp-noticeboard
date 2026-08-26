@@ -16,11 +16,13 @@ public record UserDto(int Id, string Name, string RollNumber, string Role, DateT
 
 public record UpdateUserRoleRequest(string Role);
 
-public record UpdateUserRoleResponse(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
-
-public record UpdateUserNameRequest(string Name);
-
 public record AddUserRequest(string RollNumber, string Name);
+
+// Returned once, at the moment a Publisher is added — never re-exposed
+// afterward. The Admin is expected to relay the activation link
+// out-of-band (WhatsApp, in person, etc.), not through the guessable
+// Roll Number channel.
+public record AddUserResponse(int Id, string Name, string RollNumber, string Role, string ActivationCode);
 
 public record NoticeDto(
     int Id,
@@ -37,12 +39,9 @@ public record NoticeDto(
     DateTime UpdatedAt
 );
 
-// Pin is required for every notice-mutating action. If the account has no
-// PinHash set yet, whatever is supplied here becomes their PIN going
-// forward (first-use-sets-it) — otherwise it must match exactly.
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline);
 
 public record CategoryDto(int Id, string Name);
 

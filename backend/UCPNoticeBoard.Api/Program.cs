@@ -1,6 +1,5 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using UCPNoticeBoard.Api.Data;
@@ -18,6 +17,13 @@ if (!string.IsNullOrWhiteSpace(port))
 }
 
 // --- Database ---
+// Built from individual PGHOST / PGPORT / PGDATABASE / PGUSER / PGPASSWORD
+// variables (Railway's standard names for a linked Postgres) instead of one
+// hand-typed combined connection string — a single mistyped or malformed
+// combined string is a common, hard-to-spot source of startup crashes.
+// Npgsql's own builder assembles and escapes it correctly. Falls back to
+// ConnectionStrings:DefaultConnection from appsettings.json for local dev,
+// where PGHOST etc. won't be set.
 var pgHost = Environment.GetEnvironmentVariable("PGHOST");
 string connectionString;
 if (!string.IsNullOrWhiteSpace(pgHost))
@@ -68,34 +74,20 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtSettings["Issuer"],
             ValidAudience = jwtSettings["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!)),
-            // Required for the SecurityStamp check below to have something
-            // to read — ClaimsPrincipal needs the custom claim preserved.
-            ClockSkew = TimeSpan.FromSeconds(30),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!))
         };
     });
 
 builder.Services.AddAuthorization();
 
-// --- CORS ---
-// Restricted to the two real client origins instead of a wildcard. Note
-// this is browser-enforced defense-in-depth, not a security boundary on
-// its own — a non-browser client (curl, a script) never sends or is
-// bound by an Origin header at all, CORS is purely about what a *browser*
-// running on someone else's page is allowed to read. The extension's own
-// requests aren't blocked by this either way, since Manifest V3
-// host_permissions already exempt it from CORS enforcement on the
-// requesting side — this specifically stops an unrelated website's JS
-// from successfully reading responses using a visiting browser.
+// --- CORS: the extension's content script runs in the page origin, so we
+// allow the UCP portal origin plus the extension's own runtime origin. ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Extension", policy =>
     {
         policy
-            .WithOrigins(
-                "https://horizon.ucp.edu.pk",
-                "https://ucp-noticeboard.msndev.workers.dev"
-            )
+            .SetIsOriginAllowed(_ => true) // extension content scripts don't send a browser-restricted Origin
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -105,11 +97,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Compresses JSON responses (notice lists, especially) — meaningfully
+// faster over slower/mobile connections, essentially free to enable.
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
 });
 
+// A generous global limit — this isn't meant to throttle normal usage
+// (a real page load is only a handful of requests), it's a safety net
+// against a broken client stuck in a retry loop, or abuse, either of
+// which could otherwise hammer the database directly. Legitimate traffic,
+// even a genuine burst of many different students at once, should never
+// come close to this per-client limit.
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -117,106 +117,30 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
     options.RejectionStatusCode = 429;
-
-    // A tighter, separate bucket specifically for /login — this is the
-    // endpoint that grants access at all, including the activation-code
-    // checks that can escalate to Publisher/Admin, so it deserves its own
-    // stricter limit rather than sharing the generous general-purpose one.
-    options.AddPolicy("login", context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
-
-    // Notice create/edit/delete is where a PIN actually gets checked — a
-    // 4-6 digit PIN has low enough entropy that even the general 60/min
-    // limit isn't tight enough to meaningfully slow down a brute-force
-    // attempt on its own. This doesn't fully solve that on its own either
-    // (worth knowing honestly), but it meaningfully raises the cost of
-    // trying, on top of the general limit, without throttling a real
-    // Publisher's actual (infrequent) use of these endpoints at all.
-    options.AddPolicy("notice-mutation", context =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 20,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
 });
-
-// --- Fail closed on placeholder secrets in Production ---
-// If Jwt:Key or AdminActivationSecret are missing, empty, or still the
-// literal placeholder text checked into the public repo, the app refuses
-// to start at all rather than silently serving traffic with a
-// publicly-known secret. A misconfigured deploy should be loud and down,
-// not quiet and compromised.
-if (builder.Environment.IsProduction())
-{
-    var jwtKey = jwtSettings["Key"];
-    if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.StartsWith("REPLACE_") || jwtKey.Length < 32)
-    {
-        throw new InvalidOperationException(
-            "Refusing to start: Jwt__Key is missing, still the placeholder value, or shorter than 32 characters. " +
-            "Set a real random secret via the Jwt__Key environment variable.");
-    }
-
-    var adminSecret = builder.Configuration["AdminActivationSecret"];
-    if (string.IsNullOrWhiteSpace(adminSecret) || adminSecret.StartsWith("REPLACE_"))
-    {
-        throw new InvalidOperationException(
-            "Refusing to start: AdminActivationSecret is missing or still the placeholder value. " +
-            "Set a real random secret via the AdminActivationSecret environment variable.");
-    }
-}
 
 var app = builder.Build();
 
-// --- Apply any pending EF Core migrations automatically on startup ---
-// Previously this was a manual "remember to run dotnet ef database
-// update" step — easy to forget on a fresh deploy or after restoring a
-// database, and the app would otherwise start successfully and then
-// throw errors the moment it queried a table/column that doesn't exist
-// yet. Safe here specifically because this runs as a single instance;
-// this pattern needs additional locking if ever scaled to multiple
-// concurrent instances applying migrations at once.
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
-
-// --- Forwarded headers, so rate limiting and logging see the real client
-// IP instead of Railway's own proxy IP. Must run before anything that
-// reads Connection.RemoteIpAddress (i.e. before the rate limiter, and
-// as close to the very start of the pipeline as possible). KnownNetworks
-// / KnownProxies are cleared because Railway's proxy IP isn't a fixed,
-// publishable range — this app is only ever reachable through Railway's
-// own edge, not directly, which is what makes trusting the forwarded
-// header safe here. ---
-var forwardedHeadersOptions = new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
-};
-forwardedHeadersOptions.KnownNetworks.Clear();
-forwardedHeadersOptions.KnownProxies.Clear();
-app.UseForwardedHeaders(forwardedHeadersOptions);
-
+// CORS goes FIRST, before anything else — including the exception handler
+// below. This guarantees every response, even a crash/error response, gets
+// the CORS header attached. Without this ordering, a server-side crash can
+// show up in the browser as a confusing "blocked by CORS policy" message
+// instead of the real error, because the crashed response never got as far
+// as the CORS middleware.
 app.UseCors("Extension");
 
 app.UseResponseCompression();
 app.UseRateLimiter();
 
+// Turns any unhandled exception into a readable JSON error instead of a
+// raw connection failure. This is what lets you actually SEE what broke
+// (open the failed request in Chrome's Network tab → Response) instead of
+// just seeing "500" with no explanation.
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -230,54 +154,14 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
+// Swagger stays on in every environment on purpose (not just Development).
+// It's just API documentation — nothing sensitive — and having it always
+// available is what makes it possible to quickly check "did my deployment
+// actually work?" by visiting /swagger.
 app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseAuthentication();
-
-// Enforces the security stamp for #10: a token that claims Publisher or
-// Admin only continues to work if its embedded stamp still matches the
-// user's CURRENT database value. Any role change rotates that value
-// immediately (see UsersController), so a demoted user's existing token
-// is rejected on their very next request — not up to 7 days later, which
-// is how long the token itself remains otherwise valid for. Runs only
-// for privileged-role tokens; ordinary Student requests skip the DB
-// lookup entirely, so this adds no cost to the common case.
-app.Use(async (context, next) =>
-{
-    var roleClaim = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-    if (roleClaim is "Publisher" or "Admin")
-    {
-        var subClaim = context.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-        var stampClaim = context.User.FindFirst("stamp")?.Value;
-
-        if (subClaim is null || !int.TryParse(subClaim, out var userId))
-        {
-            context.Response.StatusCode = 401;
-            return;
-        }
-
-        var db = context.RequestServices.GetRequiredService<AppDbContext>();
-        var currentStamp = await db.Users
-            .Where(u => u.Id == userId)
-            .Select(u => u.SecurityStamp)
-            .FirstOrDefaultAsync();
-
-        // A null currentStamp (e.g. an account that existed before this
-        // check was added and hasn't logged in since) fails closed —
-        // treated the same as a mismatch, never as an automatic pass.
-        if (currentStamp is null || currentStamp != stampClaim)
-        {
-            context.Response.StatusCode = 401;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync("{\"error\":\"Session no longer valid — please reload.\"}");
-            return;
-        }
-    }
-
-    await next();
-});
-
 app.UseAuthorization();
 app.MapControllers();
 

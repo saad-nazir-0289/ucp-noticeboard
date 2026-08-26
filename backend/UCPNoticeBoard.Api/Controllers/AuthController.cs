@@ -1,7 +1,4 @@
-using System.Security.Cryptography;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
@@ -13,13 +10,6 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Route("/")]
 public class AuthController : ControllerBase
 {
-    // Same shape the extension scrapes off the portal and the PWA
-    // validates on entry — enforced here too, so a request that bypasses
-    // both clients entirely can't create a permanent database row for an
-    // arbitrary string.
-    private static readonly Regex RollNumberFormat =
-        new(@"^[A-Za-z]{1,2}\d[A-Za-z]\d{2}[A-Za-z]{2,8}\d{3,6}$", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IConfiguration _configuration;
@@ -40,24 +30,21 @@ public class AuthController : ControllerBase
     /// <summary>
     /// There is no password or OAuth step here on purpose: the student is
     /// already authenticated by the UCP portal itself, and the extension
-    /// reads the Roll Number the portal displays.
+    /// reads the Roll Number the portal displays. That alone only ever
+    /// grants Student (read-only) access — Roll Numbers are visible,
+    /// guessable/enumerable, and not something the backend can verify on
+    /// its own, so they are NOT trusted for anything beyond that.
     ///
-    /// Role is granted directly from what's stored for this account — a
-    /// Publisher/Admin's tabs and tools are visible on ANY device with
-    /// zero extra steps, since the Roll Number carrying that role is
-    /// itself already known (Publishers/Admins aren't anonymous here).
-    /// The actual security boundary for anything that changes public
-    /// content — creating, editing, or deleting a notice — is the PIN
-    /// checked in NoticesController, not anything checked here.
-    ///
-    /// ActivationCode remains relevant for exactly two one-time events:
-    /// claiming the very first Admin account (via the AdminActivationSecret
-    /// config value, only while zero Admins exist), and a brand-new
-    /// Publisher's first-ever claim of their role. Both are single-use —
-    /// once redeemed, the code is cleared and never checked again.
+    /// Publisher and Admin access both additionally require an
+    /// ActivationCode that isn't derivable from the Roll Number:
+    ///   - Publisher: a random code the Admin generates when adding that
+    ///     Roll Number, shared with that person out-of-band. Redeeming it
+    ///     here upgrades their account, one time, then it's cleared.
+    ///   - Admin: a long secret configured only in server config
+    ///     (AdminActivationSecret), and only usable once — the very first
+    ///     time, before any Admin account exists at all.
     /// </summary>
     [HttpPost("login")]
-    [EnableRateLimiting("login")]
     public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber))
@@ -66,13 +53,7 @@ public class AuthController : ControllerBase
         }
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
-
-        if (!RollNumberFormat.IsMatch(rollNumber))
-        {
-            return BadRequest("rollNumber is not in a valid format.");
-        }
-
-        var suppliedCode = string.IsNullOrWhiteSpace(request.ActivationCode)
+        var activationCode = string.IsNullOrWhiteSpace(request.ActivationCode)
             ? null
             : request.ActivationCode.Trim();
 
@@ -91,29 +72,30 @@ public class AuthController : ControllerBase
             _db.Users.Add(user);
             needsSave = true;
         }
+        else if (!string.IsNullOrWhiteSpace(request.Name) && user.Name != request.Name.Trim())
+        {
+            user.Name = request.Name.Trim();
+            needsSave = true;
+        }
 
-        if (suppliedCode is not null)
+        if (activationCode is not null)
         {
             var adminSecret = _configuration["AdminActivationSecret"]?.Trim();
-            var isAdminBootstrap = !string.IsNullOrWhiteSpace(adminSecret) && suppliedCode == adminSecret;
+            var isAdminClaim = !string.IsNullOrWhiteSpace(adminSecret) && activationCode == adminSecret;
 
-            if (isAdminBootstrap)
+            if (isAdminClaim)
             {
                 var anyAdminExists = await _db.Users.AnyAsync(u => u.Role == UserRole.Admin);
                 if (!anyAdminExists && user.Role != UserRole.Admin)
                 {
                     user.Role = UserRole.Admin;
-                    user.SecurityStamp = Guid.NewGuid().ToString("N");
                     needsSave = true;
                 }
             }
-            else if (user.Role == UserRole.Student
-                     && user.PrivilegedCredential is not null
-                     && suppliedCode == user.PrivilegedCredential)
+            else if (user.PendingActivationCode is not null && activationCode == user.PendingActivationCode)
             {
                 user.Role = UserRole.Publisher;
-                user.SecurityStamp = Guid.NewGuid().ToString("N");
-                user.PrivilegedCredential = null; // one-time — cleared once redeemed
+                user.PendingActivationCode = null;
                 needsSave = true;
             }
         }
@@ -123,8 +105,13 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        var token = _jwtTokenService.CreateToken(user, user.Role);
+        var token = _jwtTokenService.CreateToken(user);
 
+        // Bundled here so the extension's very first paint needs only ONE
+        // round trip (login) instead of two (login, then a separate fetch
+        // for notices/categories) — this is what most of the "5 seconds on
+        // first load" was actually going toward: a second full network +
+        // database round trip that this makes unnecessary.
         var notices = await _noticeQuery.GetActiveNoticesAsync(user.Id, includeDismissed: false);
         var categories = await _noticeQuery.GetCategoriesAsync();
 
