@@ -15,6 +15,8 @@ export function AdminPanel({ user }: Props) {
 
   const [editingNameId, setEditingNameId] = useState<number | null>(null);
   const [editingNameValue, setEditingNameValue] = useState("");
+  const [pendingId, setPendingId] = useState<number | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
@@ -42,13 +44,24 @@ export function AdminPanel({ user }: Props) {
   const handleRoleChange = async (id: number, newRole: UserRole) => {
     const adminPin = window.prompt("Enter your PIN to confirm this role change:");
     if (!adminPin) return;
+
+    setPendingId(id);
+    setSuccessMessage(null);
+    setError(null);
     const previous = users;
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
+    // Not shown optimistically anymore — the row now visibly shows
+    // "Saving..." until the request actually resolves, so there's never
+    // a moment where it looks done before it actually is.
     try {
       await api.updateUserRole(id, newRole, adminPin, user.token);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: newRole } : u)));
+      setSuccessMessage("Role updated.");
+      setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err) {
       setUsers(previous);
       setError(err instanceof Error ? err.message : "Could not update role.");
+    } finally {
+      setPendingId(null);
     }
   };
 
@@ -56,10 +69,18 @@ export function AdminPanel({ user }: Props) {
     if (!confirm(`Reset ${name}'s PIN? They'll be asked to choose a new one next time they publish something.`)) return;
     const adminPin = window.prompt("Enter your PIN to confirm this reset:");
     if (!adminPin) return;
+
+    setPendingId(id);
+    setSuccessMessage(null);
+    setError(null);
     try {
       await api.resetUserPin(id, adminPin, user.token);
+      setSuccessMessage(`${name}'s PIN was reset.`);
+      setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reset PIN.");
+    } finally {
+      setPendingId(null);
     }
   };
 
@@ -178,6 +199,7 @@ export function AdminPanel({ user }: Props) {
 
       <h4>All Users</h4>
       {error && <p className="ucpnb-error">{error}</p>}
+      {successMessage && <p className="ucpnb-status ucpnb-status-active">{successMessage}</p>}
       <p className="ucpnb-status">
         Change anyone's role here — takes effect immediately, on any device,
         but now asks for your own PIN each time to confirm it's really you.
@@ -223,6 +245,7 @@ export function AdminPanel({ user }: Props) {
               <td>
                 <select
                   value={u.role}
+                  disabled={pendingId === u.id}
                   onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
                 >
                   {ROLES.map((r) => (
@@ -231,11 +254,16 @@ export function AdminPanel({ user }: Props) {
                     </option>
                   ))}
                 </select>
+                {pendingId === u.id && <span className="ucpnb-status"> Saving...</span>}
               </td>
               <td>
                 {u.role !== "Student" && (
-                  <button className="ucpnb-btn ucpnb-btn-link" onClick={() => handleResetPin(u.id, u.name)}>
-                    Reset PIN
+                  <button
+                    className="ucpnb-btn ucpnb-btn-link"
+                    disabled={pendingId === u.id}
+                    onClick={() => handleResetPin(u.id, u.name)}
+                  >
+                    {pendingId === u.id ? "Saving..." : "Reset PIN"}
                   </button>
                 )}
               </td>

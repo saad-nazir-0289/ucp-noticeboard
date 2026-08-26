@@ -175,6 +175,15 @@ public class UsersController : ControllerBase
     [HttpPost("{id}/reset-pin")]
     public async Task<IActionResult> ResetPin(int id, [FromQuery] string adminPin)
     {
+        if (id == CurrentUserId)
+        {
+            return BadRequest(
+                "You can't reset your own PIN this way. Use the Admin activation link " +
+                "(the same one that grants Admin access) to reset it instead — that's the " +
+                "only path for your own PIN, so there's exactly one way to touch it, and " +
+                "it requires the real secret, not just your current PIN.");
+        }
+
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
