@@ -67,6 +67,11 @@ self.addEventListener("push", (event) => {
       body: payload.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
+      // The large rich image shown inside the notification body itself
+      // (supported on Android Chrome; other platforms that don't support
+      // it simply ignore this field rather than breaking). Distinct from
+      // icon/badge above, which stay the small app-branded ones.
+      image: payload.image || undefined,
       data: { url: payload.url || "/" },
     })
   );

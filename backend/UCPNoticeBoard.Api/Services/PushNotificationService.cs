@@ -8,7 +8,7 @@ namespace UCPNoticeBoard.Api.Services;
 public interface IPushNotificationService
 {
     /// <summary>Sends a notification to every registered device, for every user, regardless of role.</summary>
-    Task NotifyAllAsync(string title, string body, string? url = null);
+    Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null);
 }
 
 /// <summary>
@@ -30,7 +30,7 @@ public class PushNotificationService : IPushNotificationService
         _logger = logger;
     }
 
-    public async Task NotifyAllAsync(string title, string body, string? url = null)
+    public async Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null)
     {
         var publicKey = _configuration["VapidSettings:PublicKey"];
         var privateKey = _configuration["VapidSettings:PrivateKey"];
@@ -46,7 +46,7 @@ public class PushNotificationService : IPushNotificationService
         }
 
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
-        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, url });
+        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, url, image = imageUrl });
         var subscriptions = await _db.PushSubscriptions.ToListAsync();
 
         var deadSubscriptionIds = new System.Collections.Concurrent.ConcurrentBag<int>();

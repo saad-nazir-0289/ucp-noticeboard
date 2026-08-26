@@ -173,6 +173,7 @@ public class NoticesController : ControllerBase
         var responseDto = ToDto(notice);
         var pushTitle = notice.Title;
         var pushBody = TrimForPush(notice.Description);
+        var pushImageUrl = notice.ImageUrl;
 
         _ = Task.Run(async () =>
         {
@@ -180,7 +181,7 @@ public class NoticesController : ControllerBase
             {
                 using var scope = _scopeFactory.CreateScope();
                 var pushService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
-                await pushService.NotifyAllAsync(pushTitle, pushBody);
+                await pushService.NotifyAllAsync(pushTitle, pushBody, imageUrl: pushImageUrl);
             }
             catch
             {

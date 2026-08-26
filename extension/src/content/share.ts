@@ -1,17 +1,22 @@
 import type { Notice } from "../types";
+import { API_BASE_URL } from "../api/client";
 
-/**
- * The extension itself can't be "opened" via a link — it only activates
- * inside the real UCP portal page, and window.location inside a content
- * script refers to the PORTAL's URL, not anything of the extension's own.
- * So every share link, regardless of where the button was clicked,
- * points at the standalone PWA — the only surface that's actually a real,
- * openable webpage on its own.
- */
+// Still used directly by the notifications bell (NoticeBoard.tsx) — that
+// link is meant to open the real app, unlike a notice share link, which
+// needs the rich-preview endpoint below instead.
 export const PWA_BASE_URL = "https://ucp-noticeboard.msndev.workers.dev";
 
+/**
+ * Points at the backend's server-rendered preview page, NOT the PWA
+ * directly. The PWA is a client-side single-page app — a link-unfurling
+ * bot (WhatsApp, iMessage, etc.) fetching it directly gets one static
+ * index.html with no idea which notice was meant, since none of that
+ * runs JavaScript. The backend endpoint serves real per-notice Open
+ * Graph tags (title, description, the notice's actual image) and
+ * redirects an actual human straight into the real app instantly.
+ */
 export async function shareNotice(notice: Notice): Promise<"shared" | "copied" | "failed"> {
-  const url = `${PWA_BASE_URL}/?notice=${notice.id}`;
+  const url = `${API_BASE_URL}/share/notice/${notice.id}`;
 
   if (navigator.share) {
     try {

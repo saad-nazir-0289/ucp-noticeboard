@@ -215,7 +215,7 @@ export function App() {
                 aria-label={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
                 title={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
               >
-                🔔
+                {pushState === "subscribed" ? "🔕" : "🔔"}
               </button>
             )}
             <button className="ucpnb-btn ucpnb-btn-link" onClick={handleChangeIdentity}>
