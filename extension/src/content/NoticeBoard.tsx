@@ -139,24 +139,13 @@ export function NoticeBoard() {
             </nav>
           )}
           <a
-            className="ucpnb-bell-btn"
+            className="ucpnb-btn"
             href={`${PWA_BASE_URL}/?enableNotifications=1`}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Notifications"
             title="Notifications aren't available inside the extension itself — this opens the mobile-friendly site, where they are"
           >
             🔔
-          </a>
-          <a
-            className="ucpnb-feedback-btn"
-            href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Leave feedback and a review"
-            title="Leave feedback and a review"
-          >
-            💬
           </a>
         </div>
       </div>
@@ -177,15 +166,7 @@ export function NoticeBoard() {
       {tab === "users" && user.role === "Admin" && <AdminPanel user={user} />}
       {tab === "analytics" && user.role === "Admin" && <AnalyticsPanel user={user} />}
 
-      <div className="ucpnb-footer">
-        <a
-          href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          💬 Enjoying this? Leave feedback & a review
-        </a>
-      </div>
+
     </div>
   );
 }
