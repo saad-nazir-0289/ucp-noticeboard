@@ -151,6 +151,16 @@ export const api = {
       { method: "POST", body: JSON.stringify({ endpoint, p256dh: "", auth: "" }) },
       token
     ),
+
+  getPushCategories: (endpoint: string, token: string) =>
+    request<number[]>(`/push/categories?endpoint=${encodeURIComponent(endpoint)}`, {}, token),
+
+  updatePushCategories: (endpoint: string, categoryIds: number[], token: string) =>
+    request<void>(
+      "/push/categories",
+      { method: "PATCH", body: JSON.stringify({ endpoint, categoryIds }) },
+      token
+    ),
 };
 
 export { ApiError };

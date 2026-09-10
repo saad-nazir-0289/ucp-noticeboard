@@ -29,6 +29,7 @@ export interface Notice {
   createdByName: string;
   createdAt: string;
   updatedAt: string;
+  viewCount: number;
 }
 
 export interface Category {

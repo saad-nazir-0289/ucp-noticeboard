@@ -30,6 +30,15 @@ export async function getPushSubscriptionState(): Promise<"subscribed" | "not-su
   return existing ? "subscribed" : "not-subscribed";
 }
 
+/** Needed by the category-preferences UI, which is keyed by device endpoint, same as subscribe/unsubscribe. */
+export async function getCurrentEndpoint(): Promise<string | null> {
+  if (!isPushSupported()) return null;
+  const registration = await navigator.serviceWorker.ready.catch(() => null);
+  if (!registration) return null;
+  const existing = await registration.pushManager.getSubscription();
+  return existing?.endpoint ?? null;
+}
+
 /**
  * Asks the browser for notification permission (this is the one moment a
  * real permission prompt appears — always in direct response to the user

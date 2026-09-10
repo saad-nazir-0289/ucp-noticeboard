@@ -49,6 +49,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INoticeQueryService, NoticeQueryService>();
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
+builder.Services.AddHostedService<DeadlineReminderService>();
 
 // --- Auth ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");

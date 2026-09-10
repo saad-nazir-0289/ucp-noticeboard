@@ -13,6 +13,18 @@ public class Notice
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Incremented every time GET /notices/{id} is called — a raw
+    // open-count, not unique-viewer tracking (the same person reopening
+    // it counts again). That's intentional: this exists to give a
+    // Publisher a simple "people are actually looking at this" signal,
+    // not analytics-grade measurement.
+    public int ViewCount { get; set; } = 0;
+
+    // Set once a 24-hour-before-deadline reminder push has gone out for
+    // this notice, so the background reminder job never sends it twice.
+    // Meaningless for notices with no Deadline.
+    public bool ReminderSent { get; set; } = false;
+
     public User? CreatedByUser { get; set; }
     public Category? Category { get; set; }
 }

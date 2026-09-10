@@ -34,7 +34,8 @@ public record NoticeDto(
     int CreatedByUserId,
     string CreatedByName,
     DateTime CreatedAt,
-    DateTime UpdatedAt
+    DateTime UpdatedAt,
+    int ViewCount
 );
 
 // Pin is required for every notice-mutating action. If the account has no
@@ -58,5 +59,10 @@ public record AnalyticsSummaryDto(
 );
 
 public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
+
+// An empty list means "notify me about everything" — same as never
+// having set a filter at all. A non-empty list restricts this device to
+// only those categories.
+public record UpdatePushCategoriesRequest(string Endpoint, List<int> CategoryIds);
 
 public record VapidPublicKeyResponse(string PublicKey);

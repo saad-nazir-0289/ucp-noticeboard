@@ -80,4 +80,42 @@ public class PushController : ControllerBase
         }
         return NoContent();
     }
+
+    /// <summary>
+    /// Lets a device opt into notifications for specific categories only,
+    /// instead of everything. An empty list clears the filter (back to
+    /// "notify me about everything").
+    /// </summary>
+    [HttpPatch("categories")]
+    public async Task<IActionResult> UpdateCategories([FromBody] UpdatePushCategoriesRequest request)
+    {
+        var subscription = await _db.PushSubscriptions.FirstOrDefaultAsync(p => p.Endpoint == request.Endpoint);
+        if (subscription is null)
+        {
+            return NotFound("No active subscription for this device — enable notifications first.");
+        }
+
+        subscription.CategoryFilter = request.CategoryIds.Count == 0
+            ? null
+            : string.Join(",", request.CategoryIds.Distinct());
+
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpGet("categories")]
+    public async Task<ActionResult<List<int>>> GetCategories([FromQuery] string endpoint)
+    {
+        var subscription = await _db.PushSubscriptions.FirstOrDefaultAsync(p => p.Endpoint == endpoint);
+        if (subscription?.CategoryFilter is null)
+        {
+            return Ok(new List<int>());
+        }
+
+        var ids = subscription.CategoryFilter
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(int.Parse)
+            .ToList();
+        return Ok(ids);
+    }
 }

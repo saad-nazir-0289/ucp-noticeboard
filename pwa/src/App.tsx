@@ -7,6 +7,7 @@ import {
   getPushSubscriptionState,
   subscribeToPush,
   unsubscribeFromPush,
+  getCurrentEndpoint,
 } from "./push";
 import { RollNumberEntry } from "./RollNumberEntry";
 import { NoticeFeed, getSavedViewMode } from "./components/NoticeFeed";
@@ -25,6 +26,9 @@ export function App() {
   const [autoEnableNotifications, setAutoEnableNotifications] = useState(false);
   const [urlActivationCode, setUrlActivationCode] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<string | null>(null);
+  const [showCategoryPrefs, setShowCategoryPrefs] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [prefsLoading, setPrefsLoading] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -164,6 +168,49 @@ export function App() {
     }
   };
 
+  const openCategoryPrefs = async () => {
+    if (!user) return;
+    setPrefsLoading(true);
+    setShowCategoryPrefs(true);
+    try {
+      const endpoint = await getCurrentEndpoint();
+      if (!endpoint) {
+        setShowCategoryPrefs(false);
+        return;
+      }
+      const ids = await api.getPushCategories(endpoint, user.token);
+      setSelectedCategoryIds(ids);
+    } catch {
+      setShowCategoryPrefs(false);
+      showToast("Couldn't load your preferences");
+    } finally {
+      setPrefsLoading(false);
+    }
+  };
+
+  const toggleCategorySelection = (id: number) => {
+    setSelectedCategoryIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const saveCategoryPrefs = async () => {
+    if (!user) return;
+    const endpoint = await getCurrentEndpoint();
+    if (!endpoint) return;
+    try {
+      await api.updatePushCategories(endpoint, selectedCategoryIds, user.token);
+      setShowCategoryPrefs(false);
+      showToast(
+        selectedCategoryIds.length === 0
+          ? "You'll be notified about everything"
+          : "Notification preferences saved"
+      );
+    } catch {
+      showToast("Couldn't save your preferences");
+    }
+  };
+
   useEffect(() => {
     if (status !== "ready" || !autoEnableNotifications || pushState !== "not-subscribed") return;
     // Only ever fire once — reset immediately so a later re-render (or the
@@ -215,12 +262,54 @@ export function App() {
                 aria-label={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
                 title={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
               >
-                {pushState === "subscribed" ? "🔔" : "🔕"}
+                {pushState === "subscribed" ? "🔕" : "🔔"}
               </button>
             )}
-
+            {pushState === "subscribed" && bootstrapCategories.length > 0 && (
+              <button className="ucpnb-btn ucpnb-btn-link" onClick={openCategoryPrefs}>
+                Customize
+              </button>
+            )}
           </div>
         </div>
+
+        {showCategoryPrefs && (
+          <div className="ucpnb-grid-overlay" onClick={() => setShowCategoryPrefs(false)}>
+            <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="ucpnb-grid-header">
+                <h3>Notify me about</h3>
+                <button className="ucpnb-modal-close" onClick={() => setShowCategoryPrefs(false)} aria-label="Close">
+                  ×
+                </button>
+              </div>
+              {prefsLoading ? (
+                <p className="ucpnb-status">Loading...</p>
+              ) : (
+                <>
+                  <p className="ucpnb-status">
+                    Leave everything unchecked to get notified about everything, or pick
+                    specific categories to only hear about those.
+                  </p>
+                  {bootstrapCategories.map((c) => (
+                    <label key={c.id} className="ucpnb-checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryIds.includes(c.id)}
+                        onChange={() => toggleCategorySelection(c.id)}
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                  <div className="ucpnb-form-actions">
+                    <button className="ucpnb-btn ucpnb-btn-primary" onClick={saveCategoryPrefs}>
+                      Save
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <NoticeFeed
           token={user.token}

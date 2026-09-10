@@ -891,3 +891,20 @@ body {
     opacity: 1;
   }
 }
+
+.ucpnb-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  font-size: 14px;
+  color: #1f2937;
+  border-bottom: 1px solid #f0f2f5;
+  cursor: pointer;
+}
+
+.ucpnb-checkbox-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}

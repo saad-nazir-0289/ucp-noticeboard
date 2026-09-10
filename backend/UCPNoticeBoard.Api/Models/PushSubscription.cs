@@ -17,4 +17,12 @@ public class PushSubscription
     public string Auth { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Null (the default) means "notify me about everything" — matches
+    // the original all-or-nothing behavior exactly. A comma-separated
+    // list of Category IDs (e.g. "1,4,7") restricts this device to only
+    // those categories. Stored as a plain string rather than a separate
+    // join table — there are only ever a handful of categories, so this
+    // stays simple without meaningfully limiting anything.
+    public string? CategoryFilter { get; set; }
 }

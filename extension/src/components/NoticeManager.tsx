@@ -267,6 +267,7 @@ export function NoticeManager({ user, scope }: Props) {
               <th>Category</th>
               {scope === "all" && <th>Published By</th>}
               <th>Posted</th>
+              <th>Views</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -280,6 +281,7 @@ export function NoticeManager({ user, scope }: Props) {
                   <td>{n.categoryName ?? "—"}</td>
                   {scope === "all" && <td>{n.createdByName}</td>}
                   <td>{new Date(n.createdAt).toLocaleDateString()}</td>
+                  <td>{n.viewCount}</td>
                   <td>
                     <span className={expired ? "ucpnb-status-expired" : "ucpnb-status-active"}>
                       {expired ? "Hidden from students" : "Visible"}

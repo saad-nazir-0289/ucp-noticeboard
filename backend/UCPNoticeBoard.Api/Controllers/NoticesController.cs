@@ -36,7 +36,7 @@ public class NoticesController : ControllerBase
     private static NoticeDto ToDto(Notice n) => new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt);
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount);
 
     private static string HashPin(string pin) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
@@ -84,6 +84,10 @@ public class NoticesController : ControllerBase
             .Include(n => n.Category)
             .FirstOrDefaultAsync(n => n.Id == id);
         if (notice is null) return NotFound();
+
+        notice.ViewCount++;
+        await _db.SaveChangesAsync();
+
         return Ok(ToDto(notice));
     }
 
@@ -174,6 +178,7 @@ public class NoticesController : ControllerBase
         var pushTitle = notice.Title;
         var pushBody = TrimForPush(notice.Description);
         var pushImageUrl = notice.ImageUrl;
+        var pushCategoryId = notice.CategoryId;
 
         _ = Task.Run(async () =>
         {
@@ -181,7 +186,7 @@ public class NoticesController : ControllerBase
             {
                 using var scope = _scopeFactory.CreateScope();
                 var pushService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
-                await pushService.NotifyAllAsync(pushTitle, pushBody, imageUrl: pushImageUrl);
+                await pushService.NotifyAllAsync(pushTitle, pushBody, imageUrl: pushImageUrl, categoryId: pushCategoryId);
             }
             catch
             {

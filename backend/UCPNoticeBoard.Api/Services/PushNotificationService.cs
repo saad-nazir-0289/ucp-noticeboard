@@ -7,8 +7,8 @@ namespace UCPNoticeBoard.Api.Services;
 
 public interface IPushNotificationService
 {
-    /// <summary>Sends a notification to every registered device, for every user, regardless of role.</summary>
-    Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null);
+    /// <summary>Sends a notification to registered devices, for every user, regardless of role.</summary>
+    Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null, int? categoryId = null);
 }
 
 /// <summary>
@@ -30,7 +30,7 @@ public class PushNotificationService : IPushNotificationService
         _logger = logger;
     }
 
-    public async Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null)
+    public async Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null, int? categoryId = null)
     {
         var publicKey = _configuration["VapidSettings:PublicKey"];
         var privateKey = _configuration["VapidSettings:PrivateKey"];
@@ -47,7 +47,18 @@ public class PushNotificationService : IPushNotificationService
 
         var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
         var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, url, image = imageUrl });
-        var subscriptions = await _db.PushSubscriptions.ToListAsync();
+        var allSubscriptions = await _db.PushSubscriptions.ToListAsync();
+
+        // A null CategoryFilter always means "everything" — this is the
+        // untouched default for every subscription that predates this
+        // feature, so nobody who already enabled notifications silently
+        // stops receiving them. Only a subscription that's explicitly set
+        // specific categories gets narrowed here.
+        var subscriptions = categoryId is null
+            ? allSubscriptions
+            : allSubscriptions
+                .Where(s => s.CategoryFilter is null || s.CategoryFilter.Split(',').Contains(categoryId.Value.ToString()))
+                .ToList();
 
         var deadSubscriptionIds = new System.Collections.Concurrent.ConcurrentBag<int>();
 
