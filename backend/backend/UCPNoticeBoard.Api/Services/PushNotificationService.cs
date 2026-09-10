@@ -1,0 +1,104 @@
+using Microsoft.EntityFrameworkCore;
+using UCPNoticeBoard.Api.Data;
+using UCPNoticeBoard.Api.Models;
+using WebPush;
+
+namespace UCPNoticeBoard.Api.Services;
+
+public interface IPushNotificationService
+{
+    /// <summary>Sends a notification to registered devices, for every user, regardless of role.</summary>
+    Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null, int? categoryId = null);
+}
+
+/// <summary>
+/// Uses standard browser Web Push (VAPID) — no paid third-party service,
+/// no per-message cost. Delivery goes through the browser vendors' own
+/// push infrastructure (Google/Mozilla/etc.), which is free regardless of
+/// volume.
+/// </summary>
+public class PushNotificationService : IPushNotificationService
+{
+    private readonly AppDbContext _db;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<PushNotificationService> _logger;
+
+    public PushNotificationService(AppDbContext db, IConfiguration configuration, ILogger<PushNotificationService> logger)
+    {
+        _db = db;
+        _configuration = configuration;
+        _logger = logger;
+    }
+
+    public async Task NotifyAllAsync(string title, string body, string? url = null, string? imageUrl = null, int? categoryId = null)
+    {
+        var publicKey = _configuration["VapidSettings:PublicKey"];
+        var privateKey = _configuration["VapidSettings:PrivateKey"];
+        var subject = _configuration["VapidSettings:Subject"];
+
+        if (string.IsNullOrWhiteSpace(publicKey) || publicKey.StartsWith("REPLACE_WITH") ||
+            string.IsNullOrWhiteSpace(privateKey) || privateKey.StartsWith("REPLACE_WITH"))
+        {
+            // Not configured yet — this is expected before you've generated
+            // VAPID keys, and should never block notice creation itself.
+            _logger.LogInformation("Push notifications skipped: VAPID keys not configured yet.");
+            return;
+        }
+
+        var vapidDetails = new VapidDetails(subject, publicKey, privateKey);
+        var payload = System.Text.Json.JsonSerializer.Serialize(new { title, body, url, image = imageUrl });
+        var allSubscriptions = await _db.PushSubscriptions.ToListAsync();
+
+        // A null CategoryFilter always means "everything" — this is the
+        // untouched default for every subscription that predates this
+        // feature, so nobody who already enabled notifications silently
+        // stops receiving them. Only a subscription that's explicitly set
+        // specific categories gets narrowed here.
+        var subscriptions = categoryId is null
+            ? allSubscriptions
+            : allSubscriptions
+                .Where(s => s.CategoryFilter is null || s.CategoryFilter.Split(',').Contains(categoryId.Value.ToString()))
+                .ToList();
+
+        var deadSubscriptionIds = new System.Collections.Concurrent.ConcurrentBag<int>();
+
+        // Bounded parallelism: fast enough to not scale linearly with
+        // subscriber count, but capped so a large broadcast doesn't open
+        // hundreds of simultaneous outbound connections at once. Each
+        // WebPushClient is used by only one task at a time — safer than
+        // sharing one instance across concurrent sends.
+        await Parallel.ForEachAsync(
+            subscriptions,
+            new ParallelOptions { MaxDegreeOfParallelism = 10 },
+            async (sub, cancellationToken) =>
+            {
+                try
+                {
+                    var webPushClient = new WebPushClient();
+                    var pushSubscription = new WebPush.PushSubscription(sub.Endpoint, sub.P256dh, sub.Auth);
+                    await webPushClient.SendNotificationAsync(pushSubscription, payload, vapidDetails);
+                }
+                catch (WebPushException ex) when (ex.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Gone)
+                {
+                    // The browser has permanently unsubscribed (uninstalled,
+                    // cleared data, etc.) — clean up so we stop trying.
+                    deadSubscriptionIds.Add(sub.Id);
+                }
+                catch (Exception ex)
+                {
+                    // One failed device should never stop the rest from being notified.
+                    _logger.LogWarning(ex, "Failed to send push notification to subscription {Id}", sub.Id);
+                }
+            });
+
+        if (deadSubscriptionIds.Count > 0)
+        {
+            var idsToRemove = deadSubscriptionIds.ToList();
+            var deadSubs = await _db.PushSubscriptions
+                .Where(p => idsToRemove.Contains(p.Id))
+                .ToListAsync();
+            _db.PushSubscriptions.RemoveRange(deadSubs);
+            await _db.SaveChangesAsync();
+        }
+    }
+}
