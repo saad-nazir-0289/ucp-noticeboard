@@ -53,7 +53,8 @@ public class NoticeQueryService : INoticeQueryService
         n.CreatedByUserId,
         n.CreatedByUser?.Name ?? "Unknown",
         n.CreatedAt,
-        n.UpdatedAt
+        n.UpdatedAt,
+        n.ViewCount
     );
 
     private async Task<List<NoticeDto>> GetActiveNoticesUncachedAsync()
