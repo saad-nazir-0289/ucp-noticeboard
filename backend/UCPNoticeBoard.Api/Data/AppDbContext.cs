@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
     public DbSet<Notice> Notices => Set<Notice>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<NoticeDismissal> NoticeDismissals => Set<NoticeDismissal>();
+    public DbSet<NoticeLike> NoticeLikes => Set<NoticeLike>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,6 +56,11 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<NoticeDismissal>(entity =>
         {
             entity.HasIndex(d => new { d.UserId, d.NoticeId }).IsUnique();
+        });
+
+        modelBuilder.Entity<NoticeLike>(entity =>
+        {
+            entity.HasIndex(l => new { l.UserId, l.NoticeId }).IsUnique();
         });
 
         modelBuilder.Entity<PushSubscription>(entity =>

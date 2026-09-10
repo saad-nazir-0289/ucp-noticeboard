@@ -6,6 +6,7 @@ import { optimizeImageUrl } from "../imageOptimize";
 interface Props {
   notice: Notice;
   onClose: () => void;
+  onLike?: (notice: Notice) => void;
 }
 
 function formatDate(iso: string) {
@@ -16,7 +17,7 @@ function formatDate(iso: string) {
   });
 }
 
-export function NoticeDetailModal({ notice, onClose }: Props) {
+export function NoticeDetailModal({ notice, onClose, onLike }: Props) {
   const [shared, setShared] = useState(false);
 
   const handleShare = async () => {
@@ -74,6 +75,14 @@ export function NoticeDetailModal({ notice, onClose }: Props) {
             <button className="ucpnb-btn" onClick={handleShare}>
               {shared ? "Link copied!" : "🔗 Share"}
             </button>
+            {onLike && (
+              <button
+                className={notice.likedByMe ? "ucpnb-btn ucpnb-like-btn liked" : "ucpnb-btn ucpnb-like-btn"}
+                onClick={() => onLike(notice)}
+              >
+                {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
+              </button>
+            )}
           </div>
         </div>
       </div>

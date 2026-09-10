@@ -20,6 +20,12 @@ public class Notice
     // not analytics-grade measurement.
     public int ViewCount { get; set; } = 0;
 
+    // Denormalized count, kept in sync directly on like/unlike — avoids
+    // a join/count query every time a notice list is fetched. Public,
+    // unlike ViewCount: everyone sees how many people liked something,
+    // same as any ordinary "like" feature.
+    public int LikeCount { get; set; } = 0;
+
     // Set once a 24-hour-before-deadline reminder push has gone out for
     // this notice, so the background reminder job never sends it twice.
     // Meaningless for notices with no Deadline.

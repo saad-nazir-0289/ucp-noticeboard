@@ -8,6 +8,7 @@ interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
   onDismiss: (notice: Notice) => void;
+  onLike?: (notice: Notice) => void;
 }
 
 function formatDate(iso: string) {
@@ -21,7 +22,7 @@ function formatDate(iso: string) {
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 0.5;
 
-export function NoticeListItem({ notice, onView, onDismiss }: Props) {
+export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dismissing, setDismissing] = useState(false);
   const [shared, setShared] = useState(false);
@@ -102,6 +103,18 @@ export function NoticeListItem({ notice, onView, onDismiss }: Props) {
         >
           {shared ? "✓" : "🔗"}
         </button>
+        {onLike && (
+          <button
+            className="ucpnb-list-item-share"
+            aria-label={notice.likedByMe ? "Unlike" : "Like"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLike(notice);
+            }}
+          >
+            {notice.likedByMe ? "❤️" : "🤍"}
+          </button>
+        )}
       </div>
     </div>
   );

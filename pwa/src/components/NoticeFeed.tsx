@@ -100,6 +100,25 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     });
   };
 
+  const handleLike = (notice: Notice) => {
+    const wasLiked = notice.likedByMe;
+    const toggled: Notice = {
+      ...notice,
+      likedByMe: !wasLiked,
+      likeCount: notice.likeCount + (wasLiked ? -1 : 1),
+    };
+
+    setNotices((prev) => prev.map((n) => (n.id === notice.id ? toggled : n)));
+    setSelected((prev) => (prev?.id === notice.id ? toggled : prev));
+
+    const apiCall = wasLiked ? api.unlikeNotice : api.likeNotice;
+    apiCall(notice.id, token).catch(() => {
+      // Revert on failure — the optimistic update above assumed success.
+      setNotices((prev) => prev.map((n) => (n.id === notice.id ? notice : n)));
+      setSelected((prev) => (prev?.id === notice.id ? notice : prev));
+    });
+  };
+
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
     localStorage.setItem(VIEW_MODE_KEY, mode);
@@ -192,13 +211,13 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
       ) : viewMode === "list" ? (
         <div className="ucpnb-list">
           {filtered.map((notice) => (
-            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
+            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
           ))}
         </div>
       ) : (
         <div className="ucpnb-feed">
           {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
+            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
           ))}
         </div>
       )}
@@ -218,7 +237,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
             ) : (
               <div className="ucpnb-grid">
                 {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
+                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
                 ))}
               </div>
             )}
@@ -259,7 +278,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
       )}
 
       {selected && (
-        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} />
+        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} />
       )}
     </>
   );

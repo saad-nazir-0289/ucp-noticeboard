@@ -33,10 +33,10 @@ public class NoticesController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
-    private static NoticeDto ToDto(Notice n) => new(
+    private static NoticeDto ToDto(Notice n, bool likedByMe = false) => new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount);
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.LikeCount, likedByMe);
 
     private static string HashPin(string pin) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
@@ -88,7 +88,8 @@ public class NoticesController : ControllerBase
         notice.ViewCount++;
         await _db.SaveChangesAsync();
 
-        return Ok(ToDto(notice));
+        var likedByMe = await _db.NoticeLikes.AnyAsync(l => l.UserId == CurrentUserId && l.NoticeId == id);
+        return Ok(ToDto(notice, likedByMe));
     }
 
     [HttpGet("dismissed")]
@@ -145,6 +146,49 @@ public class NoticesController : ControllerBase
         {
             _db.NoticeDismissals.Remove(dismissal);
             await _db.SaveChangesAsync();
+        }
+
+        return NoContent();
+    }
+
+    [HttpPost("{id}/like")]
+    public async Task<IActionResult> LikeNotice(int id)
+    {
+        var userId = CurrentUserId;
+        var alreadyLiked = await _db.NoticeLikes
+            .AnyAsync(l => l.UserId == userId && l.NoticeId == id);
+
+        if (!alreadyLiked)
+        {
+            var notice = await _db.Notices.FindAsync(id);
+            if (notice is null) return NotFound();
+
+            _db.NoticeLikes.Add(new NoticeLike { UserId = userId, NoticeId = id });
+            notice.LikeCount++;
+            await _db.SaveChangesAsync();
+            _noticeQuery.InvalidateNoticesCache();
+        }
+
+        return NoContent();
+    }
+
+    [HttpDelete("{id}/like")]
+    public async Task<IActionResult> UnlikeNotice(int id)
+    {
+        var userId = CurrentUserId;
+        var like = await _db.NoticeLikes
+            .FirstOrDefaultAsync(l => l.UserId == userId && l.NoticeId == id);
+
+        if (like is not null)
+        {
+            var notice = await _db.Notices.FindAsync(id);
+            if (notice is not null && notice.LikeCount > 0)
+            {
+                notice.LikeCount--;
+            }
+            _db.NoticeLikes.Remove(like);
+            await _db.SaveChangesAsync();
+            _noticeQuery.InvalidateNoticesCache();
         }
 
         return NoContent();

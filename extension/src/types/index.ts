@@ -30,6 +30,8 @@ export interface Notice {
   createdAt: string;
   updatedAt: string;
   viewCount: number;
+  likeCount: number;
+  likedByMe: boolean;
 }
 
 export interface Category {

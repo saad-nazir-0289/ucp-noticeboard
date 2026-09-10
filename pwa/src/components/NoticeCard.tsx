@@ -8,6 +8,7 @@ interface Props {
   onView: (notice: Notice) => void;
   onDismiss?: (notice: Notice) => void;
   onRestore?: (notice: Notice) => void;
+  onLike?: (notice: Notice) => void;
 }
 
 function formatDate(iso: string) {
@@ -18,7 +19,7 @@ function formatDate(iso: string) {
   });
 }
 
-export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
+export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike }: Props) {
   const [shared, setShared] = useState(false);
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -78,6 +79,18 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore }: Props) {
       <div className="ucpnb-card-body">
         {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
         <h4 className="ucpnb-card-title">{notice.title}</h4>
+        {onLike && (
+          <button
+            className={notice.likedByMe ? "ucpnb-like-btn liked" : "ucpnb-like-btn"}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLike(notice);
+            }}
+            aria-label={notice.likedByMe ? "Unlike" : "Like"}
+          >
+            {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
+          </button>
+        )}
         {onRestore && (
           <div className="ucpnb-card-footer">
             <button

@@ -54,7 +54,9 @@ public class NoticeQueryService : INoticeQueryService
         n.CreatedByUser?.Name ?? "Unknown",
         n.CreatedAt,
         n.UpdatedAt,
-        n.ViewCount
+        n.ViewCount,
+        n.LikeCount,
+        LikedByMe: false
     );
 
     private async Task<List<NoticeDto>> GetActiveNoticesUncachedAsync()
@@ -101,7 +103,12 @@ public class NoticeQueryService : INoticeQueryService
 
         if (includeDismissed)
         {
-            return all;
+            var likedIdsAll = (await _db.NoticeLikes
+                .Where(l => l.UserId == userId)
+                .Select(l => l.NoticeId)
+                .ToListAsync()).ToHashSet();
+
+            return all.Select(dto => dto with { LikedByMe = likedIdsAll.Contains(dto.Id) }).ToList();
         }
 
         var dismissedIds = (await _db.NoticeDismissals
@@ -109,7 +116,15 @@ public class NoticeQueryService : INoticeQueryService
             .Select(d => d.NoticeId)
             .ToListAsync()).ToHashSet();
 
-        return all.Where(n => !dismissedIds.Contains(n.Id)).ToList();
+        var likedIds = (await _db.NoticeLikes
+            .Where(l => l.UserId == userId)
+            .Select(l => l.NoticeId)
+            .ToListAsync()).ToHashSet();
+
+        return all
+            .Where(n => !dismissedIds.Contains(n.Id))
+            .Select(dto => dto with { LikedByMe = likedIds.Contains(dto.Id) })
+            .ToList();
     }
 
     public async Task<List<NoticeDto>> GetDismissedNoticesAsync(int userId)
@@ -125,7 +140,15 @@ public class NoticeQueryService : INoticeQueryService
             .Select(d => d.NoticeId)
             .ToListAsync()).ToHashSet();
 
-        return allActive.Where(n => dismissedIds.Contains(n.Id)).ToList();
+        var likedIds = (await _db.NoticeLikes
+            .Where(l => l.UserId == userId)
+            .Select(l => l.NoticeId)
+            .ToListAsync()).ToHashSet();
+
+        return allActive
+            .Where(n => dismissedIds.Contains(n.Id))
+            .Select(dto => dto with { LikedByMe = likedIds.Contains(dto.Id) })
+            .ToList();
     }
 
     public async Task<List<CategoryDto>> GetCategoriesAsync()
