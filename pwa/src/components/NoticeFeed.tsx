@@ -83,6 +83,16 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     });
   }, [notices, search, categoryId]);
 
+  const handleView = (notice: Notice) => {
+    setSelected(notice);
+    // Fire-and-forget — the detail view is already shown from the
+    // already-held object above; this just records that it happened,
+    // without making the person wait on it.
+    api.recordView(notice.id, token).catch(() => {
+      /* non-critical */
+    });
+  };
+
   const handleDismiss = (notice: Notice) => {
     setNotices((prev) => prev.filter((n) => n.id !== notice.id));
     api.dismissNotice(notice.id, token).catch(() => {
@@ -182,13 +192,13 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
       ) : viewMode === "list" ? (
         <div className="ucpnb-list">
           {filtered.map((notice) => (
-            <NoticeListItem key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
           ))}
         </div>
       ) : (
         <div className="ucpnb-feed">
           {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
           ))}
         </div>
       )}
@@ -208,7 +218,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
             ) : (
               <div className="ucpnb-grid">
                 {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
                 ))}
               </div>
             )}
@@ -238,7 +248,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
                   <NoticeCard
                     key={notice.id}
                     notice={notice}
-                    onView={setSelected}
+                    onView={handleView}
                     onRestore={handleRestore}
                   />
                 ))}

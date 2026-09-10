@@ -59,6 +59,9 @@ export const api = {
   getNotice: (id: number, token: string) =>
     request<Notice>(`/notices/${id}`, {}, token),
 
+  recordView: (id: number, token: string) =>
+    request<void>(`/notices/${id}/view`, { method: "POST" }, token),
+
   getDismissedNotices: (token: string) =>
     request<Notice[]>("/notices/dismissed", {}, token),
 

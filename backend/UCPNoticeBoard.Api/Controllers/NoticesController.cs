@@ -97,6 +97,27 @@ public class NoticesController : ControllerBase
         return Ok(await _noticeQuery.GetDismissedNoticesAsync(CurrentUserId));
     }
 
+    /// <summary>
+    /// Registers a view without the cost of a full notice fetch. Opening
+    /// a notice from the feed shows the already-held object instantly (no
+    /// network round trip, no added latency) — this exists purely so that
+    /// the MAJORITY of real opens, which never call GET /notices/{id} at
+    /// all, still get counted. GET /notices/{id} still independently
+    /// increments too, for deep-linked/shared opens specifically — the
+    /// two paths are mutually exclusive per open, so nothing double-counts.
+    /// </summary>
+    [HttpPost("{id}/view")]
+    public async Task<IActionResult> RegisterView(int id)
+    {
+        var notice = await _db.Notices.FindAsync(id);
+        if (notice is null) return NotFound();
+
+        notice.ViewCount++;
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     [HttpPost("{id}/dismiss")]
     public async Task<IActionResult> DismissNotice(int id)
     {

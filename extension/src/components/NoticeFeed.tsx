@@ -64,6 +64,13 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     });
   }, [notices, search, categoryId]);
 
+  const handleView = (notice: Notice) => {
+    setSelected(notice);
+    api.recordView(notice.id, token).catch(() => {
+      /* non-critical */
+    });
+  };
+
   const handleDismiss = (notice: Notice) => {
     // Optimistic: remove immediately, don't make the user wait on a request
     // just to hide something they've already decided they don't want to see.
@@ -143,7 +150,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       ) : (
         <div className="ucpnb-feed">
           {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
           ))}
         </div>
       )}
@@ -163,7 +170,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
             ) : (
               <div className="ucpnb-grid">
                 {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={setSelected} onDismiss={handleDismiss} />
+                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
                 ))}
               </div>
             )}
@@ -193,7 +200,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
                   <NoticeCard
                     key={notice.id}
                     notice={notice}
-                    onView={setSelected}
+                    onView={handleView}
                     onRestore={handleRestore}
                   />
                 ))}
