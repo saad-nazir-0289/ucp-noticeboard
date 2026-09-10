@@ -144,6 +144,37 @@
   background: rgba(15, 23, 42, 0.8);
 }
 
+.ucpnb-card-like {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.ucpnb-card-like.liked {
+  background: rgba(190, 18, 60, 0.85);
+}
+
+.ucpnb-card-like:hover {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.ucpnb-card-like.liked:hover {
+  background: rgba(190, 18, 60, 1);
+}
+
 .ucpnb-card-image-wrap {
   width: 100%;
   height: 120px;

@@ -105,14 +105,14 @@ export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
         </button>
         {onLike && (
           <button
-            className="ucpnb-list-item-share"
+            className={notice.likedByMe ? "ucpnb-list-item-like liked" : "ucpnb-list-item-like"}
             aria-label={notice.likedByMe ? "Unlike" : "Like"}
             onClick={(e) => {
               e.stopPropagation();
               onLike(notice);
             }}
           >
-            {notice.likedByMe ? "❤️" : "🤍"}
+            {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
           </button>
         )}
       </div>

@@ -250,6 +250,37 @@ body {
   background: rgba(15, 23, 42, 0.8);
 }
 
+.ucpnb-card-like {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ucpnb-card-like.liked {
+  background: rgba(190, 18, 60, 0.85);
+}
+
+.ucpnb-card-like:active {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.ucpnb-card-like.liked:active {
+  background: rgba(190, 18, 60, 1);
+}
+
 /* Bigger image area than the extension's version — full card width now,
    not squeezed into a 210-280px carousel tile, so it can afford to breathe. */
 .ucpnb-card-image-wrap {
@@ -829,6 +860,27 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ucpnb-list-item-like {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: none;
+  background: #f0f4f8;
+  color: #12395c;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ucpnb-list-item-like.liked {
+  background: #fff1f2;
+  color: #be123c;
 }
 
 .ucpnb-footer {

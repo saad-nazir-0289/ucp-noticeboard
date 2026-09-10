@@ -75,13 +75,9 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike }: Pro
         >
           {shared ? "✓" : "🔗"}
         </button>
-      </div>
-      <div className="ucpnb-card-body">
-        {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
-        <h4 className="ucpnb-card-title">{notice.title}</h4>
         {onLike && (
           <button
-            className={notice.likedByMe ? "ucpnb-like-btn liked" : "ucpnb-like-btn"}
+            className={notice.likedByMe ? "ucpnb-card-like liked" : "ucpnb-card-like"}
             onClick={(e) => {
               e.stopPropagation();
               onLike(notice);
@@ -91,6 +87,10 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike }: Pro
             {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
           </button>
         )}
+      </div>
+      <div className="ucpnb-card-body">
+        {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
+        <h4 className="ucpnb-card-title">{notice.title}</h4>
         {onRestore && (
           <div className="ucpnb-card-footer">
             <button
