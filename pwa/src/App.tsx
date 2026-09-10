@@ -121,8 +121,8 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleOnboardingSubmit = (rollNumber: string) => {
-    saveIdentity(rollNumber);
+  const handleOnboardingSubmit = (rollNumber: string, name: string, university: string, department: string) => {
+    saveIdentity(rollNumber, name, university, department);
     login(rollNumber);
   };
 
