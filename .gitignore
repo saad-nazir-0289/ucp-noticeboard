@@ -1,6 +1,7 @@
 # Node / extension
 node_modules/
 dist/
+dist-*/
 
 # .NET
 bin/

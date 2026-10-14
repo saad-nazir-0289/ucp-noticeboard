@@ -89,13 +89,22 @@ flowchart LR
 
 ## Getting started
 
-Quick version, for anyone who wants to run it locally instead of using the live links above:
+**See it running with demo data** — backend, PWA and the extension on a
+mock portal page, all local, nothing touching production:
 
 ```bash
-# Backend
+cd dev && npm install && cd ..
+dev/start-local.sh --reset      # see dev/README.md for URLs and demo accounts
+```
+
+**Test on real devices before release** — a full staging copy (separate
+backend, database, PWA and extension build): see [`docs/STAGING.md`](./docs/STAGING.md).
+
+Each part on its own:
+
+```bash
+# Backend (needs PostgreSQL; migrations apply automatically on start)
 cd backend/UCPNoticeBoard.Api
-dotnet restore
-dotnet ef database update
 dotnet run
 
 # Backend tests — integration tests against a real PostgreSQL. Each test
@@ -107,14 +116,21 @@ dotnet test
 # Extension
 cd extension
 npm install
-npm run build
-# then load /extension/dist as an unpacked extension in chrome://extensions
+npm run build          # production → dist/ (what ships to the Chrome Web Store)
+npm run build:local    # → dist-local/, talks to a backend on localhost:5000
+npm run build:staging  # → dist-staging/, see docs/STAGING.md
 
 # PWA
 cd pwa
 npm install
-npm run dev
+npm run dev            # talks to a backend on localhost:5000
+npm run build          # production → dist/
+npm run build:staging  # → dist-staging/, see docs/STAGING.md
 ```
+
+Which backend a build talks to is decided by its mode (production, local or
+staging) in `pwa/vite.config.ts` and `extension/vite.content.config.ts`;
+production is always the default.
 
 ## API overview
 

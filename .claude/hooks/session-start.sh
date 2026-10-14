@@ -35,6 +35,8 @@ dotnet restore backend/UCPNoticeBoard.sln
 # --- Frontends ---
 (cd extension && npm install --no-audit --no-fund)
 (cd pwa && npm install --no-audit --no-fund)
+# Local preview tooling (Playwright; uses the pre-installed Chromium).
+(cd dev && npm install --no-audit --no-fund)
 
 # --- PostgreSQL ---
 if command -v pg_ctlcluster >/dev/null 2>&1; then

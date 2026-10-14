@@ -38,16 +38,22 @@ function resolveUrls(mode: string): typeof PRODUCTION {
 
 const MODE_LABELS: Record<string, string> = { development: "Local", staging: "Staging" };
 
+// Only production builds land in dist/ — the folder that gets zipped for
+// the Chrome Web Store — so a local or staging build can't be shipped by
+// accident. Others go to dist-local/ and dist-staging/.
+const outDirFor = (mode: string) =>
+  mode === "production" ? "dist" : `dist-${MODE_LABELS[mode]?.toLowerCase() ?? mode}`;
+
 // Writes dist/manifest.json and the icon. Production gets manifest.json
 // verbatim. Any other mode is renamed (so it's obvious which one is
 // loaded in chrome://extensions) and its host_permissions point at that
 // mode's API instead of production's.
-function extensionManifest(mode: string, apiBaseUrl: string): Plugin {
+function extensionManifest(mode: string, apiBaseUrl: string, outDir: string): Plugin {
   return {
     name: "extension-manifest",
     closeBundle() {
       const root = __dirname;
-      const dist = resolve(root, "dist");
+      const dist = resolve(root, outDir);
       mkdirSync(dist, { recursive: true });
 
       if (mode === "production") {
@@ -67,13 +73,14 @@ function extensionManifest(mode: string, apiBaseUrl: string): Plugin {
 
 export default defineConfig(({ mode }) => {
   const urls = resolveUrls(mode);
+  const outDir = outDirFor(mode);
   // Written back into process.env so Vite exposes them as import.meta.env.
   Object.assign(process.env, urls);
 
   return {
-    plugins: [react(), extensionManifest(mode, urls.VITE_API_BASE_URL)],
+    plugins: [react(), extensionManifest(mode, urls.VITE_API_BASE_URL, outDir)],
     build: {
-      outDir: "dist",
+      outDir,
       emptyOutDir: true,
       rollupOptions: {
         input: resolve(__dirname, "src/content/index.tsx"),

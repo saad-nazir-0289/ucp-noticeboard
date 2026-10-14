@@ -33,7 +33,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     build: {
-      outDir: "dist",
+      // Only production builds land in dist/ (what wrangler deploys to
+      // the live site); staging goes to dist-staging/.
+      outDir: mode === "production" ? "dist" : `dist-${mode}`,
     },
   };
 });
