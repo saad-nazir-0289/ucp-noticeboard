@@ -244,15 +244,25 @@ app.UseExceptionHandler(errorApp =>
     {
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
+        // Exception messages can name tables, columns or connection
+        // details, so only development shows them; everyone else gets a
+        // generic message (the full error still goes to the logs).
         var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-        var message = feature?.Error?.Message ?? "An unexpected error occurred.";
+        var message = app.Environment.IsDevelopment() && feature?.Error is not null
+            ? feature.Error.Message
+            : "Something went wrong. Please try again.";
         await context.Response.WriteAsync(
             System.Text.Json.JsonSerializer.Serialize(new { error = message }));
     });
 });
 
-app.UseSwagger();
-app.UseSwaggerUI();
+// The API explorer lists every endpoint and request shape — handy while
+// developing, but nothing a public server needs to advertise.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseAuthentication();
 
@@ -309,6 +319,15 @@ app.Use(async (context, next) =>
 
 app.UseAuthorization();
 app.MapControllers();
+
+// For uptime checks: 200 when the API is up and can reach the database,
+// 503 when the database is unreachable. Unauthenticated and says nothing
+// beyond "ok"/"unhealthy".
+app.MapGet("/health", async (AppDbContext db, CancellationToken cancellationToken) =>
+    await db.Database.CanConnectAsync(cancellationToken)
+        ? Results.Ok(new { status = "ok" })
+        : Results.Json(new { status = "unhealthy" }, statusCode: StatusCodes.Status503ServiceUnavailable))
+    .DisableRateLimiting();
 
 app.Run();
 
