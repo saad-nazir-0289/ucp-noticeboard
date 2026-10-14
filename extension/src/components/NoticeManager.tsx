@@ -259,8 +259,8 @@ export function NoticeManager({ user, scope }: Props) {
                     {scope === "all" && <>{n.createdByName} · </>}
                     Posted {timeAgo(n.createdAt)}
                     {n.deadline && <> · Deadline {new Date(n.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</>}
-                    {" · "}
-                    <Icon name="eye" size={13} /> {n.viewCount}
+                    {/* Only the Admin is ever sent view counts. */}
+                    {n.viewCount != null && <> · <Icon name="eye" size={13} /> {n.viewCount}</>}
                   </span>
                 </div>
                 {canManage(n) && (

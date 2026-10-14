@@ -143,12 +143,6 @@ export const api = {
   restoreNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "DELETE" }, token),
 
-  likeNotice: (id: number, token: string) =>
-    request<void>(`/notices/${id}/like`, { method: "POST" }, token),
-
-  unlikeNotice: (id: number, token: string) =>
-    request<void>(`/notices/${id}/like`, { method: "DELETE" }, token),
-
   getCategories: (token: string) => request<Category[]>("/categories", {}, token),
 
   createCategory: (name: string, adminPin: string, token: string) =>

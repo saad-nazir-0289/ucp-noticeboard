@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
-import { categoryTone, timeAgo } from "../format";
+import { categoryTone } from "../format";
 import { Icon } from "./Icon";
 import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
 
@@ -11,7 +11,6 @@ interface Props {
   onView: (notice: Notice) => void;
   onDismiss?: (notice: Notice) => void;
   onRestore?: (notice: Notice) => void;
-  onLike?: (notice: Notice) => void;
   /** Poster width to request from Cloudinary, sized to how wide this app shows cards. */
   imageWidth?: number;
 }
@@ -21,7 +20,7 @@ interface Props {
  * poster on top, or — for notices without one — a banner in the
  * category's colour, then a fixed-height title, preview and footer.
  */
-export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, imageWidth = 600 }: Props) {
+export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 600 }: Props) {
   const [shared, setShared] = useState(false);
 
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -79,25 +78,9 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, image
           <div className="ucpnb-card-source" title={notice.createdByName}>
             <Avatar name={notice.createdByName} />
             <span className="ucpnb-card-author">{notice.createdByName}</span>
-            <span className="ucpnb-dot" aria-hidden="true" />
-            <time dateTime={notice.createdAt}>{timeAgo(notice.createdAt)}</time>
           </div>
 
           <div className="ucpnb-card-actions">
-            {onLike && (
-              <button
-                className={notice.likedByMe ? "ucpnb-like is-liked" : "ucpnb-like"}
-                onClick={(e) => {
-                  stop(e);
-                  onLike(notice);
-                }}
-                aria-label={notice.likedByMe ? "Unlike" : "Like"}
-                aria-pressed={notice.likedByMe}
-              >
-                <Icon name="heart" size={17} filled={notice.likedByMe} />
-                <span>{notice.likeCount}</span>
-              </button>
-            )}
             <button
               className="ucpnb-icon-btn ucpnb-icon-btn-sm"
               onClick={handleShare}

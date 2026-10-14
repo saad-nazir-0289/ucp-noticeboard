@@ -29,9 +29,8 @@ export interface Notice {
   createdByName: string;
   createdAt: string;
   updatedAt: string;
-  viewCount: number;
-  likeCount: number;
-  likedByMe: boolean;
+  /** Only ever sent to the Admin; null for everyone else. */
+  viewCount: number | null;
 }
 
 export interface Category {

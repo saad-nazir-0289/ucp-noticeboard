@@ -40,7 +40,7 @@ Behind both is one shared system: a Manifest V3 Chrome extension, a standalone R
 |---|---|
 | **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, dismiss notices they don't want to see, share any notice via a real link |
 | **Publisher** | Create / edit / delete their own notices — title, description, poster image, external link, category, and an optional deadline |
-| **Admin** | Everything a Publisher can do, on *any* notice, plus user management (add Publishers via one-time activation links, change any role, correct a name), category management, and a live usage-analytics dashboard |
+| **Admin** | Everything a Publisher can do, on *any* notice, plus how many times each notice was opened (visible to the Admin only), user management (add Publishers via one-time activation links, change any role, correct a name), category management, and a live usage-analytics dashboard |
 
 - Poster images uploaded directly from the browser to Cloudinary — never touch the backend, so it costs nothing regardless of upload volume
 - Push notifications (standard Web Push/VAPID — no third-party push service) sent to every subscriber when a Publisher posts

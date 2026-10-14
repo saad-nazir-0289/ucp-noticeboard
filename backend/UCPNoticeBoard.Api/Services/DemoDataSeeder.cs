@@ -131,33 +131,6 @@ public static class DemoDataSeeder
         };
         db.Notices.AddRange(notices);
 
-        // Real like rows (not just a number) so LikeCount stays consistent
-        // with what unliking would subtract.
-        var likes = new (int Notice, int[] Students)[]
-        {
-            (0, new[] { 0, 1, 2, 3 }),
-            (1, new[] { 0, 2, 4 }),
-            (2, new[] { 1, 3 }),
-            (3, new[] { 4 }),
-        };
-
-        await db.SaveChangesAsync();
-
-        foreach (var (noticeIndex, studentIndexes) in likes)
-        {
-            var notice = notices[noticeIndex];
-            foreach (var studentIndex in studentIndexes)
-            {
-                db.NoticeLikes.Add(new NoticeLike
-                {
-                    NoticeId = notice.Id,
-                    UserId = students[studentIndex].Id,
-                    CreatedAt = notice.CreatedAt.AddHours(1),
-                });
-            }
-            notice.LikeCount = studentIndexes.Length;
-        }
-
         await db.SaveChangesAsync();
         return true;
     }

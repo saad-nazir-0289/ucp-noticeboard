@@ -2,20 +2,19 @@ import { useEffect, useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
-import { formatDateTime, timeAgo } from "../format";
+import { formatDateTime } from "../format";
 import { Icon } from "./Icon";
 import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
 
 interface Props {
   notice: Notice;
   onClose: () => void;
-  onLike?: (notice: Notice) => void;
   /** Poster width to request from Cloudinary, sized to how wide this app shows the modal. */
   imageWidth?: number;
 }
 
 /** Full notice: a bottom sheet on phones, a centred dialog on wider screens. */
-export function NoticeDetailModal({ notice, onClose, onLike, imageWidth = 900 }: Props) {
+export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) {
   const [shared, setShared] = useState(false);
 
   useEffect(() => {
@@ -71,9 +70,12 @@ export function NoticeDetailModal({ notice, onClose, onLike, imageWidth = 900 }:
             <Avatar name={notice.createdByName} size="md" />
             <div>
               <strong>{notice.createdByName}</strong>
-              <span>
-                Posted {timeAgo(notice.createdAt)} · {notice.viewCount} {notice.viewCount === 1 ? "view" : "views"}
-              </span>
+              {/* Only the Admin is ever sent view counts. */}
+              {notice.viewCount != null && (
+                <span>
+                  {notice.viewCount} {notice.viewCount === 1 ? "view" : "views"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -98,16 +100,6 @@ export function NoticeDetailModal({ notice, onClose, onLike, imageWidth = 900 }:
             </a>
           )}
           <div className="ucpnb-detail-secondary">
-            {onLike && (
-              <button
-                className={notice.likedByMe ? "ucpnb-btn ucpnb-btn-secondary ucpnb-like-btn is-liked" : "ucpnb-btn ucpnb-btn-secondary ucpnb-like-btn"}
-                onClick={() => onLike(notice)}
-                aria-pressed={notice.likedByMe}
-              >
-                <Icon name="heart" size={18} filled={notice.likedByMe} />
-                {notice.likeCount} {notice.likeCount === 1 ? "like" : "likes"}
-              </button>
-            )}
             <button className="ucpnb-btn ucpnb-btn-secondary" onClick={handleShare}>
               <Icon name={shared ? "check" : "share"} size={18} />
               {shared ? "Link copied" : "Share"}

@@ -53,12 +53,8 @@ public record NoticeDto(
     string CreatedByName,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    int ViewCount,
-    int LikeCount,
-    // Whether the CURRENT requesting user has liked this — never baked
-    // into the shared notices cache (that's shared across every user),
-    // always overlaid per-request afterward. See NoticeQueryService.
-    bool LikedByMe
+    // Admin only — null for everyone else (NoticeQueryService.ForViewer).
+    int? ViewCount
 );
 
 // Pin is required for every notice-mutating action unless the request

@@ -44,8 +44,37 @@ public class DemoDataTests : IClassFixture<DemoDataTests.SeededApiFactory>
         Assert.Equal(6, student.Notices.Count);
         Assert.Equal(student.Notices.OrderByDescending(n => n.CreatedAt).Select(n => n.Id), student.Notices.Select(n => n.Id));
         Assert.Equal(5, student.Categories.Count);
-        // The first seeded student liked the most popular notices.
-        Assert.Contains(student.Notices, n => n.LikedByMe && n.LikeCount == 4);
+    }
+
+    [Theory]
+    [InlineData(DemoDataSeeder.FirstStudentRollNumber)]
+    [InlineData(DemoDataSeeder.ComputingSocietyRollNumber)]
+    public async Task ViewCounts_NeverReachNonAdmins(string rollNumber)
+    {
+        var user = await _api.LoginAsync(rollNumber);
+        using var client = _api.CreateApiClient(user.Token);
+        var id = user.Notices[0].Id;
+
+        Assert.All(user.Notices, n => Assert.Null(n.ViewCount));
+        Assert.All((await client.GetFromJsonAsync<List<NoticeDto>>("/notices?includeExpired=true"))!, n => Assert.Null(n.ViewCount));
+        Assert.All((await client.GetFromJsonAsync<List<NoticeDto>>("/notices/dismissed"))!, n => Assert.Null(n.ViewCount));
+        Assert.Null((await client.GetFromJsonAsync<NoticeDto>($"/notices/{id}"))!.ViewCount);
+    }
+
+    [Fact]
+    public async Task ViewCounts_ReachTheAdmin_AndStillCountStudentOpens()
+    {
+        var admin = await _api.LoginAsync(DemoDataSeeder.AdminRollNumber);
+        var student = await _api.LoginAsync(DemoDataSeeder.FirstStudentRollNumber);
+        using var adminClient = _api.CreateApiClient(admin.Token);
+        using var studentClient = _api.CreateApiClient(student.Token);
+        var notice = admin.Notices[0];
+        Assert.NotNull(notice.ViewCount);
+
+        (await studentClient.PostAsync($"/notices/{notice.Id}/view", null)).EnsureSuccessStatusCode();
+
+        var after = await adminClient.GetFromJsonAsync<List<NoticeDto>>("/notices?includeExpired=true");
+        Assert.Equal(notice.ViewCount + 1, after!.Single(n => n.Id == notice.Id).ViewCount);
     }
 
     [Fact]

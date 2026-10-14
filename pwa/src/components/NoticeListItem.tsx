@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSwipeable } from "react-swipeable";
 import type { Notice } from "@shared/types";
 import { optimizeImageUrl } from "@shared/imageOptimize";
-import { categoryTone, timeAgo } from "@shared/format";
+import { categoryTone } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
 import { DeadlineBadge } from "@shared/components/Tags";
 
@@ -10,7 +10,6 @@ interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
   onDismiss: (notice: Notice) => void;
-  onLike?: (notice: Notice) => void;
 }
 
 // A swipe counts as "dismiss" if it travels far enough OR is a fast
@@ -20,7 +19,7 @@ interface Props {
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 0.5;
 
-export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
+export function NoticeListItem({ notice, onView, onDismiss }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dismissing, setDismissing] = useState(false);
 
@@ -89,24 +88,8 @@ export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
           <h3 className="ucpnb-row-title">{notice.title}</h3>
           <div className="ucpnb-row-source">
             <span>{notice.createdByName}</span>
-            <span className="ucpnb-dot" aria-hidden="true" />
-            <time dateTime={notice.createdAt}>{timeAgo(notice.createdAt)}</time>
           </div>
         </div>
-        {onLike && (
-          <button
-            className={notice.likedByMe ? "ucpnb-like ucpnb-like-stacked is-liked" : "ucpnb-like ucpnb-like-stacked"}
-            aria-label={notice.likedByMe ? "Unlike" : "Like"}
-            aria-pressed={notice.likedByMe}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLike(notice);
-            }}
-          >
-            <Icon name="heart" size={18} filled={notice.likedByMe} />
-            <span>{notice.likeCount}</span>
-          </button>
-        )}
       </div>
     </div>
   );

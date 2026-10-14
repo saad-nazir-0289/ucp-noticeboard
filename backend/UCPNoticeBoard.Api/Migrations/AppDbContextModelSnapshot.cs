@@ -120,9 +120,6 @@ namespace UCPNoticeBoard.Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<int>("LikeCount")
-                        .HasColumnType("integer");
-
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -175,31 +172,6 @@ namespace UCPNoticeBoard.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("NoticeDismissals");
-                });
-
-            modelBuilder.Entity("UCPNoticeBoard.Api.Models.NoticeLike", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("NoticeId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "NoticeId")
-                        .IsUnique();
-
-                    b.ToTable("NoticeLikes");
                 });
 
             modelBuilder.Entity("UCPNoticeBoard.Api.Models.PushSubscription", b =>

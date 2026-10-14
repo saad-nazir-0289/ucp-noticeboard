@@ -106,7 +106,8 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
                       <strong>{n.title}</strong>
                       <span className="ucpnb-manage-meta">
                         {isAdmin && <>{n.createdByName} · </>}
-                        {timeAgo(n.createdAt)} · <Icon name="eye" size={13} /> {n.viewCount} · <Icon name="heart" size={13} /> {n.likeCount}
+                        {timeAgo(n.createdAt)}
+                        {n.viewCount != null && <> · <Icon name="eye" size={13} /> {n.viewCount}</>}
                       </span>
                     </div>
                     <div className="ucpnb-manage-actions">

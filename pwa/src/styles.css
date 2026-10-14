@@ -30,7 +30,6 @@
     --nb-warning-soft: rgba(255, 183, 96, 0.12);
     --nb-success: #4fd18b;
     --nb-success-soft: rgba(79, 209, 139, 0.12);
-    --nb-like: #ff5c8a;
 
     --nb-tone-0-bg: rgba(107, 151, 255, 0.14); --nb-tone-0-fg: #8fb0ff;
     --nb-tone-1-bg: rgba(79, 209, 139, 0.13); --nb-tone-1-fg: #6ddba0;
@@ -408,15 +407,6 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ucpnb-like-stacked {
-  flex-direction: column;
-  height: auto;
-  padding: 6px 8px;
-  gap: 2px;
-  border-radius: var(--nb-r-md);
-  font-size: var(--nb-text-xs);
 }
 
 /* ---------- Floating "New notice" ---------- */

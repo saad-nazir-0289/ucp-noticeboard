@@ -87,24 +87,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     });
   };
 
-  const handleLike = (notice: Notice) => {
-    const wasLiked = notice.likedByMe;
-    const toggled: Notice = {
-      ...notice,
-      likedByMe: !wasLiked,
-      likeCount: notice.likeCount + (wasLiked ? -1 : 1),
-    };
-
-    setNotices((prev) => prev.map((n) => (n.id === notice.id ? toggled : n)));
-    setSelected((prev) => (prev?.id === notice.id ? toggled : prev));
-
-    const apiCall = wasLiked ? api.unlikeNotice : api.likeNotice;
-    apiCall(notice.id, token).catch(() => {
-      setNotices((prev) => prev.map((n) => (n.id === notice.id ? notice : n)));
-      setSelected((prev) => (prev?.id === notice.id ? notice : prev));
-    });
-  };
-
   const openHidden = () => {
     setShowHidden(true);
     setDismissedLoading(true);
@@ -222,7 +204,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
           </button>
           <div className="ucpnb-carousel" ref={carouselRef}>
             {filtered.map((notice) => (
-              <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
+              <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} imageWidth={CARD_IMAGE_WIDTH} />
             ))}
           </div>
           <button className="ucpnb-icon-btn ucpnb-carousel-nav is-next" onClick={() => scrollCarousel(1)} aria-label="More notices">
@@ -247,7 +229,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
               ) : (
                 <div className="ucpnb-grid">
                   {filtered.map((notice) => (
-                    <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
+                    <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} imageWidth={CARD_IMAGE_WIDTH} />
                   ))}
                 </div>
               )}
@@ -286,7 +268,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       )}
 
       {selected && (
-        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} imageWidth={MODAL_IMAGE_WIDTH} />
+        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} imageWidth={MODAL_IMAGE_WIDTH} />
       )}
     </>
   );

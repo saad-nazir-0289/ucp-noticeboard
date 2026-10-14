@@ -14,9 +14,6 @@ const PATHS = {
   search: ["m21 21-4.3-4.3", "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"],
   grid: ["M3 4a1 1 0 0 1 1-1h6v7H3Z", "M14 3h6a1 1 0 0 1 1 1v6h-7Z", "M14 14h7v6a1 1 0 0 1-1 1h-6Z", "M3 14h7v7H4a1 1 0 0 1-1-1Z"],
   list: ["M8 6h13", "M8 12h13", "M8 18h13", "M3 6h.01", "M3 12h.01", "M3 18h.01"],
-  heart: [
-    "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
-  ],
   share: [
     "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8",
     "m16 6-4-4-4 4",
@@ -80,20 +77,18 @@ export type IconName = keyof typeof PATHS;
 interface Props {
   name: IconName;
   size?: number;
-  /** Fill the shape with the current colour (e.g. a liked heart). */
-  filled?: boolean;
   className?: string;
   strokeWidth?: number;
 }
 
-export function Icon({ name, size = 20, filled = false, className, strokeWidth = 2 }: Props) {
+export function Icon({ name, size = 20, className, strokeWidth = 2 }: Props) {
   return (
     <svg
       className={className ? `ucpnb-icon ${className}` : "ucpnb-icon"}
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill={filled ? "currentColor" : "none"}
+      fill="none"
       stroke="currentColor"
       strokeWidth={strokeWidth}
       strokeLinecap="round"

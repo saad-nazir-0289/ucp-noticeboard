@@ -7,8 +7,8 @@ namespace UCPNoticeBoard.Api.Services;
 
 public interface INoticeQueryService
 {
-    Task<List<NoticeDto>> GetActiveNoticesAsync(int userId, bool includeDismissed, bool includeExpired = false);
-    Task<List<NoticeDto>> GetDismissedNoticesAsync(int userId);
+    Task<List<NoticeDto>> GetActiveNoticesAsync(int userId, bool includeDismissed, bool includeExpired = false, bool includeViews = false);
+    Task<List<NoticeDto>> GetDismissedNoticesAsync(int userId, bool includeViews = false);
     Task<List<CategoryDto>> GetCategoriesAsync();
     void InvalidateNoticesCache();
     void InvalidateCategoriesCache();
@@ -54,10 +54,16 @@ public class NoticeQueryService : INoticeQueryService
         n.CreatedByUser?.Name ?? "Unknown",
         n.CreatedAt,
         n.UpdatedAt,
-        n.ViewCount,
-        n.LikeCount,
-        LikedByMe: false
+        n.ViewCount
     );
+
+    /// <summary>
+    /// View counts are for the Admin only — everyone else gets null, so
+    /// the number never even reaches their browser. The cache holds the
+    /// full DTOs (it's shared by every caller), so this runs per request.
+    /// </summary>
+    public static NoticeDto ForViewer(NoticeDto dto, bool includeViews) =>
+        includeViews ? dto : dto with { ViewCount = null };
 
     private async Task<List<NoticeDto>> GetActiveNoticesUncachedAsync()
     {
@@ -88,7 +94,7 @@ public class NoticeQueryService : INoticeQueryService
         return notices.Select(ToDto).ToList();
     }
 
-    public async Task<List<NoticeDto>> GetActiveNoticesAsync(int userId, bool includeDismissed, bool includeExpired = false)
+    public async Task<List<NoticeDto>> GetActiveNoticesAsync(int userId, bool includeDismissed, bool includeExpired = false, bool includeViews = false)
     {
         // Management views (includeExpired=true) are lower-traffic and need
         // to always be current, so they bypass the cache entirely rather
@@ -103,12 +109,7 @@ public class NoticeQueryService : INoticeQueryService
 
         if (includeDismissed)
         {
-            var likedIdsAll = (await _db.NoticeLikes
-                .Where(l => l.UserId == userId)
-                .Select(l => l.NoticeId)
-                .ToListAsync()).ToHashSet();
-
-            return all.Select(dto => dto with { LikedByMe = likedIdsAll.Contains(dto.Id) }).ToList();
+            return all.Select(dto => ForViewer(dto, includeViews)).ToList();
         }
 
         var dismissedIds = (await _db.NoticeDismissals
@@ -116,18 +117,13 @@ public class NoticeQueryService : INoticeQueryService
             .Select(d => d.NoticeId)
             .ToListAsync()).ToHashSet();
 
-        var likedIds = (await _db.NoticeLikes
-            .Where(l => l.UserId == userId)
-            .Select(l => l.NoticeId)
-            .ToListAsync()).ToHashSet();
-
         return all
             .Where(n => !dismissedIds.Contains(n.Id))
-            .Select(dto => dto with { LikedByMe = likedIds.Contains(dto.Id) })
+            .Select(dto => ForViewer(dto, includeViews))
             .ToList();
     }
 
-    public async Task<List<NoticeDto>> GetDismissedNoticesAsync(int userId)
+    public async Task<List<NoticeDto>> GetDismissedNoticesAsync(int userId, bool includeViews = false)
     {
         var allActive = await _cache.GetOrCreateAsync(NoticesCacheKey, async entry =>
         {
@@ -140,14 +136,9 @@ public class NoticeQueryService : INoticeQueryService
             .Select(d => d.NoticeId)
             .ToListAsync()).ToHashSet();
 
-        var likedIds = (await _db.NoticeLikes
-            .Where(l => l.UserId == userId)
-            .Select(l => l.NoticeId)
-            .ToListAsync()).ToHashSet();
-
         return allActive
             .Where(n => dismissedIds.Contains(n.Id))
-            .Select(dto => dto with { LikedByMe = likedIds.Contains(dto.Id) })
+            .Select(dto => ForViewer(dto, includeViews))
             .ToList();
     }
 
