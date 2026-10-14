@@ -98,6 +98,12 @@ dotnet restore
 dotnet ef database update
 dotnet run
 
+# Backend tests — integration tests against a real PostgreSQL. Each test
+# class creates and drops its own throwaway database on the server given by
+# UCP_TEST_POSTGRES (default: Host=localhost;Username=postgres;Password=postgres)
+cd backend
+dotnet test
+
 # Extension
 cd extension
 npm install

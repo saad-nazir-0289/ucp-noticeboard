@@ -291,3 +291,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Exposes the compiler-generated Program class so the test project's
+// WebApplicationFactory<Program> can boot this exact pipeline in-memory.
+public partial class Program { }
