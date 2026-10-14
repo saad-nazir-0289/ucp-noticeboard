@@ -78,9 +78,8 @@ public static class DemoDataSeeder
 
         db.Users.AddRange(new[] { admin, computingSociety, studentAffairs }.Concat(students));
 
-        var categories = new[] { "Academics", "Careers", "Events", "Societies", "Sports" }
-            .ToDictionary(name => name, name => new Category { Name = name, CreatedAt = now.AddDays(-60) });
-        db.Categories.AddRange(categories.Values);
+        await CategoryCatalog.EnsureAsync(db);
+        var categories = await db.Categories.ToDictionaryAsync(c => c.Name, StringComparer.OrdinalIgnoreCase);
 
         Notice NewNotice(
             User author, string category, string title, string description,
@@ -105,7 +104,7 @@ public static class DemoDataSeeder
                 "The mid-term schedule for all undergraduate programs is now available. Check your " +
                 "course codes carefully and report any clashes to your department office by Friday.",
                 createdHoursAgo: 3, deadlineInHours: 24 * 5, link: "https://example.com/midterm-schedule", views: 214),
-            NewNotice(computingSociety, "Events", "Hackathon registrations close tomorrow",
+            NewNotice(computingSociety, "Competitions", "Hackathon registrations close tomorrow",
                 "Teams of 2-4 can still register for the 24-hour Spring Hackathon. Prizes for the top three " +
                 "teams, plus internship interviews with our sponsors.",
                 createdHoursAgo: 30, deadlineInHours: 20, link: "https://example.com/hackathon", views: 168, poster: "hackathon.svg"),
@@ -118,7 +117,7 @@ public static class DemoDataSeeder
                 "Join the organizing team for workshops, coding contests and industry talks. No prior " +
                 "experience needed — just enthusiasm.",
                 createdHoursAgo: 72, views: 61),
-            NewNotice(studentAffairs, "Academics", "Library hours extended during exams",
+            NewNotice(studentAffairs, "Campus", "Library hours extended during exams",
                 "The main library will stay open until midnight, Monday to Saturday, for the next two weeks.",
                 createdHoursAgo: 6, views: 40),
             NewNotice(studentAffairs, "Sports", "Football trials this Saturday",

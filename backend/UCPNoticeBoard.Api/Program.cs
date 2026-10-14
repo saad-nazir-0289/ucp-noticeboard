@@ -208,6 +208,10 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 
+    // The fixed category list (see CategoryCatalog): created on a fresh
+    // database, and older free-form categories folded into it.
+    await CategoryCatalog.EnsureAsync(db, app.Logger);
+
     // Sample content for local runs and staging only. Off unless
     // SeedDemoData=true, and a no-op on any database that already has
     // users, so it can never add demo rows to real data.

@@ -152,10 +152,8 @@ public class NoticeQueryService : INoticeQueryService
         return await _cache.GetOrCreateAsync(CategoriesCacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            return await _db.Categories
-                .OrderBy(c => c.Name)
-                .Select(c => new CategoryDto(c.Id, c.Name))
-                .ToListAsync();
+            var categories = await _db.Categories.Select(c => new CategoryDto(c.Id, c.Name)).ToListAsync();
+            return categories.OrderBy(c => CategoryCatalog.SortOrder(c.Name)).ThenBy(c => c.Name).ToList();
         }) ?? new List<CategoryDto>();
     }
 

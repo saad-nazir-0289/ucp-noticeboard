@@ -1,14 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { cleanFormatting, cleanOcrText, findDeadline, guessCategory, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
+import { CATALOG_FOR_TESTS } from "@shared/categories";
 
-const categories: Category[] = [
-  { id: 1, name: "Academics" },
-  { id: 2, name: "Careers" },
-  { id: 3, name: "Events" },
-  { id: 4, name: "Societies" },
-  { id: 5, name: "Sports" },
-];
+const categories: Category[] = CATALOG_FOR_TESTS;
+/** A category's id by name. */
+const cat = (name: string) => categories.find((c) => c.name === name)!.id;
 
 // Wednesday 14 October 2026, 10:00 local time.
 const NOW = new Date(2026, 9, 14, 10, 0);
@@ -39,7 +36,7 @@ describe("parseSharedContent", () => {
     expect(parsed.description).toContain("Register: https://forms.gle/abc123"); // links stay in the text too
     expect(parsed.linkUrl).toBe("https://forms.gle/abc123");
     expect(local(parsed.deadline)).toEqual([2026, 10, 20, 17, 0]); // the deadline line wins over the event date
-    expect(parsed.categoryId).toBe(3);
+    expect(parsed.categoryId).toBe(cat("Competitions")); // a hackathon with prizes
     expect(parsed.source).toBe("whatsapp");
     expect(parsed.hints).toEqual([]);
   });
@@ -67,7 +64,7 @@ describe("parseSharedContent", () => {
     expect(parsed.title).toBe("Mid-term examination schedule");
     expect(parsed.description.startsWith("The mid-term schedule is attached.")).toBe(true); // greeting dropped
     expect(local(parsed.deadline)).toEqual([2026, 10, 18, 23, 59]);
-    expect(parsed.categoryId).toBe(1);
+    expect(parsed.categoryId).toBe(cat("Academics"));
   });
 
   it("drops Subject/Re/Fwd prefixes from a pasted email", () => {
@@ -87,7 +84,7 @@ describe("parseSharedContent", () => {
     expect(parsed.title.length).toBeLessThanOrEqual(90);
     expect(parsed.title.endsWith("…")).toBe(true);
     // A society looking for members: Societies, though it mentions events too.
-    expect(parsed.categoryId).toBe(4);
+    expect(parsed.categoryId).toBe(cat("Societies"));
   });
 });
 
@@ -131,13 +128,24 @@ describe("findDeadline", () => {
 });
 
 describe("guessCategory", () => {
-  it("matches by keywords against existing categories only", () => {
-    expect(guessCategory("Summer internship drive — bring your CV", categories)).toBe(2);
-    expect(guessCategory("Football trials on the main ground", categories)).toBe(5);
+  it("files notices under the fixed categories", () => {
+    const guess = (text: string) => guessCategory(text, categories, text);
+    expect(guess("Summer internship drive — bring your CV")).toBe(cat("Careers"));
+    expect(guess("Football trials on the main ground")).toBe(cat("Sports"));
+    expect(guess("Inter-University Debate Championship — finals on 26th")).toBe(cat("Competitions"));
+    expect(guess("Spring Hackathon 2026 — prizes for top three")).toBe(cat("Competitions"));
+    expect(guess("Arts Society recruitment — auditions on Friday")).toBe(cat("Societies"));
+    expect(guess("Library closed on Friday for maintenance")).toBe(cat("Campus"));
+    expect(guess("HEC need-based scholarship applications open")).toBe(cat("Scholarships"));
+    expect(guess("Mid-term examination schedule released")).toBe(cat("Academics"));
+    expect(guess("Webinar: Getting started with cloud computing")).toBe(cat("Workshops"));
+    expect(guess("Annual sports gala")).toBe(cat("Sports"));
+  });
+
+  it("leaves it to the publisher when nothing fits", () => {
     expect(guessCategory("Hello everyone", categories)).toBeUndefined();
-    expect(guessCategory("Inter-University Debate Championship — finals on 26th", categories)).toBe(3);
-    expect(guessCategory("Arts Society recruitment — auditions on Friday", categories)).toBe(4);
-    expect(guessCategory("Hackathon this weekend", [{ id: 9, name: "General" }])).toBeUndefined();
+    // A venue's name says nothing about the notice.
+    expect(guessCategory("Meet us at Gold Campus", categories)).toBeUndefined();
   });
 });
 

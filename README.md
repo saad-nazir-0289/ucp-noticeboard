@@ -40,7 +40,7 @@ Behind both is one shared system: a Manifest V3 Chrome extension, a standalone R
 |---|---|
 | **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, archive notices they don't need (just for themselves), share any notice via a real link |
 | **Publisher** | Create / edit / delete their own notices — title, description, poster image, external link, category, and an optional deadline |
-| **Admin** | Everything a Publisher can do, on *any* notice, plus how many times each notice was opened (visible to the Admin only), user management (add Publishers via one-time activation links, change any role, correct a name), category management, and a live usage-analytics dashboard |
+| **Admin** | Everything a Publisher can do, on *any* notice, plus how many times each notice was opened (visible to the Admin only), user management (add Publishers via one-time activation links, change any role, correct a name), and a live usage-analytics dashboard |
 
 - Poster images uploaded directly from the browser to Cloudinary — never touch the backend, so it costs nothing regardless of upload volume
 - Push notifications (standard Web Push/VAPID — no third-party push service) sent to every subscriber when a Publisher posts
@@ -149,7 +149,7 @@ production is always the default.
 | `GET` | `/notices/dismissed` | any user | Notices the caller has archived for themselves |
 | `POST` / `PUT` / `DELETE` | `/notices` `/notices/{id}` | Publisher, Admin | Create / edit / remove a notice |
 | `POST` / `DELETE` | `/notices/{id}/dismiss` | any user | Archive / restore a notice, for the caller only |
-| `GET` / `POST` | `/categories` | any / Admin | List categories / create one |
+| `GET` | `/categories` | any user | The fixed categories (Academics, Campus, Careers, Scholarships, Workshops, Competitions, Events, Societies, Sports) |
 | `GET` / `POST` | `/users` | Admin | List users / add a Publisher (returns a one-time activation link) |
 | `PATCH` | `/users/{id}/role` \| `/users/{id}/name` | Admin | Change a user's role or correct their name |
 | `GET` | `/uploads/signature` | Publisher, Admin | Short-lived signed Cloudinary upload credentials |

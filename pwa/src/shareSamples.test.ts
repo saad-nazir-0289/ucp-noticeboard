@@ -1,15 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
+import { CATALOG_FOR_TESTS } from "@shared/categories";
 import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, MEDIA_CLUB_OCR } from "./shareSamples";
 
-const categories: Category[] = [
-  { id: 1, name: "Academics" },
-  { id: 2, name: "Careers" },
-  { id: 3, name: "Events" },
-  { id: 4, name: "Societies" },
-  { id: 5, name: "Sports" },
-];
+const categories: Category[] = CATALOG_FOR_TESTS;
+/** A category's id by name. */
+const cat = (name: string) => categories.find((c) => c.name === name)!.id;
 
 // When the samples were collected: 14 October 2026, evening.
 const NOW = new Date(2026, 9, 14, 22, 30);
@@ -36,7 +33,7 @@ describe("real Instagram screenshots", () => {
     expect(parsed.description).toContain("Email: Cso@ucp.edu.pk");
     expect(parsed.deadline).toBeUndefined();
     expect(parsed.hints.join(" ")).toMatch(/11 October.*passed/);
-    expect(parsed.categoryId).toBe(2);
+    expect(parsed.categoryId).toBe(cat("Careers"));
   });
 
   it("Media Club: caption found without an account header; weekday times don't become the deadline", () => {
@@ -47,7 +44,7 @@ describe("real Instagram screenshots", () => {
     expect(parsed.description).not.toMatch(/\bless$/);
     expect(parsed.deadline).toBeUndefined(); // 8–9 Oct have passed; "Thursday" isn't a new date
     expect(parsed.hints.join(" ")).toMatch(/9 October/);
-    expect(parsed.categoryId).toBe(4);
+    expect(parsed.categoryId).toBe(cat("Societies"));
   });
 
   it("Ignite: deadline, form link and a caption rejoined across lines", () => {
@@ -59,20 +56,20 @@ describe("real Instagram screenshots", () => {
     );
     expect(parsed.description).toContain("Apply Now: https://forms.gle/tszmwekXQCLfZzP79\nTake Pakistan's FinTech");
     expect(parsed.description).not.toMatch(/5 days ago|Ministry of Ignite/);
-    expect(parsed.categoryId).toBe(3);
+    expect(parsed.categoryId).toBe(cat("Events"));
     expect(parsed.hints).toEqual([]);
   });
 });
 
 describe("real WhatsApp messages", () => {
-  it("AWS Builders Day: clean title, untracked link, event time as the date", () => {
+  it("AWS Builders Day: clean title, untracked link, event time as the date, talks → Workshops", () => {
     const parsed = fromWhatsApp(AWS_BUILDERS_DAY_WHATSAPP);
     expect(parsed.title).toBe("AWS Agentic AI Builders Day");
     expect(parsed.linkUrl).toBe("https://www.meetup.com/aws-sbg-at-superior-university-gold-campus/events/316878829/");
     expect(parsed.description).toContain("Registration: https://www.meetup.com/aws-sbg-at-superior-university-gold-campus/events/316878829/\n");
     expect(parsed.description).not.toMatch(/utm_source|\*|#AWS/);
     expect(local(parsed.deadline)).toEqual([2026, 10, 24, 10, 0]);
-    expect(parsed.categoryId).toBe(3);
+    expect(parsed.categoryId).toBe(cat("Workshops"));
   });
 
   it("Fakiha job ad: capitals calmed, filed under Careers, no invented deadline", () => {
@@ -81,7 +78,7 @@ describe("real WhatsApp messages", () => {
     expect(parsed.linkUrl).toBe("https://forms.gle/eWzyhrjwKYw3swWF6");
     expect(parsed.description).toContain("Contact: fakihacoretech@gmail.com");
     expect(parsed.deadline).toBeUndefined();
-    expect(parsed.categoryId).toBe(2);
+    expect(parsed.categoryId).toBe(cat("Careers"));
   });
 });
 
@@ -94,6 +91,6 @@ describe("real email pasted from Outlook", () => {
     expect(parsed.description).not.toMatch(/^Dear Students,$/m);
     expect(local(parsed.deadline)).toEqual([2026, 10, 16, 14, 0]); // the "Time:" line under the date
     expect(parsed.linkUrl).toMatch(/^https:\/\/forms\.cloud\.microsoft\/Pages\/ResponsePage\.aspx\?id=syGyEmQEI0KJ5YiINXeLWMZ/);
-    expect(parsed.categoryId).toBe(3);
+    expect(parsed.categoryId).toBe(cat("Workshops"));
   });
 });

@@ -72,18 +72,13 @@ public class AdminPinTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task CreateCategory_RequiresCorrectPin()
+    public async Task Categories_CannotBeCreated()
     {
         using var client = await AdminClientAsync();
-        var name = $"Category {Guid.NewGuid():N}";
 
-        var noPin = await client.PostAsJsonAsync("/categories", new CreateCategoryRequest(name, null));
-        var wrongPin = await client.PostAsJsonAsync("/categories", new CreateCategoryRequest(name, WrongPin));
-        var rightPin = await client.PostAsJsonAsync("/categories", new CreateCategoryRequest(name, ApiFactory.AdminPin));
+        var response = await client.PostAsJsonAsync("/categories", new { name = "Anything", pin = ApiFactory.AdminPin });
 
-        Assert.Equal(HttpStatusCode.BadRequest, noPin.StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, wrongPin.StatusCode);
-        Assert.True(rightPin.IsSuccessStatusCode, $"Expected success, got {rightPin.StatusCode}");
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
     [Fact]

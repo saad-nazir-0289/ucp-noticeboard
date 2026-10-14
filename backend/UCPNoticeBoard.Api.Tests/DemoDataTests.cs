@@ -47,7 +47,7 @@ public class DemoDataTests : IClassFixture<DemoDataTests.SeededApiFactory>
             student.Notices.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.CreatedAt).Select(n => n.Id),
             student.Notices.Select(n => n.Id));
         Assert.True(student.Notices[0].IsPinned);
-        Assert.Equal(5, student.Categories.Count);
+        Assert.Equal(CategoryCatalog.Names, student.Categories.Select(c => c.Name));
     }
 
     [Theory]
@@ -152,6 +152,7 @@ public class NoDemoDataByDefaultTests : IClassFixture<ApiFactory>
         var student = await _api.LoginStudentAsync();
 
         Assert.Empty(student.Notices);
-        Assert.Empty(student.Categories);
+        // Only the fixed categories, which every database gets.
+        Assert.Equal(CategoryCatalog.Names, student.Categories.Select(c => c.Name));
     }
 }

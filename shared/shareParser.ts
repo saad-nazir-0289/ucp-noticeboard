@@ -103,7 +103,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
 
   const dates = scanDates(`${subject}\n${prose}`, now);
   const deadline = pickDeadline(dates, `${subject}\n${prose}`, now);
-  const categoryId = guessCategory(`${subject}\n${prose}`, categories);
+  const categoryId = guessCategory(`${subject}\n${prose}`, categories, title);
   if (!deadline) {
     const lastPast = dates.filter((c) => c.explicit && c.date.getTime() <= now.getTime()).sort((a, b) => b.date.getTime() - a.date.getTime())[0];
     if (lastPast) {
@@ -484,30 +484,44 @@ function lineAround(text: string, index: number): string {
 
 // ---------- Category ----------
 
-/** Words that suggest a kind of notice, keyed by a word found in the category's name. */
+/**
+ * Words that suggest each of the fixed categories (backend CategoryCatalog),
+ * keyed by a word in the category's name. Each matching word scores a
+ * point; in the title it scores three, since a title says what a notice is.
+ */
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  event: ["event", "workshop", "seminar", "webinar", "hackathon", "competition", "contest", "championship", "debate", "conference", "session", "meetup", "festival", "fest", "ceremony", "talk", "expo", "exhibition", "showcase", "screening", "gala", "summit", "orientation"],
-  career: ["internship", "intern", "job", "hiring", "career", "placement", "cv", "resume", "vacancy", "recruiter", "interview", "seeking", "executive", "salary", "stipend", "commission", "full-time", "part-time", "fresh graduates"],
-  job: ["internship", "intern", "job", "hiring", "career", "placement", "cv", "resume", "vacancy", "interview", "seeking", "executive", "salary", "stipend", "commission", "full-time", "part-time", "fresh graduates"],
-  academic: ["exam", "mid-term", "midterm", "mids", "final exam", "final term", "quiz", "assignment", "class", "course", "lecture", "timetable", "datesheet", "date sheet", "schedule", "semester", "result", "library", "fee", "enrollment", "enrolment"],
-  sport: ["sport", "football", "cricket", "basketball", "futsal", "badminton", "volleyball", "trials", "tournament", "match", "gym", "athletics"],
-  societ: ["society", "club", "auditions", "recruit", "members", "join", "membership", "walk-in"],
-  club: ["society", "club", "auditions", "recruit", "members", "join", "membership", "walk-in"],
+  academic: ["exam", "mid-term", "midterm", "mids", "final exam", "final term", "quiz", "assignment", "class", "classes", "lecture", "timetable", "time table", "datesheet", "date sheet", "semester", "result", "fee", "enrollment", "enrolment", "registration of courses", "course registration", "add/drop", "attendance", "transcript", "makeup", "make-up", "viva", "thesis", "fyp"],
+  campus: ["library", "transport", "shuttle", "point bus", "holiday", "closed", "closure", "maintenance", "cafeteria", "cafe", "parking", "id card", "hostel", "wifi", "wi-fi", "electricity", "notice board", "lost and found", "security", "facilit"],
+  career: ["internship", "intern", "job", "hiring", "career", "placement", "cv", "resume", "vacancy", "recruiter", "interview", "seeking", "executive", "salary", "stipend", "commission", "full-time", "part-time", "fresh graduates", "employer", "job fair"],
+  scholarship: ["scholarship", "financial aid", "need-based", "merit-based", "grant", "fellowship", "funding", "tuition", "fee waiver", "exchange program", "study abroad", "erasmus", "fulbright"],
+  workshop: ["workshop", "seminar", "webinar", "session", "talk", "training", "bootcamp", "masterclass", "speaker", "panel discussion", "guest lecture", "certification", "hands-on"],
+  competition: ["competition", "contest", "hackathon", "championship", "debate", "olympiad", "challenge", "prize", "prizes", "winners", "ideathon", "datathon", "pitch", "case study competition", "speed programming"],
+  event: ["event", "festival", "fest", "ceremony", "conference", "meetup", "expo", "exhibition", "showcase", "screening", "gala", "summit", "orientation", "concert", "convocation", "celebration", "dinner", "trip", "tour", "carnival", "mushaira", "qawwali"],
+  societ: ["society", "societies", "club", "auditions", "recruit", "members", "join", "membership", "walk-in"],
+  sport: ["sport", "football", "cricket", "basketball", "futsal", "badminton", "volleyball", "trials", "tournament", "match", "gym", "athletics", "table tennis", "hockey", "squash", "e-sports", "esports"],
 };
 
-/** The best-matching category, or none when nothing matches or two tie (a coin flip is worse than asking). */
-export function guessCategory(text: string, categories: Category[]): number | undefined {
+/**
+ * The best-matching category, or none when nothing matches or the best two
+ * tie (a coin flip is worse than asking).
+ */
+export function guessCategory(text: string, categories: Category[], title = ""): number | undefined {
   const lower = text.toLowerCase();
+  const lowerTitle = title.toLowerCase();
   let best: { id: number; score: number } | undefined;
   let tied = false;
 
   for (const category of categories) {
     const name = category.name.toLowerCase();
-    let score = lower.includes(name) ? 2 : 0;
+    // The category's own name counts only in the title: "Campus" or
+    // "Events" in a venue or a sentence says little.
+    let score = lowerTitle.includes(name) ? 2 : 0;
     for (const [stem, words] of Object.entries(CATEGORY_KEYWORDS)) {
       if (!name.includes(stem)) continue;
       for (const word of words) {
-        if (new RegExp(`\\b${word.replace(/[-\s]/g, "[-\\s]?")}`, "i").test(lower)) score += 1;
+        const pattern = new RegExp(`\\b${word.replace(/[-\s]/g, "[-\\s]?").replace("/", "\\/")}`, "i");
+        if (pattern.test(lower)) score += 1;
+        if (lowerTitle && pattern.test(lowerTitle)) score += 2;
       }
     }
     if (score > 0 && (!best || score > best.score)) {

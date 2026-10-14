@@ -38,8 +38,6 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   const fetchUsers = async (pin: string, q: string, p: number) => {
     const result = await api.getUsers(pin, user.token, { search: q, page: p, pageSize: PAGE_SIZE });
@@ -225,22 +223,6 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
       load();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Could not add user.");
-    }
-  };
-
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCategoryError(null);
-    if (!newCategoryName.trim()) {
-      setCategoryError("Category name is required.");
-      return;
-    }
-    try {
-      const category = await api.createCategory(newCategoryName.trim(), adminPin, user.token);
-      setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
-      setNewCategoryName("");
-    } catch {
-      setCategoryError("Could not add category — it may already exist.");
     }
   };
 
@@ -431,17 +413,12 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
         <div className="ucpnb-form-card-header">
           <div>
             <h4>Categories</h4>
-            <p className="ucpnb-field-hint">Publishers pick from these when posting; students filter by them.</p>
+            <p className="ucpnb-field-hint">
+              A fixed list, so filters, notification topics and Quick fill always mean the same thing. Publishers pick
+              one when posting; students filter by them.
+            </p>
           </div>
         </div>
-        <form className="ucpnb-inline-form" onSubmit={handleAddCategory}>
-          <input className="ucpnb-input" type="text" placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-          <button type="submit" className="ucpnb-btn ucpnb-btn-secondary">
-            <Icon name="plus" size={16} />
-            Add category
-          </button>
-        </form>
-        {categoryError && <p className="ucpnb-form-error">{categoryError}</p>}
         {categories.length > 0 && (
           <div className="ucpnb-card-tags">
             {categories.map((c) => (

@@ -149,13 +149,6 @@ export const api = {
 
   getCategories: (token: string) => request<Category[]>("/categories", {}, token),
 
-  createCategory: (name: string, adminPin: string, token: string) =>
-    request<Category>(
-      "/categories",
-      { method: "POST", body: JSON.stringify({ name, pin: adminPin }) },
-      token
-    ),
-
   /** One page of users, optionally filtered by part of a Roll Number or name. */
   getUsers: (adminPin: string, token: string, query: { search?: string; page?: number; pageSize?: number } = {}) => {
     const params = new URLSearchParams();
