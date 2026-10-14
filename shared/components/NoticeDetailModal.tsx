@@ -3,6 +3,7 @@ import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
 import { formatDateTime } from "../format";
+import { downloadIcs, googleCalendarUrl } from "../calendar";
 import { Icon } from "./Icon";
 import { Avatar, CategoryTag, DeadlineBadge, PinnedBadge } from "./Tags";
 
@@ -86,6 +87,18 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
               <div>
                 <span>Deadline</span>
                 <strong>{formatDateTime(notice.deadline)}</strong>
+                {new Date(notice.deadline) > new Date() && (
+                  <div className="ucpnb-calendar-actions">
+                    <a className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" href={googleCalendarUrl(notice)} target="_blank" rel="noopener noreferrer">
+                      <Icon name="plus" size={14} />
+                      Google Calendar
+                    </a>
+                    <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => downloadIcs(notice)} title="For Apple Calendar, Outlook and others">
+                      <Icon name="calendar" size={14} />
+                      Other calendars
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

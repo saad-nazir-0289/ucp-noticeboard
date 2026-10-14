@@ -722,6 +722,17 @@ select.ucpnb-input {
   color: var(--nb-text);
 }
 
+.ucpnb-detail-info:has(.ucpnb-calendar-actions) {
+  align-items: flex-start;
+}
+
+.ucpnb-calendar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .ucpnb-detail-source > div > span,
 .ucpnb-detail-info > div > span {
   display: block;
