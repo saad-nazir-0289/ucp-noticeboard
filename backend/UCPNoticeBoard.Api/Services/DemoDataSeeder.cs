@@ -115,7 +115,7 @@ public static class DemoDataSeeder
                 createdHoursAgo: 50, deadlineInHours: 24 * 10, views: 95, poster: "internship.svg", pinned: true),
             NewNotice(computingSociety, "Societies", "Computing Society recruitment open",
                 "Join the organizing team for workshops, coding contests and industry talks. No prior " +
-                "experience needed — just enthusiasm.",
+                "experience needed, just enthusiasm.",
                 createdHoursAgo: 72, views: 61),
             NewNotice(studentAffairs, "Campus", "Library hours extended during exams",
                 "The main library will stay open until midnight, Monday to Saturday, for the next two weeks.",

@@ -31,7 +31,7 @@ public class PushController : ControllerBase
         var publicKey = _configuration["VapidSettings:PublicKey"];
         if (string.IsNullOrWhiteSpace(publicKey) || publicKey.StartsWith("REPLACE_WITH"))
         {
-            return StatusCode(503, "Push notifications aren't configured yet.");
+            return StatusCode(503, "Notifications are not set up yet.");
         }
         return Ok(new VapidPublicKeyResponse(publicKey));
     }
@@ -92,7 +92,7 @@ public class PushController : ControllerBase
         var subscription = await _db.PushSubscriptions.FirstOrDefaultAsync(p => p.Endpoint == request.Endpoint);
         if (subscription is null)
         {
-            return NotFound("No active subscription for this device — enable notifications first.");
+            return NotFound("Notifications are not turned on for this device. Turn them on first.");
         }
 
         subscription.CategoryFilter = request.CategoryIds.Count == 0

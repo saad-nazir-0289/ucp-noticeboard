@@ -106,7 +106,7 @@ export function NoticeManager({ user, scope }: Props) {
       return;
     }
     if (!/^\d{4,6}$/.test(pin)) {
-      setError("Enter your 4-6 digit PIN to publish. First time publishing? Choose one now — you'll use it every time after this.");
+      setError("Enter your PIN (4–6 digits) to publish. Publishing for the first time? Choose a PIN now and use it from then on.");
       return;
     }
     const payload = {

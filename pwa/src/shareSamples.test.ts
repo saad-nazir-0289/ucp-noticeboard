@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
 import { CATALOG_FOR_TESTS } from "@shared/categories";
-import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, MEDIA_CLUB_OCR } from "./shareSamples";
+import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, LIC_FINANCE_SESSION_OUTLOOK, MEDIA_CLUB_OCR, ORIC_NEWSLETTER_OUTLOOK } from "./shareSamples";
 
 const categories: Category[] = CATALOG_FOR_TESTS;
 /** A category's id by name. */
@@ -91,6 +91,25 @@ describe("real email pasted from Outlook", () => {
     expect(parsed.description).not.toMatch(/^Dear Students,$/m);
     expect(local(parsed.deadline)).toEqual([2026, 10, 16, 14, 0]); // the "Time:" line under the date
     expect(parsed.linkUrl).toMatch(/^https:\/\/forms\.cloud\.microsoft\/Pages\/ResponsePage\.aspx\?id=syGyEmQEI0KJ5YiINXeLWMZ/);
+    expect(parsed.categoryId).toBe(cat("Workshops"));
+  });
+
+  it("ORIC newsletter: the newsletter's name as the title, no greeting or sign-off", () => {
+    const parsed = fromWhatsApp(ORIC_NEWSLETTER_OUTLOOK);
+    expect(parsed.title).toBe("UCP ORIC E-Newsletter, Volume 4, Issue 3 (July–September 2026)");
+    expect(parsed.description.startsWith("We are pleased to share the UCP ORIC E-Newsletter")).toBe(true);
+    expect(parsed.description).not.toMatch(/Dear Students|Greetings from ORIC|Regards/);
+    expect(parsed.deadline).toBeUndefined();
+    expect(parsed.categoryId).toBe(cat("Campus"));
+  });
+
+  it("LIC session: quoted name shortened at its own break, registration deadline, lost link flagged", () => {
+    const parsed = fromWhatsApp(LIC_FINANCE_SESSION_OUTLOOK);
+    expect(parsed.title).toBe("Session: A Guide to Financial Freedom: Become a Millionaire in Your 20s");
+    expect(local(parsed.deadline)).toEqual([2026, 10, 18, 23, 59]); // registration closes before the 27th
+    expect(parsed.description).toContain("Date: Tuesday, 27 October 2026");
+    expect(parsed.linkUrl).toBeUndefined();
+    expect(parsed.hints.join(" ")).toMatch(/paste it into the Link field/);
     expect(parsed.categoryId).toBe(cat("Workshops"));
   });
 });

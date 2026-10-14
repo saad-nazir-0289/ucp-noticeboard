@@ -313,7 +313,7 @@ app.Use(async (context, next) =>
         {
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync("{\"error\":\"Session no longer valid — please reload.\"}");
+            await context.Response.WriteAsync("{\"error\":\"Your session has expired. Please reload the page.\"}");
             return;
         }
     }

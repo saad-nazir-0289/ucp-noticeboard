@@ -20,7 +20,7 @@ export function UnlockPrompt({ token, onUnlocked, onClose }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{4,6}$/.test(pin)) {
-      setError("Enter your 4-6 digit PIN.");
+      setError("Enter your PIN (4–6 digits).");
       return;
     }
     setWorking(true);
@@ -29,7 +29,7 @@ export function UnlockPrompt({ token, onUnlocked, onClose }: Props) {
       const result = await api.unlockDevice(pin, token);
       onUnlocked(result.deviceToken);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not unlock — please try again.");
+      setError(err instanceof Error ? err.message : "Could not unlock. Please try again.");
       setPin("");
     } finally {
       setWorking(false);
@@ -54,7 +54,7 @@ export function UnlockPrompt({ token, onUnlocked, onClose }: Props) {
           <h3>Unlock posting on this phone</h3>
           <p className="ucpnb-sheet-text">
             Enter your PIN once and this phone can post for the next 30 days without asking again.
-            First time? Choose a 4–6 digit PIN now — it becomes yours.
+            First time? Choose a PIN of 4–6 digits now. It will be your PIN from then on.
           </p>
           <input
             className="ucpnb-input ucpnb-input-pin"

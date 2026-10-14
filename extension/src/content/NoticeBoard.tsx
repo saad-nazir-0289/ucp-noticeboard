@@ -102,7 +102,7 @@ export function NoticeBoard() {
         <PanelHeader />
         {status === "identity-not-found" ? (
           <EmptyState icon="users" title="Couldn't find your Roll Number">
-            The dashboard layout may have changed — NoticeBoard needs a small update to read it.
+            The dashboard layout may have changed. NoticeBoard needs a small update to read it.
           </EmptyState>
         ) : (
           <EmptyState icon="inbox" title="Can't reach NoticeBoard right now">
@@ -144,7 +144,7 @@ export function NoticeBoard() {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Get notifications on your phone"
-          title="Get notifications — opens the NoticeBoard app, where they work"
+          title="Get notifications in the NoticeBoard app"
         >
           <Icon name="bell" size={19} />
         </a>

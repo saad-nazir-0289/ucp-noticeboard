@@ -217,7 +217,7 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
         { rollNumber: rollNumber.trim(), name: name.trim(), pin: adminPin },
         user.token
       );
-      setAddSuccess(`${result.name} can publish immediately — no link needed. They'll set their own PIN the first time they publish something.`);
+      setAddSuccess(`${result.name} can publish right away. They will choose their own PIN the first time they publish.`);
       setRollNumber("");
       setName("");
       load();

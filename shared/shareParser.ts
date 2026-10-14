@@ -73,10 +73,12 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
     if (bodyLines.join(" ").length < 300 && posterLines.length > 0) {
       bodyLines = [...bodyLines, "", ...posterLines];
     }
-  } else if (namedTitle(prose)) {
-    // 'a workshop titled "Discover the World of Game Development"': the
-    // name it was given beats whatever line happens to come first.
-    title = namedTitle(prose)!;
+  } else if (namedTitle(prose) ?? announcedTitle(prose)) {
+    // 'a workshop titled "Discover the World of Game Development"', or
+    // "pleased to share the UCP ORIC E-Newsletter, …": the name of the
+    // thing beats whatever sentence happens to come first. The whole
+    // message stays in the details.
+    title = (namedTitle(prose) ?? announcedTitle(prose))!;
   } else {
     const firstIndex = lines.findIndex(
       (l) => /[\p{L}\p{N}]/u.test(l.replace(URL_PATTERN, "")) && !isHandle(l) && !isGreeting(l) && !isEmailBanner(l)
@@ -91,12 +93,15 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   // Description: the rest of the message, or the whole message when the
   // title already used up its only line. Links stay in the text too;
   // lines of nothing but hashtags don't need to.
-  bodyLines = bodyLines.filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l) && !isGreeting(l));
+  bodyLines = withoutSignOff(bodyLines).filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l) && !isGreeting(l));
   let description = bodyLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   if (!description) description = lines.join("\n").trim();
   if (description === title) description = "";
 
   const hints: string[] = [];
+  if (!linkUrl && /\b(registration link|link below|following link|fill in (the )?form|click here|form link|apply here|register here)\b/i.test(prose)) {
+    hints.push("The message mentions a link, but its address wasn't included when it was copied. Copy the link itself and paste it into the Link field.");
+  }
   if (source === "instagram") {
     hints.push("Instagram only shares a link, not the caption or picture. Share a screenshot of the post to fill in the details too.");
   }
@@ -108,7 +113,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
     const lastPast = dates.filter((c) => c.explicit && c.date.getTime() <= now.getTime()).sort((a, b) => b.date.getTime() - a.date.getTime())[0];
     if (lastPast) {
       hints.push(
-        `The dates in this post (latest ${lastPast.date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}) have already passed — check it's still worth posting.`
+        `The dates in this post (latest ${lastPast.date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}) have already passed. Please check it is still relevant before posting.`
       );
     }
   }
@@ -260,7 +265,7 @@ function captionStart(line: string): { text: string; handle: string } | undefine
 
 /** "Dear Students,", "Hello everyone" — how a message opens, never its title. */
 function isGreeting(line: string): boolean {
-  return line.length <= 40 && /^(dear|hi|hello|hey|respected|assalam|salam|greetings)\b[^.!?]*[,!]?$/i.test(line);
+  return line.length <= 40 && /^(dear|hi|hello|hey|respected|assalam|salam|greetings)\b[^.?]*[,!]?$/i.test(line);
 }
 
 /** Lines mail apps and senders put on top: "This email is targeted at…", "CAUTION: external email". */
@@ -270,15 +275,47 @@ function isEmailBanner(line: string): boolean {
 
 /**
  * The name something was given in the text: 'a workshop titled "X"' →
- * "Workshop: X", 'a session called "X"' → "Session: X".
+ * "Workshop: X", 'a session on "X"' → "Session: X".
  */
 function namedTitle(text: string): string | undefined {
+  const kinds = "workshop|seminar|webinar|session|talk|event|competition|hackathon|bootcamp|training|lecture|course|programme|program|contest|conference|meetup";
+  const m =
+    text.match(new RegExp(`\\b(?:(${kinds})\\s+)?(?:titled|entitled|called|named)\\s*:?\\s*["“'‘]([^"”'’\\n]{6,160})["”'’]`, "i")) ??
+    text.match(new RegExp(`\\b(${kinds})\\s+on\\s+["“‘]([^"”’\\n]{6,160})["”’]`, "i"));
+  if (!m) return undefined;
+  const name = shortenName(m[2].replace(/[.,;:!]+$/, "").trim());
+  return m[1] ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}: ${name}` : name;
+}
+
+/** A long event name cut at its own break ("Main Title – Tagline" → "Main Title"). */
+function shortenName(name: string): string {
+  if (name.length <= 70) return name;
+  const breaks = [...name.matchAll(/\s[–—-]\s|:\s/g)].map((m) => m.index!).filter((i) => i >= 15 && i <= 75);
+  return breaks.length > 0 ? name.slice(0, breaks[breaks.length - 1]).trim() : name;
+}
+
+/**
+ * What a message announces: "We are pleased to share the UCP ORIC
+ * E-Newsletter, Volume 4, Issue 3 (July–September 2026), highlighting…"
+ * → "UCP ORIC E-Newsletter, Volume 4, Issue 3 (July–September 2026)".
+ */
+function announcedTitle(text: string): string | undefined {
   const m = text.match(
-    /\b(?:(workshop|seminar|webinar|session|talk|event|competition|hackathon|bootcamp|training|lecture|course|programme|program|contest|conference|meetup)\s+)?(?:titled|entitled|called|named)\s*[:]?\s*["“'‘]([^"”'’\n]{6,80})["”'’]/i
+    /\b(?:pleased|delighted|happy|glad|excited|proud)\s+to\s+(?:share|announce|present|introduce|launch|release)\s+(?:with you\s+)?(?:the|an?|our)?\s*([^\n]{8,})/i
   );
   if (!m) return undefined;
-  const name = m[2].replace(/[.,;:!]+$/, "").trim();
-  return m[1] ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}: ${name}` : name;
+  const thing = m[1]
+    .split(/,\s+(?=\w+ing\b)|,\s+which\b|\s+(?:on|to be held|in collaboration)\b|[.!?](?:\s|$)/i)[0]
+    .trim();
+  return thing.length >= 8 && thing.length <= 100 && /^\p{Lu}|^\d/u.test(thing) ? thing : undefined;
+}
+
+/** "Regards," and the signature under it don't belong in a notice. */
+function withoutSignOff(lines: string[]): string[] {
+  const signOff = lines.findIndex(
+    (l, i) => i >= lines.length - 6 && /^(regards|best regards|kind regards|warm regards|sincerely|yours sincerely|thanks|thank you|many thanks|best wishes)[,.!]?$/i.test(l)
+  );
+  return signOff >= 0 ? lines.slice(0, signOff) : lines;
 }
 
 function firstSentence(value: string): string {
@@ -491,10 +528,10 @@ function lineAround(text: string, index: number): string {
  */
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
   academic: ["exam", "mid-term", "midterm", "mids", "final exam", "final term", "quiz", "assignment", "class", "classes", "lecture", "timetable", "time table", "datesheet", "date sheet", "semester", "result", "fee", "enrollment", "enrolment", "registration of courses", "course registration", "add/drop", "attendance", "transcript", "makeup", "make-up", "viva", "thesis", "fyp"],
-  campus: ["library", "transport", "shuttle", "point bus", "holiday", "closed", "closure", "maintenance", "cafeteria", "cafe", "parking", "id card", "hostel", "wifi", "wi-fi", "electricity", "notice board", "lost and found", "security", "facilit"],
+  campus: ["newsletter", "e-newsletter", "announcement", "library", "transport", "shuttle", "point bus", "holiday", "closed", "closure", "maintenance", "cafeteria", "cafe", "parking", "id card", "hostel", "wifi", "wi-fi", "electricity", "notice board", "lost and found", "security", "facilit"],
   career: ["internship", "intern", "job", "hiring", "career", "placement", "cv", "resume", "vacancy", "recruiter", "interview", "seeking", "executive", "salary", "stipend", "commission", "full-time", "part-time", "fresh graduates", "employer", "job fair"],
   scholarship: ["scholarship", "financial aid", "need-based", "merit-based", "grant", "fellowship", "funding", "tuition", "fee waiver", "exchange program", "study abroad", "erasmus", "fulbright"],
-  workshop: ["workshop", "seminar", "webinar", "session", "talk", "training", "bootcamp", "masterclass", "speaker", "panel discussion", "guest lecture", "certification", "hands-on"],
+  workshop: ["workshop", "seminar", "webinar", "session", "talk", "training", "trainer", "what you will learn", "bootcamp", "masterclass", "speaker", "panel discussion", "guest lecture", "certification", "hands-on"],
   competition: ["competition", "contest", "hackathon", "championship", "debate", "olympiad", "challenge", "prize", "prizes", "winners", "ideathon", "datathon", "pitch", "case study competition", "speed programming"],
   event: ["event", "festival", "fest", "ceremony", "conference", "meetup", "expo", "exhibition", "showcase", "screening", "gala", "summit", "orientation", "concert", "convocation", "celebration", "dinner", "trip", "tour", "carnival", "mushaira", "qawwali"],
   societ: ["society", "societies", "club", "auditions", "recruit", "members", "join", "membership", "walk-in"],

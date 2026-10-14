@@ -42,7 +42,7 @@ public class UploadsController : ControllerBase
             string.IsNullOrWhiteSpace(apiKey) || apiKey.StartsWith("REPLACE_WITH") ||
             string.IsNullOrWhiteSpace(apiSecret) || apiSecret.StartsWith("REPLACE_WITH"))
         {
-            return StatusCode(503, "Image upload isn't configured yet.");
+            return StatusCode(503, "Image uploads are not set up yet.");
         }
 
         var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

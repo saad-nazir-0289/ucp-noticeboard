@@ -22,7 +22,7 @@ export function AdminPinPrompt({ section, onUnlock }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{4,6}$/.test(pin)) {
-      setError("Enter your 4-6 digit PIN.");
+      setError("Enter your PIN (4–6 digits).");
       return;
     }
     setChecking(true);

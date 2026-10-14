@@ -46,7 +46,7 @@ public class UsersController : ControllerBase
     /// creating new privileged access now needs the real Admin's PIN,
     /// same as actually publishing does.
     /// </summary>
-    public const string AdminPinMessage = "Your 4-6 digit PIN is required for this action.";
+    public const string AdminPinMessage = "Please enter your PIN (4–6 digits) to continue.";
 
     /// <summary>
     /// Lists every account's name and Roll Number, so it needs the PIN too
@@ -117,7 +117,7 @@ public class UsersController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber) || string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest("rollNumber and name are required.");
+            return BadRequest("Please enter a Roll Number and a name.");
         }
 
         var admin = await _db.Users.FindAsync(CurrentUserId);
@@ -209,10 +209,9 @@ public class UsersController : ControllerBase
         if (id == CurrentUserId)
         {
             return BadRequest(
-                "You can't reset your own PIN this way. Use the Admin activation link " +
-                "(the same one that grants Admin access) to reset it instead — that's the " +
-                "only path for your own PIN, so there's exactly one way to touch it, and " +
-                "it requires the real secret, not just your current PIN.");
+                // The activation link is the only way to reset your own PIN:
+                // it needs the real secret, not just the current PIN.
+                "You can't reset your own PIN here. Use the Admin activation link to reset it.");
         }
 
         var admin = await _db.Users.FindAsync(CurrentUserId);
@@ -291,7 +290,7 @@ public class UsersController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest("name is required.");
+            return BadRequest("Please enter a name.");
         }
 
         var admin = await _db.Users.FindAsync(CurrentUserId);

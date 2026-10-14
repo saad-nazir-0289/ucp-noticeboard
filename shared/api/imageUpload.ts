@@ -36,10 +36,10 @@ async function getUploadSignature(token: string): Promise<UploadSignature> {
   });
 
   if (response.status === 503) {
-    throw new ImageUploadError("Image upload isn't configured yet — ask the Admin to set it up.");
+    throw new ImageUploadError("Image uploads are not set up yet. Please contact the Admin.");
   }
   if (!response.ok) {
-    throw new ImageUploadError("Could not start the upload — please try again.");
+    throw new ImageUploadError("Could not start the upload. Please try again.");
   }
 
   return response.json();
@@ -50,7 +50,7 @@ export async function uploadImage(file: File, token: string): Promise<string> {
     throw new ImageUploadError("Please choose an image file.");
   }
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    throw new ImageUploadError("Image is too large — please choose one under 8MB.");
+    throw new ImageUploadError("This image is too large. Please choose one under 8 MB.");
   }
 
   const { signature, timestamp, apiKey, cloudName } = await getUploadSignature(token);
@@ -67,7 +67,7 @@ export async function uploadImage(file: File, token: string): Promise<string> {
   });
 
   if (!response.ok) {
-    throw new ImageUploadError("Upload failed — please try again.");
+    throw new ImageUploadError("Upload failed. Please try again.");
   }
 
   const data = await response.json();

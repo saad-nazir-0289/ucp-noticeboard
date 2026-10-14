@@ -63,7 +63,7 @@ public class PinSecurityTests : IClassFixture<ApiFactory>
         var (_, client) = await PublisherWithPinAsync();
 
         var first = await Post(client, WrongPin);
-        Assert.Contains("4 tries left", await first.Content.ReadAsStringAsync());
+        Assert.Contains("4 attempts left", await first.Content.ReadAsStringAsync());
         for (var i = 2; i < PinService.AttemptsBeforeLock; i++) await Post(client, WrongPin);
         var fifth = await Post(client, WrongPin);
         var rightPinWhileLocked = await Post(client, Pin);
@@ -99,7 +99,7 @@ public class PinSecurityTests : IClassFixture<ApiFactory>
 
         var afterReset = await Post(client, WrongPin);
         Assert.Equal(HttpStatusCode.BadRequest, afterReset.StatusCode);
-        Assert.Contains("4 tries left", await afterReset.Content.ReadAsStringAsync());
+        Assert.Contains("4 attempts left", await afterReset.Content.ReadAsStringAsync());
     }
 
     [Fact]

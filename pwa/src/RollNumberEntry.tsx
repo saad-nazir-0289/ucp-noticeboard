@@ -29,12 +29,12 @@ export function RollNumberEntry({ onSubmit }: Props) {
           <Icon name="megaphone" size={30} />
         </span>
         <h1>Every campus notice, in one place</h1>
-        <p>Deadlines, events and announcements from your societies and departments — on your phone, the moment they're posted.</p>
+        <p>Deadlines, events and announcements from your societies and departments, on your phone as soon as they're posted.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="ucpnb-onboarding-card">
         <h2>Let's get you set up</h2>
-        <p className="ucpnb-sheet-text">Just once — this device will remember you.</p>
+        <p className="ucpnb-sheet-text">You only need to do this once. This device will remember you.</p>
 
         <label className="ucpnb-field">
           <span className="ucpnb-field-label">Roll Number / Student ID</span>

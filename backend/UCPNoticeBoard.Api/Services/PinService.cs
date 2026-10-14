@@ -68,7 +68,7 @@ public class PinService : IPinService
     private static readonly TimeSpan MaxLock = TimeSpan.FromHours(24);
     private static readonly TimeSpan DeviceIdleExpiry = TimeSpan.FromDays(30);
 
-    private const string DefaultMissingMessage = "A 4-6 digit PIN is required.";
+    private const string DefaultMissingMessage = "Please enter your PIN (4–6 digits).";
     private static readonly System.Text.RegularExpressions.Regex PinFormat = new(@"^\d{4,6}$");
 
     private readonly AppDbContext _db;
@@ -160,7 +160,7 @@ public class PinService : IPinService
         await _db.SaveChangesAsync();
         var left = AttemptsBeforeLock - user.FailedPinAttempts % AttemptsBeforeLock;
         return new PinCheckResult(PinCheckStatus.Incorrect,
-            $"Incorrect PIN. {left} {(left == 1 ? "try" : "tries")} left before your account is locked for a while.");
+            $"Incorrect PIN. {left} {(left == 1 ? "attempt" : "attempts")} left before your account is temporarily locked.");
     }
 
     public async Task<(string Token, DeviceSession Session)> CreateDeviceSessionAsync(User user, string label)
@@ -210,8 +210,8 @@ public class PinService : IPinService
     {
         var minutes = (int)Math.Ceiling((until - Now).TotalMinutes);
         return new PinCheckResult(PinCheckStatus.Locked,
-            $"Too many wrong PINs. Your account is locked — try again in {minutes} minute{(minutes == 1 ? "" : "s")}, " +
-            "or ask the Admin to reset your PIN.");
+            $"Too many incorrect PINs. Your account is locked for {minutes} minute{(minutes == 1 ? "" : "s")}. " +
+            "Try again later or ask the Admin to reset your PIN.");
     }
 
     private static void ResetLockout(User user)

@@ -262,7 +262,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
               </button>
             </div>
             <div className="ucpnb-sheet-content">
-              <p className="ucpnb-sheet-text">Archived just for you — nobody else is affected. Restore one to bring it back to your feed.</p>
+              <p className="ucpnb-sheet-text">Archiving only affects your own feed. Restore a notice to bring it back.</p>
               {dismissedLoading ? (
                 <NoticeSkeleton viewMode="list" count={3} />
               ) : dismissedNotices.length === 0 ? (

@@ -186,7 +186,7 @@ export function App() {
     takeSharedPayload().then((payload) => {
       if (!payload) return;
       if (user.role === "Student") {
-        showToast("Only Publishers can post notices");
+        showToast("Only publishers can post notices");
         return;
       }
       openEditor(undefined, payload);
@@ -205,7 +205,7 @@ export function App() {
   const handleSaved = (wasEdit: boolean) => {
     setEditor(null);
     setRefreshKey((k) => k + 1);
-    showToast(wasEdit ? "Notice updated" : "Published — students are being notified");
+    showToast(wasEdit ? "Notice updated" : "Notice published and sent to students");
   };
 
   // A publisher's logo, shown on their notices. Changing it counts as a
@@ -218,9 +218,9 @@ export function App() {
       const result = await api.updateMyLogo(url, user.token);
       setMyLogoUrl(result.logoUrl);
       setRefreshKey((k) => k + 1);
-      showToast(result.logoUrl ? "Logo updated — it shows on all your notices" : "Logo removed");
+      showToast(result.logoUrl ? "Logo updated on all your notices" : "Logo removed");
     } catch (err) {
-      showToast(err instanceof ImageUploadError ? err.message : "Couldn't update your logo");
+      showToast(err instanceof ImageUploadError ? err.message : "Could not update your logo");
     } finally {
       setLogoBusy(false);
     }
@@ -237,7 +237,7 @@ export function App() {
     clearDeviceToken();
     setDeviceToken(null);
     setUnlocked(false);
-    showToast("This phone is locked. Your PIN will be asked next time.");
+    showToast("Posting locked on this phone");
   };
 
   const enableNotifications = async () => {
@@ -249,7 +249,7 @@ export function App() {
       showToast("Notifications turned on");
     } catch {
       setPushState("not-subscribed");
-      showToast("Couldn't turn on notifications");
+      showToast("Could not turn on notifications");
     }
   };
 
@@ -290,7 +290,7 @@ export function App() {
       setSelectedCategoryIds(ids);
     } catch {
       setShowCategoryPrefs(false);
-      showToast("Couldn't load your preferences");
+      showToast("Could not load your preferences");
     } finally {
       setPrefsLoading(false);
     }
@@ -311,11 +311,11 @@ export function App() {
       setShowCategoryPrefs(false);
       showToast(
         selectedCategoryIds.length === 0
-          ? "You'll be notified about everything"
+          ? "You will be notified about all categories"
           : "Notification preferences saved"
       );
     } catch {
-      showToast("Couldn't save your preferences");
+      showToast("Could not save your preferences");
     }
   };
 
@@ -410,7 +410,7 @@ export function App() {
               onClick={handleToggleNotifications}
               disabled={pushState === "working"}
               aria-label={notificationsOn ? "Turn off notifications" : "Turn on notifications"}
-              title={notificationsOn ? "Notifications on — tap to turn off" : "Turn on notifications"}
+              title={notificationsOn ? "Notifications are on. Tap to turn them off." : "Turn on notifications"}
             >
               <Icon name={notificationsOn ? "bell" : "bellOff"} />
             </button>

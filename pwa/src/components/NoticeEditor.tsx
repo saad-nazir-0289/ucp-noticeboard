@@ -257,7 +257,7 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
               {filledFrom && reading === null && (
                 <div className="ucpnb-quickfill-status is-done" role="status">
                   <Icon name="check" size={15} strokeWidth={2.6} />
-                  Filled from {filledFrom} — check everything before publishing.
+                  Filled from {filledFrom}. Please review everything before publishing.
                 </div>
               )}
               {hints.map((hint) => (
@@ -275,7 +275,7 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
 
           <label className="ucpnb-field">
             <span className="ucpnb-field-label">Details</span>
-            <textarea className="ucpnb-input" aria-label="Details" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know — dates, venue, who it's for" />
+            <textarea className="ucpnb-input" aria-label="Details" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know: dates, venue, who it's for" />
           </label>
 
           <div className="ucpnb-field">

@@ -247,7 +247,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
               </button>
             </div>
             <div className="ucpnb-sheet-content">
-              <p className="ucpnb-sheet-text">Archived just for you — nobody else is affected. Restore one to bring it back to your feed.</p>
+              <p className="ucpnb-sheet-text">Archiving only affects your own feed. Restore a notice to bring it back.</p>
               {dismissedLoading ? (
                 <div className="ucpnb-skeleton" style={{ height: 120 }} />
               ) : dismissedNotices.length === 0 ? (

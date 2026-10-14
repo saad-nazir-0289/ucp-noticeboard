@@ -65,14 +65,14 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber))
         {
-            return BadRequest("rollNumber is required.");
+            return BadRequest("Please enter your Roll Number.");
         }
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
 
         if (!RollNumberFormat.IsMatch(rollNumber))
         {
-            return BadRequest("rollNumber is not in a valid format.");
+            return BadRequest("That Roll Number doesn't look right. Please check it and try again.");
         }
 
         var suppliedCode = string.IsNullOrWhiteSpace(request.ActivationCode)

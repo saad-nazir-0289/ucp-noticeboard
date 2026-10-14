@@ -109,7 +109,7 @@ export function AnalyticsPanel({ user, adminPin, onAdminPinChange }: Props) {
         </div>
       </div>
       {summary.publishers.length === 0 ? (
-        <p className="ucpnb-field-hint">No publishers yet — add one under Users.</p>
+        <p className="ucpnb-field-hint">No publishers yet. Add one under Users.</p>
       ) : (
         <ul className="ucpnb-manage-list">
           {summary.publishers.map((p) => {
