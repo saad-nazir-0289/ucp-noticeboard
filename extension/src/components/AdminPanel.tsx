@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import { api } from "@shared/api/client";
+import { uploadImage } from "@shared/api/imageUpload";
 import type { AuthUser, Category, UserListItem, UserRole } from "@shared/types";
 import { AdminPinPrompt } from "./AdminPinPrompt";
 import { Icon } from "@shared/components/Icon";
@@ -160,6 +161,24 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
     }
   };
 
+  // A society that sends its logo to the Admin: upload it for them.
+  const handleLogo = async (id: number, name: string, file: File | null) => {
+    setPendingId(id);
+    setSuccessMessage(null);
+    setRowError(null);
+    try {
+      const url = file ? await uploadImage(file, user.token) : null;
+      await api.updateUserLogo(id, url, adminPin, user.token);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, logoUrl: url } : u)));
+      setSuccessMessage(url ? `${name}'s logo was updated.` : `${name}'s logo was removed.`);
+      setTimeout(() => setSuccessMessage(null), 2500);
+    } catch (err) {
+      setRowError({ id, message: err instanceof Error ? err.message : "Could not update the logo." });
+    } finally {
+      setPendingId(null);
+    }
+  };
+
   const startEditName = (u: UserListItem) => {
     setEditingNameId(u.id);
     setEditingNameValue(u.name);
@@ -291,7 +310,7 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
                   <tr>
                     <td>
                       <div className="ucpnb-user-cell">
-                        <Avatar name={u.name} />
+                        <Avatar name={u.name} imageUrl={u.logoUrl} />
                         {editingNameId === u.id ? (
                           <input
                             className="ucpnb-input ucpnb-input-sm"
@@ -336,6 +355,27 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
                             <Icon name="restore" size={14} />
                             Reset PIN
                           </button>
+                          <label className={pendingId === u.id ? "ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm is-disabled" : "ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm"}>
+                            <Icon name="image" size={14} />
+                            {u.logoUrl ? "Change logo" : "Add logo"}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              hidden
+                              disabled={pendingId === u.id}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                e.target.value = "";
+                                if (file) handleLogo(u.id, u.name, file);
+                              }}
+                            />
+                          </label>
+                          {u.logoUrl && (
+                            <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" disabled={pendingId === u.id} onClick={() => handleLogo(u.id, u.name, null)}>
+                              <Icon name="trash" size={14} />
+                              Remove logo
+                            </button>
+                          )}
                           {(u.activeDevices ?? 0) > 0 && (
                             <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" disabled={pendingId === u.id} onClick={() => handleRevokeDevices(u.id, u.name)}>
                               <Icon name="lock" size={14} />

@@ -46,7 +46,9 @@ Behind both is one shared system: a Manifest V3 Chrome extension, a standalone R
 - Push notifications (standard Web Push/VAPID — no third-party push service) sent to every subscriber when a Publisher posts
 - Shareable links that work for anyone, even someone who's never opened the app before — they land straight in onboarding, then the specific notice
 - Soft 7-day (or custom deadline) expiry — hidden from students, always recoverable by Admin/Publisher
-- Built-in analytics: total users by role, total dashboard views, active-in-last-7-days
+- Built-in analytics: total users by role, total dashboard views, active-in-last-7-days, the most-opened notices and each publisher's activity
+- Pinned notices (Admin), publisher logos, "Add to calendar" for deadlines, and notifications that open the notice they're about
+- Nightly encrypted database backups, an hourly uptime check and tests on every pull request (GitHub Actions — see [`docs/BACKUPS.md`](./docs/BACKUPS.md))
 - Ships with a Dockerfile — deploys to any container host in one push
 
 ## Architecture
@@ -153,7 +155,10 @@ production is always the default.
 | `GET` | `/uploads/signature` | Publisher, Admin | Short-lived signed Cloudinary upload credentials |
 | `GET` | `/push/vapid-public-key` | any user | Public key for setting up a push subscription |
 | `POST` / `DELETE` | `/push/subscribe` | any user | Register / remove a device's push subscription |
-| `GET` | `/analytics/summary` | Admin | Usage statistics |
+| `GET` | `/analytics/summary` | Admin | Usage statistics, most-opened notices, publisher activity |
+| `PUT` | `/profile/logo` | Publisher, Admin | Set or clear your own logo |
+| `PUT` | `/users/{id}/logo` | Admin | Set or clear anyone's logo |
+| `GET` | `/health` | — | Uptime check: 200 when the API and database are up |
 
 ## Project structure
 

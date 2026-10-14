@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { api, setDeviceToken } from "@shared/api/client";
+import { ImageUploadError, uploadImage } from "@shared/api/imageUpload";
 import { getSavedIdentity, saveIdentity, clearIdentity } from "./storage";
 import { clearDeviceToken, getSavedDeviceToken, saveDeviceToken } from "./deviceUnlock";
 import { takeSharedPayload, type SharedPayload } from "./shareInbox";
@@ -49,6 +50,8 @@ export function App() {
   // Bumped after a publish/edit/delete so the feed and list reload.
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAccount, setShowAccount] = useState(false);
+  const [myLogoUrl, setMyLogoUrl] = useState<string | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -130,6 +133,7 @@ export function App() {
       setDeviceToken(deviceToken, handleDeviceTokenInvalid);
       setUnlocked(deviceToken !== null);
       setUser(result);
+      setMyLogoUrl(result.logoUrl ?? null);
       setBootstrapNotices(result.notices);
       setBootstrapCategories(result.categories);
       setStatus("ready");
@@ -202,6 +206,24 @@ export function App() {
     setEditor(null);
     setRefreshKey((k) => k + 1);
     showToast(wasEdit ? "Notice updated" : "Published — students are being notified");
+  };
+
+  // A publisher's logo, shown on their notices. Changing it counts as a
+  // posting action, so this phone has to be unlocked first.
+  const changeLogo = async (file: File | null) => {
+    if (!user) return;
+    setLogoBusy(true);
+    try {
+      const url = file ? await uploadImage(file, user.token) : null;
+      const result = await api.updateMyLogo(url, user.token);
+      setMyLogoUrl(result.logoUrl);
+      setRefreshKey((k) => k + 1);
+      showToast(result.logoUrl ? "Logo updated — it shows on all your notices" : "Logo removed");
+    } catch (err) {
+      showToast(err instanceof ImageUploadError ? err.message : "Couldn't update your logo");
+    } finally {
+      setLogoBusy(false);
+    }
   };
 
   const lockThisPhone = async () => {
@@ -394,7 +416,7 @@ export function App() {
             </button>
           )}
           <button className="ucpnb-avatar-btn" onClick={() => setShowAccount(true)} aria-label="Account and settings">
-            <Avatar name={displayName} size="md" />
+            <Avatar name={displayName} size="md" imageUrl={myLogoUrl} />
           </button>
         </>
       )}
@@ -424,7 +446,7 @@ export function App() {
             <div className="ucpnb-sheet-handle" aria-hidden="true" />
             <div className="ucpnb-sheet-content">
               <div className="ucpnb-account">
-                <Avatar name={displayName} size="md" />
+                <Avatar name={displayName} size="md" imageUrl={myLogoUrl} />
                 <div>
                   <strong>{displayName}</strong>
                   <span>
@@ -453,6 +475,43 @@ export function App() {
                     <Icon name="sliders" />
                     <span>Notification topics</span>
                     <Icon name="chevronRight" size={18} />
+                  </button>
+                )}
+                {canPublish &&
+                  (unlocked ? (
+                    <label className={logoBusy ? "ucpnb-menu-item is-busy" : "ucpnb-menu-item"}>
+                      <Icon name="image" />
+                      <span>{myLogoUrl ? "Change your logo" : "Add your logo"}</span>
+                      {logoBusy ? <span className="ucpnb-spinner" /> : <Icon name="chevronRight" size={18} />}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        hidden
+                        disabled={logoBusy}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (file) changeLogo(file);
+                        }}
+                      />
+                    </label>
+                  ) : (
+                    <button
+                      className="ucpnb-menu-item"
+                      onClick={() => {
+                        setShowAccount(false);
+                        setShowUnlock(true);
+                      }}
+                    >
+                      <Icon name="image" />
+                      <span>{myLogoUrl ? "Change your logo" : "Add your logo"}</span>
+                      <Icon name="lock" size={16} />
+                    </button>
+                  ))}
+                {canPublish && unlocked && myLogoUrl && (
+                  <button className="ucpnb-menu-item" onClick={() => changeLogo(null)} disabled={logoBusy}>
+                    <Icon name="trash" />
+                    <span>Remove your logo</span>
                   </button>
                 )}
                 {canPublish && unlocked && (

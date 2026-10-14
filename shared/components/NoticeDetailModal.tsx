@@ -69,7 +69,7 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
           <h2 className="ucpnb-detail-title">{notice.title}</h2>
 
           <div className="ucpnb-detail-source">
-            <Avatar name={notice.createdByName} size="md" />
+            <Avatar name={notice.createdByName} size="md" imageUrl={notice.createdByLogoUrl} />
             <div>
               <strong>{notice.createdByName}</strong>
               {/* Only the Admin is ever sent view counts. */}

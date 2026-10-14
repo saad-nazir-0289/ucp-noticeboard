@@ -46,5 +46,9 @@ public class User
     public int FailedPinAttempts { get; set; }
     public DateTime? PinLockedUntil { get; set; }
 
+    // A publisher's logo (e.g. a society's), shown on their notices instead
+    // of initials. Set by the publisher themselves or the Admin.
+    public string? LogoUrl { get; set; }
+
     public ICollection<Notice> Notices { get; set; } = new List<Notice>();
 }

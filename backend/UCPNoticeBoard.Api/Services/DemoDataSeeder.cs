@@ -58,6 +58,11 @@ public static class DemoDataSeeder
         var admin = Privileged(AdminRollNumber, "Demo Admin", UserRole.Admin, 60);
         var computingSociety = Privileged(ComputingSocietyRollNumber, "Computing Society", UserRole.Publisher, 45);
         var studentAffairs = Privileged(StudentAffairsRollNumber, "Student Affairs Office", UserRole.Publisher, 40);
+        if (!string.IsNullOrWhiteSpace(posterBaseUrl))
+        {
+            // One publisher with a logo, one without, so both looks show.
+            computingSociety.LogoUrl = $"{posterBaseUrl.TrimEnd('/')}/computing-society-logo.svg";
+        }
 
         var students = new[] { "Ayesha Khan", "Hamza Ali", "Fatima Noor", "Usman Tariq", "Zainab Ahmed" }
             .Select((name, i) => new User

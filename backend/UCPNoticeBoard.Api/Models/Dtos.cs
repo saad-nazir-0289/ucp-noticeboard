@@ -9,7 +9,8 @@ public record LoginResponse(
     string Role,
     string Token,
     List<NoticeDto> Notices,
-    List<CategoryDto> Categories
+    List<CategoryDto> Categories,
+    string? LogoUrl = null
 );
 
 // PinLocked / ActiveDevices are only filled in by the Admin user list.
@@ -20,7 +21,8 @@ public record UserDto(
     string Role,
     DateTime CreatedAt,
     bool PinLocked = false,
-    int ActiveDevices = 0
+    int ActiveDevices = 0,
+    string? LogoUrl = null
 );
 
 /// <summary>One page of a longer list, with the total so clients can page through it.</summary>
@@ -55,8 +57,13 @@ public record NoticeDto(
     DateTime UpdatedAt,
     // Admin only — null for everyone else (NoticeQueryService.ForViewer).
     int? ViewCount,
-    bool IsPinned
+    bool IsPinned,
+    string? CreatedByLogoUrl
 );
+
+// Null or empty clears the logo. Pin as for notices (not needed on an
+// unlocked device); for the Admin's per-user endpoint it's the Admin's PIN.
+public record UpdateLogoRequest(string? LogoUrl, string? Pin);
 
 // Pin is required for every notice-mutating action unless the request
 // comes from an unlocked device (X-Device-Token, see PinService). If the

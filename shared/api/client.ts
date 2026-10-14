@@ -187,6 +187,18 @@ export const api = {
       token
     ),
 
+  /** Sets (or, with null, clears) any user's logo. */
+  updateUserLogo: (id: number, logoUrl: string | null, adminPin: string, token: string) =>
+    request<UserListItem>(
+      `/users/${id}/logo`,
+      { method: "PUT", body: JSON.stringify({ logoUrl, pin: adminPin }) },
+      token
+    ),
+
+  /** A publisher setting (or, with null, clearing) their own logo. Pin not needed on an unlocked device. */
+  updateMyLogo: (logoUrl: string | null, token: string, pin?: string) =>
+    request<{ logoUrl: string | null }>("/profile/logo", { method: "PUT", body: JSON.stringify({ logoUrl, pin }) }, token),
+
   resetUserPin: (id: number, adminPin: string, token: string) =>
     request<void>(`/users/${id}/reset-pin?adminPin=${encodeURIComponent(adminPin)}`, { method: "POST" }, token),
 

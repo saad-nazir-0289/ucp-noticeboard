@@ -20,12 +20,14 @@ public class UsersController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IPinService _pins;
     private readonly TimeProvider _time;
+    private readonly INoticeQueryService _noticeQuery;
 
-    public UsersController(AppDbContext db, IPinService pins, TimeProvider time)
+    public UsersController(AppDbContext db, IPinService pins, TimeProvider time, INoticeQueryService noticeQuery)
     {
         _db = db;
         _pins = pins;
         _time = time;
+        _noticeQuery = noticeQuery;
     }
 
     public const string AdminPinHeader = "X-Admin-Pin";
@@ -89,7 +91,8 @@ public class UsersController : ControllerBase
             .Select(u => new UserDto(
                 u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt,
                 u.PinLockedUntil != null && u.PinLockedUntil > now,
-                _db.DeviceSessions.Count(d => d.UserId == u.Id && d.ExpiresAt > now && d.SecurityStamp == u.SecurityStamp)))
+                _db.DeviceSessions.Count(d => d.UserId == u.Id && d.ExpiresAt > now && d.SecurityStamp == u.SecurityStamp),
+                u.LogoUrl))
             .ToListAsync();
 
         return Ok(new PagedResult<UserDto>(users, total, page, pageSize));
@@ -250,6 +253,31 @@ public class UsersController : ControllerBase
 
         await _pins.RevokeDevicesAsync(id);
         return NoContent();
+    }
+
+    /// <summary>Sets or clears any user's logo (e.g. a society that sent theirs to the Admin).</summary>
+    [HttpPut("{id}/logo")]
+    public async Task<ActionResult<UserDto>> UpdateLogo(int id, [FromBody] UpdateLogoRequest request)
+    {
+        if (!LogoRules.TryNormalize(request.LogoUrl, out var logoUrl, out var problem))
+        {
+            return BadRequest(problem);
+        }
+
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+
+        user.LogoUrl = logoUrl;
+        await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
+
+        return Ok(new UserDto(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt, LogoUrl: user.LogoUrl));
     }
 
     /// <summary>

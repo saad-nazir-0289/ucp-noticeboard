@@ -14,6 +14,8 @@ export interface AuthUser {
 export interface LoginResult extends AuthUser {
   notices: Notice[];
   categories: Category[];
+  /** The signed-in publisher's own logo, if they've set one. */
+  logoUrl?: string | null;
 }
 
 export interface Notice {
@@ -33,6 +35,8 @@ export interface Notice {
   viewCount: number | null;
   /** Pinned by the Admin: shown above everything else. */
   isPinned: boolean;
+  /** The publisher's logo, shown instead of their initials. */
+  createdByLogoUrl: string | null;
 }
 
 export interface Category {
@@ -82,6 +86,7 @@ export interface UserListItem {
   pinLocked?: boolean;
   /** Devices this user has unlocked with their PIN (Admin user list only). */
   activeDevices?: number;
+  logoUrl?: string | null;
 }
 
 /** One page of a longer list, with the total for paging. */

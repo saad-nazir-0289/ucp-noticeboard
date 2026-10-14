@@ -17,6 +17,7 @@ const notice: Notice = {
   updatedAt: "2026-10-14T10:00:00.000Z",
   viewCount: null,
   isPinned: false,
+  createdByLogoUrl: null,
 };
 
 describe("googleCalendarUrl", () => {

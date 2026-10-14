@@ -77,7 +77,7 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 
 
         <div className="ucpnb-card-footer">
           <div className="ucpnb-card-source" title={notice.createdByName}>
-            <Avatar name={notice.createdByName} />
+            <Avatar name={notice.createdByName} imageUrl={notice.createdByLogoUrl} />
             <span className="ucpnb-card-author">{notice.createdByName}</span>
           </div>
 

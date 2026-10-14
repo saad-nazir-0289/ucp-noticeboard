@@ -1,4 +1,5 @@
 import { categoryTone, deadlineStatus, initials } from "../format";
+import { optimizeImageUrl } from "../imageOptimize";
 import { Icon } from "./Icon";
 
 /** A category label, coloured consistently per category name. */
@@ -43,8 +44,18 @@ export function PinToggle({ checked, onChange }: { checked: boolean; onChange: (
   );
 }
 
-/** Round initials badge for whoever posted a notice. */
-export function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
+/** Whoever posted a notice: their logo if they've set one, otherwise their initials. */
+export function Avatar({ name, size = "sm", imageUrl }: { name: string; size?: "sm" | "md"; imageUrl?: string | null }) {
+  if (imageUrl) {
+    return (
+      <img
+        className={`ucpnb-avatar ucpnb-avatar-${size} ucpnb-avatar-image`}
+        src={optimizeImageUrl(imageUrl, size === "md" ? 96 : 48) ?? undefined}
+        alt=""
+        loading="lazy"
+      />
+    );
+  }
   return (
     <span className={`ucpnb-avatar ucpnb-avatar-${size} ucpnb-tone-${categoryTone(name)}`} aria-hidden="true">
       {initials(name)}

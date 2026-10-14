@@ -35,7 +35,7 @@ public class NoticesController : ControllerBase
     private NoticeDto ToDto(Notice n) => NoticeQueryService.ForViewer(new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned), CanSeeViews);
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned, n.CreatedByUser?.LogoUrl), CanSeeViews);
 
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices(

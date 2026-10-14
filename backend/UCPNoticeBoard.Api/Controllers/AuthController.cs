@@ -148,6 +148,6 @@ public class AuthController : ControllerBase
         var notices = await _noticeQuery.GetActiveNoticesAsync(user.Id, includeDismissed: false, includeViews: user.Role == UserRole.Admin);
         var categories = await _noticeQuery.GetCategoriesAsync();
 
-        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token, notices, categories));
+        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token, notices, categories, user.LogoUrl));
     }
 }
