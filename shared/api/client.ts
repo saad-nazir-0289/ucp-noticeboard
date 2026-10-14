@@ -1,6 +1,6 @@
 import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
-// Set per build mode (production / staging / local) in vite.content.config.ts.
+// Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 class ApiError extends Error {
@@ -158,6 +158,30 @@ export const api = {
 
   getAnalyticsSummary: (adminPin: string, token: string) =>
     request<AnalyticsSummary>("/analytics/summary", { headers: { "X-Admin-Pin": adminPin } }, token),
+  getVapidPublicKey: (token: string) =>
+    request<{ publicKey: string }>("/push/vapid-public-key", {}, token),
+
+  subscribePush: (
+    data: { endpoint: string; p256dh: string; auth: string },
+    token: string
+  ) => request<void>("/push/subscribe", { method: "POST", body: JSON.stringify(data) }, token),
+
+  unsubscribePush: (endpoint: string, token: string) =>
+    request<void>(
+      "/push/unsubscribe",
+      { method: "POST", body: JSON.stringify({ endpoint, p256dh: "", auth: "" }) },
+      token
+    ),
+
+  getPushCategories: (endpoint: string, token: string) =>
+    request<number[]>(`/push/categories?endpoint=${encodeURIComponent(endpoint)}`, {}, token),
+
+  updatePushCategories: (endpoint: string, categoryIds: number[], token: string) =>
+    request<void>(
+      "/push/categories",
+      { method: "PATCH", body: JSON.stringify({ endpoint, categoryIds }) },
+      token
+    ),
 };
 
 export { ApiError };

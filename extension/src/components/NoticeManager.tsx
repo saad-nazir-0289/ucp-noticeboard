@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { api } from "../api/client";
-import { uploadImage, ImageUploadError } from "../api/imageUpload";
-import type { AuthUser, Category, Notice } from "../types";
+import { api } from "@shared/api/client";
+import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
+import type { AuthUser, Category, Notice } from "@shared/types";
 
 interface Props {
   user: AuthUser;

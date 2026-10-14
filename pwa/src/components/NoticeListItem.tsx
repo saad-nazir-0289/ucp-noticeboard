@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useSwipeable } from "react-swipeable";
-import type { Notice } from "../types";
-import { shareNotice } from "../share";
-import { optimizeImageUrl } from "../imageOptimize";
+import type { Notice } from "@shared/types";
+import { shareNotice } from "@shared/share";
+import { optimizeImageUrl } from "@shared/imageOptimize";
 
 interface Props {
   notice: Notice;

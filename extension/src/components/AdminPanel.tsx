@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
-import { api } from "../api/client";
-import type { AuthUser, Category, UserListItem, UserRole } from "../types";
+import { api } from "@shared/api/client";
+import type { AuthUser, Category, UserListItem, UserRole } from "@shared/types";
 import { AdminPinPrompt } from "./AdminPinPrompt";
 
 interface Props {

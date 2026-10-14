@@ -7,6 +7,8 @@ interface Props {
   notice: Notice;
   onClose: () => void;
   onLike?: (notice: Notice) => void;
+  /** Poster width to request from Cloudinary, sized to how wide this app shows the modal. */
+  imageWidth?: number;
 }
 
 function formatDate(iso: string) {
@@ -17,7 +19,7 @@ function formatDate(iso: string) {
   });
 }
 
-export function NoticeDetailModal({ notice, onClose, onLike }: Props) {
+export function NoticeDetailModal({ notice, onClose, onLike, imageWidth = 900 }: Props) {
   const [shared, setShared] = useState(false);
 
   const handleShare = async () => {
@@ -42,7 +44,7 @@ export function NoticeDetailModal({ notice, onClose, onLike }: Props) {
               style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 60)})` }}
               aria-hidden="true"
             />
-            <img className="ucpnb-modal-image" src={optimizeImageUrl(notice.imageUrl, 900) ?? undefined} alt="" />
+            <img className="ucpnb-modal-image" src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined} alt="" />
           </div>
         )}
 

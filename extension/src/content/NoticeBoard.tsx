@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { AuthUser, Category, Notice } from "../types";
-import { api } from "../api/client";
+import type { AuthUser, Category, Notice } from "@shared/types";
+import { api } from "@shared/api/client";
 import { findStudentIdentity } from "./studentIdentity";
-import { PWA_BASE_URL } from "./share";
+import { PWA_BASE_URL } from "./pwaUrl";
 import { NoticeFeed } from "../components/NoticeFeed";
 import { NoticeManager } from "../components/NoticeManager";
 import { AdminPanel } from "../components/AdminPanel";

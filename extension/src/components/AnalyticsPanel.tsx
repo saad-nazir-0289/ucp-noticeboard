@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api } from "../api/client";
-import type { AnalyticsSummary, AuthUser } from "../types";
+import { api } from "@shared/api/client";
+import type { AnalyticsSummary, AuthUser } from "@shared/types";
 import { AdminPinPrompt } from "./AdminPinPrompt";
 
 interface Props {

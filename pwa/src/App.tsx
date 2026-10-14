@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { AuthUser, Category, Notice } from "./types";
-import { api } from "./api/client";
+import type { AuthUser, Category, Notice } from "@shared/types";
+import { api } from "@shared/api/client";
 import { getSavedIdentity, saveIdentity, clearIdentity } from "./storage";
 import {
   registerServiceWorker,

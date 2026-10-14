@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
-import type { Category, Notice } from "../types";
-import { NoticeCard } from "./NoticeCard";
+import { api } from "@shared/api/client";
+import type { Category, Notice } from "@shared/types";
+import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeListItem } from "./NoticeListItem";
-import { NoticeDetailModal } from "./NoticeDetailModal";
+import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { NoticeSkeleton } from "./NoticeSkeleton";
 
 interface Props {

@@ -3,6 +3,16 @@ import react from "@vitejs/plugin-react";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 
+// Code in ../shared is compiled into this app (see shared/README.md).
+// dedupe makes its `react` imports resolve from this app's node_modules,
+// since shared/ has none of its own.
+const sharedConfig = {
+  resolve: {
+    alias: { "@shared": resolve(__dirname, "../shared") },
+    dedupe: ["react", "react-dom"],
+  },
+};
+
 const PRODUCTION = {
   VITE_API_BASE_URL: "https://ucp-noticeboard-api-production.up.railway.app",
   VITE_PWA_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev",
@@ -79,6 +89,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), extensionManifest(mode, urls.VITE_API_BASE_URL, outDir)],
+    ...sharedConfig,
     build: {
       outDir,
       emptyOutDir: true,

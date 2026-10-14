@@ -1,5 +1,16 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+import { resolve } from "path";
+
+// Code in ../shared is compiled into this app (see shared/README.md).
+// dedupe makes its `react` imports resolve from this app's node_modules,
+// since shared/ has none of its own.
+const sharedConfig = {
+  resolve: {
+    alias: { "@shared": resolve(__dirname, "../shared") },
+    dedupe: ["react", "react-dom"],
+  },
+};
 
 const PRODUCTION_API_URL = "https://ucp-noticeboard-api-production.up.railway.app";
 const LOCAL_API_URL = "http://localhost:5000";
@@ -32,6 +43,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    ...sharedConfig,
+    // The dev server only serves files inside the project by default.
+    server: { fs: { allow: [__dirname, resolve(__dirname, "../shared")] } },
     build: {
       // Only production builds land in dist/ (what wrangler deploys to
       // the live site); staging goes to dist-staging/.

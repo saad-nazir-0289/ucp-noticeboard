@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Notice } from "../types";
-import { shareNotice } from "../content/share";
-import { optimizeImageUrl } from "../content/imageOptimize";
+import { shareNotice } from "../share";
+import { optimizeImageUrl } from "../imageOptimize";
 
 interface Props {
   notice: Notice;
@@ -9,6 +9,8 @@ interface Props {
   onDismiss?: (notice: Notice) => void;
   onRestore?: (notice: Notice) => void;
   onLike?: (notice: Notice) => void;
+  /** Poster width to request from Cloudinary, sized to how wide this app shows cards. */
+  imageWidth?: number;
 }
 
 function formatDate(iso: string) {
@@ -19,7 +21,7 @@ function formatDate(iso: string) {
   });
 }
 
-export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike }: Props) {
+export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, imageWidth = 600 }: Props) {
   const [shared, setShared] = useState(false);
 
   const handleShare = async (e: React.MouseEvent) => {
@@ -57,7 +59,7 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike }: Pro
             />
             <img
               className="ucpnb-card-image"
-              src={optimizeImageUrl(notice.imageUrl, 400) ?? undefined}
+              src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined}
               alt=""
               loading="lazy"
             />

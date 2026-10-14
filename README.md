@@ -156,16 +156,16 @@ production is always the default.
 UCP-NoticeBoard/
 ├── extension/            Chrome Extension — MV3, React, TypeScript, Vite
 │   └── src/
-│       ├── content/       Injected UI: entry point, root component, identity scraper, share links
-│       ├── components/    NoticeFeed, NoticeCard, NoticeManager, AdminPanel, AnalyticsPanel
-│       ├── api/            Backend API client
-│       └── types/
+│       ├── content/       Injected UI: entry point, root component, identity scraper
+│       └── components/    NoticeFeed, NoticeManager, AdminPanel, AnalyticsPanel
+├── shared/                Code compiled into both the extension and the PWA:
+│                          API client, types, notice card/detail, uploads, share links
 ├── pwa/                   Standalone mobile site — React, TypeScript, Vite
 │   └── src/
 │       ├── App.tsx         Root: identity check → feed
 │       ├── push.ts         Web Push subscription logic
 │       ├── storage.ts      Local Roll Number persistence
-│       └── components/     NoticeFeed, NoticeCard, NoticeListItem, NoticeSkeleton
+│       └── components/     NoticeFeed, NoticeListItem, NoticeSkeleton
 └── backend/               ASP.NET Core 8 Web API
     └── UCPNoticeBoard.Api/
         ├── Controllers/    Auth, Users, Notices, Categories, Uploads, Push, Analytics

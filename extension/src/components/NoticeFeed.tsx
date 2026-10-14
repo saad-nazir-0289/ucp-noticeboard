@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "../api/client";
-import type { Category, Notice } from "../types";
-import { NoticeCard } from "./NoticeCard";
-import { NoticeDetailModal } from "./NoticeDetailModal";
+import { api } from "@shared/api/client";
+import type { Category, Notice } from "@shared/types";
+import { NoticeCard } from "@shared/components/NoticeCard";
+import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
+
+// Desktop cards and the modal are narrower than the PWA's, so request smaller posters.
+const CARD_IMAGE_WIDTH = 400;
+const MODAL_IMAGE_WIDTH = 700;
 
 interface Props {
   token: string;
@@ -168,7 +172,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       ) : (
         <div className="ucpnb-feed">
           {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
           ))}
         </div>
       )}
@@ -188,7 +192,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
             ) : (
               <div className="ucpnb-grid">
                 {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
                 ))}
               </div>
             )}
@@ -220,6 +224,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
                     notice={notice}
                     onView={handleView}
                     onRestore={handleRestore}
+                    imageWidth={CARD_IMAGE_WIDTH}
                   />
                 ))}
               </div>
@@ -229,7 +234,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       )}
 
       {selected && (
-        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} />
+        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} imageWidth={MODAL_IMAGE_WIDTH} />
       )}
     </>
   );
