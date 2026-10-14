@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { api, setDeviceToken } from "@shared/api/client";
 import { ImageUploadError, uploadImage } from "@shared/api/imageUpload";
@@ -25,6 +25,8 @@ import { EmptyState } from "@shared/components/EmptyState";
 type Status = "loading" | "needs-identity" | "ready" | "error";
 type PushState = "unsupported" | "subscribed" | "not-subscribed" | "working";
 
+type ToastTone = "success" | "error" | "info";
+
 export function App() {
   const [status, setStatus] = useState<Status>("loading");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -34,7 +36,8 @@ export function App() {
   const [deepLinkNoticeId, setDeepLinkNoticeId] = useState<number | undefined>(undefined);
   const [autoEnableNotifications, setAutoEnableNotifications] = useState(false);
   const [urlActivationCode, setUrlActivationCode] = useState<string | undefined>(undefined);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: ToastTone } | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
   const [showCategoryPrefs, setShowCategoryPrefs] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [prefsLoading, setPrefsLoading] = useState(false);
@@ -53,9 +56,11 @@ export function App() {
   const [myLogoUrl, setMyLogoUrl] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
 
-  const showToast = (message: string) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 2500);
+  // Successes confirm and go; problems and notes stay a little longer.
+  const showToast = (message: string, tone: ToastTone = "success") => {
+    window.clearTimeout(toastTimer.current);
+    setToast({ message, tone });
+    toastTimer.current = window.setTimeout(() => setToast(null), tone === "success" ? 2500 : 4500);
   };
 
   useEffect(() => {
@@ -186,7 +191,7 @@ export function App() {
     takeSharedPayload().then((payload) => {
       if (!payload) return;
       if (user.role === "Student") {
-        showToast("Only publishers can post notices");
+        showToast("Only publishers can post notices", "info");
         return;
       }
       openEditor(undefined, payload);
@@ -220,7 +225,7 @@ export function App() {
       setRefreshKey((k) => k + 1);
       showToast(result.logoUrl ? "Logo updated on all your notices" : "Logo removed");
     } catch (err) {
-      showToast(err instanceof ImageUploadError ? err.message : "Could not update your logo");
+      showToast(err instanceof ImageUploadError ? err.message : "Could not update your logo", "error");
     } finally {
       setLogoBusy(false);
     }
@@ -249,7 +254,7 @@ export function App() {
       showToast("Notifications turned on");
     } catch {
       setPushState("not-subscribed");
-      showToast("Could not turn on notifications");
+      showToast("Could not turn on notifications", "error");
     }
   };
 
@@ -290,7 +295,7 @@ export function App() {
       setSelectedCategoryIds(ids);
     } catch {
       setShowCategoryPrefs(false);
-      showToast("Could not load your preferences");
+      showToast("Could not load your preferences", "error");
     } finally {
       setPrefsLoading(false);
     }
@@ -315,7 +320,7 @@ export function App() {
           : "Notification preferences saved"
       );
     } catch {
-      showToast("Could not save your preferences");
+      showToast("Could not save your preferences", "error");
     }
   };
 
@@ -386,9 +391,9 @@ export function App() {
   return (
     <div className="ucpnb-app">
       {toast && (
-        <div className="ucpnb-toast" role="status">
-          <Icon name="check" size={16} strokeWidth={2.6} />
-          {toast}
+        <div className={`ucpnb-toast ucpnb-toast-${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"}>
+          <Icon name={toast.tone === "success" ? "check" : toast.tone === "error" ? "alertCircle" : "info"} size={16} strokeWidth={2.6} />
+          {toast.message}
         </div>
       )}
 

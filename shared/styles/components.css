@@ -256,6 +256,23 @@ select.ucpnb-input {
   display: none;
 }
 
+/* Mouse users can't swipe a hidden-scrollbar row, so on computers the
+   categories wrap onto a second line; on touch screens they scroll, with
+   a fade at the edge hinting there's more. */
+@media (hover: hover) and (pointer: fine) {
+  .ucpnb-chips {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
+
+@media (pointer: coarse) {
+  .ucpnb-chips:not(.ucpnb-chips-wrap) {
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
+
 .ucpnb-chip {
   flex-shrink: 0;
   display: inline-flex;
@@ -867,7 +884,16 @@ select.ucpnb-input {
 }
 
 .ucpnb-toast .ucpnb-icon {
+  flex-shrink: 0;
   color: #6ee7a8;
+}
+
+.ucpnb-toast-error .ucpnb-icon {
+  color: #fda4a4;
+}
+
+.ucpnb-toast-info .ucpnb-icon {
+  color: #93c5fd;
 }
 
 @keyframes ucpnb-toast-in {
