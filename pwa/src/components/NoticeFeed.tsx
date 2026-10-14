@@ -7,6 +7,7 @@ import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { NoticeSkeleton } from "./NoticeSkeleton";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
+import { compareNotices } from "@shared/noticeForm";
 
 interface Props {
   token: string;
@@ -134,9 +135,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   const handleRestore = (notice: Notice) => {
     setDismissedNotices((prev) => prev.filter((n) => n.id !== notice.id));
     setNotices((prev) =>
-      [notice, ...prev.filter((n) => n.id !== notice.id)].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+      [notice, ...prev.filter((n) => n.id !== notice.id)].sort(compareNotices)
     );
     api.restoreNotice(notice.id, token).catch(() => {
       /* if this fails, it just stays hidden until the next reload — not critical */

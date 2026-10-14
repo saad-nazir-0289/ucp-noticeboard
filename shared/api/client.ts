@@ -104,6 +104,8 @@ export const api = {
       deadline: string | null;
       /** Not needed when this device is unlocked. */
       pin?: string;
+      /** Admin only (ignored for anyone else); leave out to keep it as is. */
+      isPinned?: boolean;
     },
     token: string
   ) =>
@@ -124,6 +126,8 @@ export const api = {
       deadline: string | null;
       /** Not needed when this device is unlocked. */
       pin?: string;
+      /** Admin only (ignored for anyone else); leave out to keep it as is. */
+      isPinned?: boolean;
     },
     token: string
   ) =>

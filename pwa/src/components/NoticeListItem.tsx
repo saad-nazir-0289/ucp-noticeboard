@@ -4,7 +4,7 @@ import type { Notice } from "@shared/types";
 import { optimizeImageUrl } from "@shared/imageOptimize";
 import { categoryTone } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
-import { DeadlineBadge } from "@shared/components/Tags";
+import { DeadlineBadge, PinnedBadge } from "@shared/components/Tags";
 
 interface Props {
   notice: Notice;
@@ -110,6 +110,7 @@ export function NoticeListItem({ notice, onView, onDismiss, onSwipeDemoDone }: P
         </div>
         <div className="ucpnb-row-body">
           <div className="ucpnb-row-meta">
+            {notice.isPinned && <PinnedBadge />}
             {notice.categoryName && <span className={`ucpnb-row-category ucpnb-tone-text-${categoryTone(notice.categoryName)}`}>{notice.categoryName}</span>}
             {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
           </div>

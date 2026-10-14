@@ -17,7 +17,8 @@ public interface INoticeQueryService
 /// <summary>
 /// A notice is visible to students if:
 ///   - it has a Deadline, and that deadline hasn't passed yet, OR
-///   - it has no Deadline, and it's less than 7 days old.
+///   - it has no Deadline, and it's less than 7 days old or pinned.
+/// Pinned notices come first, then newest first.
 /// Either way, "not visible" NEVER means deleted — every query here filters
 /// what's returned, nothing here ever removes a row. Admin/Publisher
 /// management views pass includeExpired=true specifically to see
@@ -54,7 +55,8 @@ public class NoticeQueryService : INoticeQueryService
         n.CreatedByUser?.Name ?? "Unknown",
         n.CreatedAt,
         n.UpdatedAt,
-        n.ViewCount
+        n.ViewCount,
+        n.IsPinned
     );
 
     /// <summary>
@@ -75,8 +77,9 @@ public class NoticeQueryService : INoticeQueryService
             .Include(n => n.Category)
             .Where(n =>
                 (n.Deadline != null && n.Deadline > now) ||
-                (n.Deadline == null && n.CreatedAt >= defaultCutoff))
-            .OrderByDescending(n => n.CreatedAt)
+                (n.Deadline == null && (n.IsPinned || n.CreatedAt >= defaultCutoff)))
+            .OrderByDescending(n => n.IsPinned)
+            .ThenByDescending(n => n.CreatedAt)
             .ToListAsync();
 
         return notices.Select(ToDto).ToList();
@@ -88,7 +91,8 @@ public class NoticeQueryService : INoticeQueryService
         var notices = await _db.Notices
             .Include(n => n.CreatedByUser)
             .Include(n => n.Category)
-            .OrderByDescending(n => n.CreatedAt)
+            .OrderByDescending(n => n.IsPinned)
+            .ThenByDescending(n => n.CreatedAt)
             .ToListAsync();
 
         return notices.Select(ToDto).ToList();

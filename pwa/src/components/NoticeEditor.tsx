@@ -7,6 +7,7 @@ import type { AuthUser, Category, Notice } from "@shared/types";
 import { Icon } from "@shared/components/Icon";
 import { cleanOcrText, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
 import { readTextFromImage } from "../ocr";
+import { PinToggle } from "@shared/components/Tags";
 
 /** Pre-filled values for a new notice (e.g. from something shared into the app). */
 export interface NoticeDraft {
@@ -42,6 +43,8 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
   const [linkUrl, setLinkUrl] = useState(initial.linkUrl ?? "");
   const [categoryId, setCategoryId] = useState<number | "">(initial.categoryId ?? "");
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(initial.deadline ?? null));
+  const [isPinned, setIsPinned] = useState(notice?.isPinned ?? false);
+  const isAdmin = user.role === "Admin";
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -161,6 +164,7 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
       linkUrl: linkUrl.trim(),
       categoryId: categoryId === "" ? null : categoryId,
       deadline: fromDatetimeLocalValue(deadline),
+      ...(isAdmin ? { isPinned } : {}),
     };
     setSaving(true);
     setError(null);
@@ -311,6 +315,8 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
             </label>
           </div>
           <span className="ucpnb-field-hint">Without a deadline, a notice stays up for 7 days.</span>
+
+          {isAdmin && <PinToggle checked={isPinned} onChange={setIsPinned} />}
 
           <label className="ucpnb-field">
             <span className="ucpnb-field-label">Link</span>

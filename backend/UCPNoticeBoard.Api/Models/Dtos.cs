@@ -54,16 +54,18 @@ public record NoticeDto(
     DateTime CreatedAt,
     DateTime UpdatedAt,
     // Admin only — null for everyone else (NoticeQueryService.ForViewer).
-    int? ViewCount
+    int? ViewCount,
+    bool IsPinned
 );
 
 // Pin is required for every notice-mutating action unless the request
 // comes from an unlocked device (X-Device-Token, see PinService). If the
 // account has no PIN yet, whatever is supplied here becomes their PIN
 // going forward (first-use-sets-it) — otherwise it must match exactly.
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin);
+// IsPinned is only honoured for the Admin; null leaves it unchanged on update.
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
 
 public record CategoryDto(int Id, string Name);
 

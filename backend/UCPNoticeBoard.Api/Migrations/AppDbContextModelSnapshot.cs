@@ -120,6 +120,9 @@ namespace UCPNoticeBoard.Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");

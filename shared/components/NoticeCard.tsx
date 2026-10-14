@@ -4,7 +4,7 @@ import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
 import { categoryTone } from "../format";
 import { Icon } from "./Icon";
-import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
+import { Avatar, CategoryTag, DeadlineBadge, PinnedBadge } from "./Tags";
 
 interface Props {
   notice: Notice;
@@ -67,6 +67,7 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 
 
       <div className="ucpnb-card-body">
         <div className="ucpnb-card-tags">
+          {notice.isPinned && <PinnedBadge />}
           {/* Posterless cards already name the category on their banner. */}
           {notice.categoryName && notice.imageUrl && <CategoryTag name={notice.categoryName} />}
           {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}

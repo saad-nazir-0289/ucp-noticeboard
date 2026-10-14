@@ -17,6 +17,32 @@ export function DeadlineBadge({ deadline, now }: { deadline: string; now?: Date 
   );
 }
 
+/** Marks a notice the Admin pinned to the top of the feed. */
+export function PinnedBadge() {
+  return (
+    <span className="ucpnb-badge ucpnb-badge-pinned">
+      <Icon name="pin" size={12} strokeWidth={2.4} />
+      Pinned
+    </span>
+  );
+}
+
+/**
+ * The Admin's "Pin to top" switch in the notice forms. Renders nothing
+ * for anyone else — the API ignores the flag from non-Admins anyway.
+ */
+export function PinToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="ucpnb-toggle-row">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <strong>Pin to the top</strong>
+        <span>Shown above every other notice. Without a deadline it stays up until you unpin it.</span>
+      </span>
+    </label>
+  );
+}
+
 /** Round initials badge for whoever posted a notice. */
 export function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
   return (

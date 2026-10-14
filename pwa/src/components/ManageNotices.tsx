@@ -4,7 +4,7 @@ import { isExpired } from "@shared/noticeForm";
 import type { AuthUser, Notice } from "@shared/types";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
-import { CategoryTag } from "@shared/components/Tags";
+import { CategoryTag, PinnedBadge } from "@shared/components/Tags";
 import { timeAgo } from "@shared/format";
 
 interface Props {
@@ -101,6 +101,7 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
                         <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
                           {expired ? "Expired" : "Live"}
                         </span>
+                        {n.isPinned && <PinnedBadge />}
                         {n.categoryName && <CategoryTag name={n.categoryName} />}
                       </div>
                       <strong>{n.title}</strong>

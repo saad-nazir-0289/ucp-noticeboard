@@ -4,7 +4,7 @@ import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
 import { formatDateTime } from "../format";
 import { Icon } from "./Icon";
-import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
+import { Avatar, CategoryTag, DeadlineBadge, PinnedBadge } from "./Tags";
 
 interface Props {
   notice: Notice;
@@ -57,8 +57,9 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
         )}
 
         <div className="ucpnb-detail-body">
-          {(notice.categoryName || notice.deadline) && (
+          {(notice.isPinned || notice.categoryName || notice.deadline) && (
             <div className="ucpnb-card-tags">
+              {notice.isPinned && <PinnedBadge />}
               {notice.categoryName && <CategoryTag name={notice.categoryName} />}
               {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
             </div>

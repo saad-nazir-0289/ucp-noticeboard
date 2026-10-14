@@ -5,6 +5,7 @@ import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
+import { compareNotices } from "@shared/noticeForm";
 
 // Desktop cards and the modal are narrower than the PWA's, so request smaller posters.
 const CARD_IMAGE_WIDTH = 400;
@@ -102,9 +103,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     // Bring it straight back into the main feed too, in the right position,
     // rather than waiting for a full reload to notice it's back.
     setNotices((prev) =>
-      [notice, ...prev.filter((n) => n.id !== notice.id)].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+      [notice, ...prev.filter((n) => n.id !== notice.id)].sort(compareNotices)
     );
     api.restoreNotice(notice.id, token).catch(() => {
       /* if this fails, it just stays hidden until the next reload — not critical */

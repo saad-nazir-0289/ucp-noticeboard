@@ -35,7 +35,7 @@ public class NoticesController : ControllerBase
     private NoticeDto ToDto(Notice n) => NoticeQueryService.ForViewer(new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount), CanSeeViews);
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned), CanSeeViews);
 
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices(
@@ -149,7 +149,8 @@ public class NoticesController : ControllerBase
             Deadline = request.Deadline?.ToUniversalTime(),
             CreatedByUserId = CurrentUserId,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            IsPinned = User.IsInRole("Admin") && request.IsPinned == true
         };
 
         _db.Notices.Add(notice);
@@ -224,6 +225,10 @@ public class NoticesController : ControllerBase
         notice.CategoryId = request.CategoryId;
         notice.Deadline = request.Deadline?.ToUniversalTime();
         notice.UpdatedAt = DateTime.UtcNow;
+        if (isAdmin && request.IsPinned is bool pinned)
+        {
+            notice.IsPinned = pinned;
+        }
 
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();

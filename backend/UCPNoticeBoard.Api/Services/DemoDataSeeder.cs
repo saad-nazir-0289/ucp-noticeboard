@@ -79,7 +79,7 @@ public static class DemoDataSeeder
 
         Notice NewNotice(
             User author, string category, string title, string description,
-            double createdHoursAgo, double? deadlineInHours = null, string? link = null, int views = 0, string? poster = null) => new()
+            double createdHoursAgo, double? deadlineInHours = null, string? link = null, int views = 0, string? poster = null, bool pinned = false) => new()
         {
             ImageUrl = poster is null || string.IsNullOrWhiteSpace(posterBaseUrl) ? null : $"{posterBaseUrl.TrimEnd('/')}/{poster}",
             CreatedByUser = author,
@@ -91,6 +91,7 @@ public static class DemoDataSeeder
             UpdatedAt = now.AddHours(-createdHoursAgo),
             Deadline = deadlineInHours is null ? null : now.AddHours(deadlineInHours.Value),
             ViewCount = views,
+            IsPinned = pinned,
         };
 
         var notices = new List<Notice>
@@ -107,7 +108,7 @@ public static class DemoDataSeeder
                 "Twelve partner companies are hiring summer interns. Bring a printed CV to the career " +
                 "centre; sessions run every afternoon this week from 2pm to 5pm. Final-year and " +
                 "third-year students are especially encouraged to attend.",
-                createdHoursAgo: 50, deadlineInHours: 24 * 10, views: 95, poster: "internship.svg"),
+                createdHoursAgo: 50, deadlineInHours: 24 * 10, views: 95, poster: "internship.svg", pinned: true),
             NewNotice(computingSociety, "Societies", "Computing Society recruitment open",
                 "Join the organizing team for workshops, coding contests and industry talks. No prior " +
                 "experience needed — just enthusiasm.",

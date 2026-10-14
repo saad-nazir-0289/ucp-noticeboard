@@ -7,7 +7,7 @@ import { optimizeImageUrl } from "@shared/imageOptimize";
 import { timeAgo } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
-import { CategoryTag } from "@shared/components/Tags";
+import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
 
 interface Props {
   user: AuthUser;
@@ -26,6 +26,7 @@ export function NoticeManager({ user, scope }: Props) {
   const [linkUrl, setLinkUrl] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [deadline, setDeadline] = useState("");
+  const [isPinned, setIsPinned] = useState(false);
   const [pin, setPin] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +58,7 @@ export function NoticeManager({ user, scope }: Props) {
     setLinkUrl("");
     setCategoryId("");
     setDeadline("");
+    setIsPinned(false);
     setPin("");
     setError(null);
   };
@@ -75,6 +77,7 @@ export function NoticeManager({ user, scope }: Props) {
     setLinkUrl(notice.linkUrl ?? "");
     setCategoryId(notice.categoryId ?? "");
     setDeadline(toDatetimeLocalValue(notice.deadline));
+    setIsPinned(notice.isPinned);
   };
 
   const canManage = (notice: Notice) => user.role === "Admin" || notice.createdByUserId === user.id;
@@ -114,6 +117,7 @@ export function NoticeManager({ user, scope }: Props) {
       categoryId: categoryId === "" ? null : categoryId,
       deadline: fromDatetimeLocalValue(deadline),
       pin,
+      ...(user.role === "Admin" ? { isPinned } : {}),
     };
     try {
       if (editing) {
@@ -192,6 +196,11 @@ export function NoticeManager({ user, scope }: Props) {
               <input className="ucpnb-input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
               <span className="ucpnb-field-hint">Leave empty to show it for 7 days.</span>
             </label>
+            {user.role === "Admin" && (
+              <div className="ucpnb-span-2">
+                <PinToggle checked={isPinned} onChange={setIsPinned} />
+              </div>
+            )}
             <div className="ucpnb-field ucpnb-span-2">
               <span className="ucpnb-field-label">Poster</span>
               <div className="ucpnb-upload-row">
@@ -252,6 +261,7 @@ export function NoticeManager({ user, scope }: Props) {
                     <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
                       {expired ? "Expired" : "Live"}
                     </span>
+                    {n.isPinned && <PinnedBadge />}
                     {n.categoryName && <CategoryTag name={n.categoryName} />}
                   </div>
                   <strong>{n.title}</strong>

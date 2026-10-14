@@ -42,7 +42,10 @@ public class DemoDataTests : IClassFixture<DemoDataTests.SeededApiFactory>
         var student = await _api.LoginAsync(DemoDataSeeder.FirstStudentRollNumber);
 
         Assert.Equal(6, student.Notices.Count);
-        Assert.Equal(student.Notices.OrderByDescending(n => n.CreatedAt).Select(n => n.Id), student.Notices.Select(n => n.Id));
+        Assert.Equal(
+            student.Notices.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.CreatedAt).Select(n => n.Id),
+            student.Notices.Select(n => n.Id));
+        Assert.True(student.Notices[0].IsPinned);
         Assert.Equal(5, student.Categories.Count);
     }
 

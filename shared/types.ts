@@ -31,6 +31,8 @@ export interface Notice {
   updatedAt: string;
   /** Only ever sent to the Admin; null for everyone else. */
   viewCount: number | null;
+  /** Pinned by the Admin: shown above everything else. */
+  isPinned: boolean;
 }
 
 export interface Category {
