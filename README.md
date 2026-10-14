@@ -11,7 +11,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-informational)
 
-**[Install the extension](https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb)** · **[Open the mobile site](https://ucp-noticeboard.msndev.workers.dev/)** · [Privacy Policy](./PRIVACY.md)
+**[Install the extension](https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb)** · **[Open the mobile site](https://ucp-noticeboard.msndev.workers.dev/)** · [Privacy Policy](./Privacy.md)
 
 ---
 
