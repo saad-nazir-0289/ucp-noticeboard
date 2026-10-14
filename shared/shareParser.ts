@@ -368,7 +368,7 @@ function scanDates(text: string, now: Date): Candidate[] {
   const candidates: Candidate[] = [];
   const add = (date: Date | undefined, index: number, matchLength: number, explicit = true) => {
     if (!date || Number.isNaN(date.getTime())) return;
-    const time = findTime(text.slice(index, index + matchLength + 25));
+    const time = findTime(timeSnippet(text, index, matchLength));
     if (time) date.setHours(time.hours, time.minutes, 0, 0);
     else date.setHours(23, 59, 0, 0);
     candidates.push({ date, index, hasTime: Boolean(time), explicit });
@@ -420,6 +420,18 @@ function makeDate(day: number, month: number, year: string | undefined, now: Dat
     date = new Date(fullYear, month, day);
   }
   return date;
+}
+
+/**
+ * Where a date's time can be: just after it on the same line ("20 Oct,
+ * 5pm"), or on a following "Time:" line. A time on any other line belongs
+ * to something else ("Thursday: 11 AM" under a date range).
+ */
+function timeSnippet(text: string, index: number, matchLength: number): string {
+  const sameLine = text.slice(index, index + matchLength + 25).split("\n")[0];
+  const lineEnd = text.indexOf("\n", index);
+  const nextLine = lineEnd === -1 ? "" : text.slice(lineEnd + 1).split("\n")[0];
+  return /^\W*time\s*:/i.test(nextLine) ? `${sameLine}\n${nextLine}` : sameLine;
 }
 
 /** "5pm", "5:30 pm", "17:00" near a date. */
