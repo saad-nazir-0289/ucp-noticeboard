@@ -38,6 +38,11 @@ that works everywhere:
   date*, *register by* or *closes* is preferred over other dates in the
   message. Dates without a year are taken as the next time that date comes
   round. Without a time, the deadline is set to 11:59 PM.
+- If every date in the post has already passed, you'll see a warning above
+  the form, in case it's an old post.
+- Tracking bits are removed from links (`utm_source`, Instagram's `igsh`…),
+  and titles written in capitals are calmed down ("AWS AGENTIC AI DAY" →
+  "AWS Agentic AI Day").
 - The category is only picked when the message clearly fits one; otherwise
   it's left for you to choose.
 - Reading screenshots downloads a ~7 MB text-recognition engine the first

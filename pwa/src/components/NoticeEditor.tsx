@@ -100,7 +100,7 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
         setHints(["Couldn't find any text in that image. Fill in the details by hand."]);
         return;
       }
-      const parsed = parseSharedContent({ ...extra, text: [text, extra.text].filter(Boolean).join("\n") }, categories);
+      const parsed = parseSharedContent({ ...extra, text: [text, extra.text].filter(Boolean).join("\n"), fromScreenshot: true }, categories);
       applyParsed({ ...parsed, hints: [] }, "the screenshot");
     } catch {
       setHints(["Couldn't read the image right now. Fill in the details by hand."]);

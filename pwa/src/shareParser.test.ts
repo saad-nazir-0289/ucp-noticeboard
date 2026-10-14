@@ -48,7 +48,7 @@ describe("parseSharedContent", () => {
     const parsed = parseSharedContent({ text: "https://www.instagram.com/p/C1a2B3c4/?igsh=MTIz" }, categories, NOW);
 
     expect(parsed.source).toBe("instagram");
-    expect(parsed.linkUrl).toBe("https://www.instagram.com/p/C1a2B3c4/?igsh=MTIz");
+    expect(parsed.linkUrl).toBe("https://www.instagram.com/p/C1a2B3c4/"); // tracking parameter dropped
     expect(parsed.title).toBe("");
     expect(parsed.hints[0]).toMatch(/screenshot/i);
   });
@@ -86,8 +86,8 @@ describe("parseSharedContent", () => {
 
     expect(parsed.title.length).toBeLessThanOrEqual(90);
     expect(parsed.title.endsWith("…")).toBe(true);
-    // Equally about a society and its events: better left for the publisher to pick.
-    expect(parsed.categoryId).toBeUndefined();
+    // A society looking for members: Societies, though it mentions events too.
+    expect(parsed.categoryId).toBe(4);
   });
 });
 
@@ -112,6 +112,17 @@ describe("findDeadline", () => {
   it("ignores past dates and text without dates", () => {
     expect(findDeadline("The welcome session was held on 2/10/2026.", NOW)).toBeUndefined();
     expect(findDeadline("Library hours extended during exams", NOW)).toBeUndefined();
+  });
+
+  it("prefers a real date over a weekday", () => {
+    // "Thursday" here is a time slot of the dated event, not a deadline.
+    expect(local(findDeadline("Walk-in interviews 22nd October 2026\nThursday: 11:00 AM - 1:00 PM", NOW)?.toISOString())).toEqual([2026, 10, 22, 23, 59]);
+    expect(findDeadline("Interviews were 8th-9th October 2026\nThursday: 11:00 AM", NOW)).toBeUndefined();
+  });
+
+  it("only rolls a year-less date into next year around New Year", () => {
+    // A post dated "October 5" seen on 14 October is in the past, not next October.
+    expect(findDeadline("Posted October 5", NOW)).toBeUndefined();
   });
 
   it("doesn't mistake times or scores for dates", () => {
@@ -153,7 +164,7 @@ describe("cleanOcrText", () => {
   it("feeds into a sensible draft", () => {
     const ocr = "9:41\ncomputing.society\nSPRING HACK '26\nTeams of 2-4 | Register by 20 Oct\nLiked by ali_k and 212 others";
     const parsed = parseSharedContent({ text: cleanOcrText(ocr) }, categories, NOW);
-    expect(parsed.title).toBe("SPRING HACK '26");
+    expect(parsed.title).toBe("Spring Hack '26"); // shouting calmed down
     expect(local(parsed.deadline)).toEqual([2026, 10, 20, 23, 59]);
   });
 });
