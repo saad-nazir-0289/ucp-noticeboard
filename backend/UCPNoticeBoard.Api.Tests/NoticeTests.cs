@@ -110,6 +110,9 @@ public class NoticeTests : IClassFixture<ApiFactory>
         {
             await Task.Delay(50);
         }
-        Assert.Contains(_api.Push.Sent, n => n.Title == title);
+        var sent = Assert.Single(_api.Push.Sent, n => n.Title == title);
+        // Tapping the notification opens this notice in the PWA.
+        var notice = (await response.Content.ReadFromJsonAsync<NoticeDto>())!;
+        Assert.Equal($"/?notice={notice.Id}", sent.Url);
     }
 }

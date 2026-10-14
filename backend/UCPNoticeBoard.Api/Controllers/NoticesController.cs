@@ -168,6 +168,7 @@ public class NoticesController : ControllerBase
         var pushBody = TrimForPush(notice.Description);
         var pushImageUrl = notice.ImageUrl;
         var pushCategoryId = notice.CategoryId;
+        var pushUrl = NoticeLink(notice.Id);
 
         _ = Task.Run(async () =>
         {
@@ -175,7 +176,7 @@ public class NoticesController : ControllerBase
             {
                 using var scope = _scopeFactory.CreateScope();
                 var pushService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
-                await pushService.NotifyAllAsync(pushTitle, pushBody, imageUrl: pushImageUrl, categoryId: pushCategoryId);
+                await pushService.NotifyAllAsync(pushTitle, pushBody, url: pushUrl, imageUrl: pushImageUrl, categoryId: pushCategoryId);
             }
             catch
             {
@@ -186,6 +187,13 @@ public class NoticesController : ControllerBase
 
         return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, responseDto);
     }
+
+    /// <summary>
+    /// Where tapping a notification about this notice lands: the PWA, with
+    /// the notice open. Relative, so the service worker resolves it against
+    /// whichever PWA (production or staging) the subscription came from.
+    /// </summary>
+    public static string NoticeLink(int noticeId) => $"/?notice={noticeId}";
 
     private static string TrimForPush(string description) =>
         description.Length > 120 ? description[..120] + "..." : description;

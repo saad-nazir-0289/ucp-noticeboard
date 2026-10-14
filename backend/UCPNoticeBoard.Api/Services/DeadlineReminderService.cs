@@ -77,6 +77,7 @@ public class DeadlineReminderService : BackgroundService
                 await pushService.NotifyAllAsync(
                     $"Deadline soon: {notice.Title}",
                     "Less than 24 hours left.",
+                    url: Controllers.NoticesController.NoticeLink(notice.Id),
                     imageUrl: notice.ImageUrl,
                     categoryId: notice.CategoryId
                 );

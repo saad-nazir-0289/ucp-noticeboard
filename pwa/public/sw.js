@@ -116,11 +116,24 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/";
+  // Notifications about a notice carry "/?notice=<id>": an already-open
+  // tab is taken to that notice, not just brought to the front.
+  const opensNotice = targetUrl !== "/";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList) => {
       for (const client of clientList) {
-        if ("focus" in client) return client.focus();
+        if (!("focus" in client)) continue;
+        if (opensNotice && "navigate" in client) {
+          try {
+            const navigated = await client.navigate(targetUrl);
+            return (navigated || client).focus();
+          } catch {
+            // Not ours to navigate (e.g. not controlled yet): open a new tab below.
+            break;
+          }
+        }
+        return client.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
     })
