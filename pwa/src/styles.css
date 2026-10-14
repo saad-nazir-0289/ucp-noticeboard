@@ -248,9 +248,6 @@ textarea {
   display: grid;
   grid-template-columns: 1fr;
   gap: 14px;
-  /* Cards keep their natural height; a text-only card next to a poster
-     card shouldn't stretch into a mostly-empty box. */
-  align-items: start;
 }
 
 @media (min-width: 640px) {
@@ -420,69 +417,6 @@ textarea {
   gap: 2px;
   border-radius: var(--nb-r-md);
   font-size: var(--nb-text-xs);
-}
-
-/* ---------- Sponsored slot ---------- */
-.ucpnb-sponsor {
-  position: relative;
-  border: 1px dashed var(--nb-border-strong);
-  border-radius: var(--nb-r-lg);
-  background: var(--nb-surface);
-  padding: 28px 16px 16px;
-  min-width: 0;
-}
-
-.ucpnb-sponsor-row {
-  border: none;
-  border-bottom: 1px solid var(--nb-border);
-  border-radius: 0;
-}
-
-.ucpnb-sponsor-label {
-  position: absolute;
-  top: 10px;
-  left: 16px;
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--nb-text-3);
-}
-
-.ucpnb-sponsor-house {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.ucpnb-sponsor-house strong {
-  display: block;
-  font-size: var(--nb-text-md);
-  color: var(--nb-text);
-}
-
-.ucpnb-sponsor-house p {
-  margin: 2px 0 0;
-  font-size: var(--nb-text-sm);
-  line-height: 1.45;
-  color: var(--nb-text-2);
-}
-
-.ucpnb-sponsor-house > div {
-  flex: 1;
-  min-width: 0;
-}
-
-.ucpnb-sponsor-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--nb-r-md);
-  background: var(--nb-tone-4-bg);
-  color: var(--nb-tone-4-fg);
 }
 
 /* ---------- Floating "New notice" ---------- */

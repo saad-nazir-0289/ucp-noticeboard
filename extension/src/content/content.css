@@ -188,11 +188,6 @@
   scroll-snap-align: start;
 }
 
-/* Cards in a row share one height; let text-only ones use it for text. */
-.ucpnb-carousel > .ucpnb-card:not(.has-image) .ucpnb-card-excerpt {
-  -webkit-line-clamp: 8;
-}
-
 .ucpnb-carousel-nav {
   position: absolute;
   top: 50%;
@@ -237,7 +232,6 @@
 .ucpnb-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  align-items: start;
   gap: 16px;
 }
 
@@ -410,8 +404,50 @@ select.ucpnb-input-sm {
 /* Users table */
 .ucpnb-table-wrap {
   overflow-x: auto;
-  margin: 0 -18px -18px;
+  margin: 0 -18px;
   border-top: 1px solid var(--nb-border);
+  border-bottom: 1px solid var(--nb-border);
+  transition: opacity 0.15s ease;
+}
+
+.ucpnb-table-wrap.is-loading {
+  opacity: 0.5;
+}
+
+.ucpnb-users-search {
+  max-width: 360px;
+}
+
+.ucpnb-table-empty {
+  padding: 24px 18px;
+  color: var(--nb-text-3);
+  text-align: center;
+}
+
+.ucpnb-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--nb-text-3);
+  font-size: var(--nb-text-sm);
+}
+
+.ucpnb-pager > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ucpnb-pager-page {
+  color: var(--nb-text-2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.ucpnb-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .ucpnb-table {

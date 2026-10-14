@@ -1,4 +1,4 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Category, DeviceSession, LoginResult, Notice, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Category, DeviceSession, LoginResult, Notice, PagedResult, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -158,8 +158,15 @@ export const api = {
       token
     ),
 
-  getUsers: (adminPin: string, token: string) =>
-    request<UserListItem[]>("/users", { headers: { "X-Admin-Pin": adminPin } }, token),
+  /** One page of users, optionally filtered by part of a Roll Number or name. */
+  getUsers: (adminPin: string, token: string, query: { search?: string; page?: number; pageSize?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (query.search) params.set("search", query.search);
+    if (query.page) params.set("page", String(query.page));
+    if (query.pageSize) params.set("pageSize", String(query.pageSize));
+    const qs = params.toString();
+    return request<PagedResult<UserListItem>>(`/users${qs ? `?${qs}` : ""}`, { headers: { "X-Admin-Pin": adminPin } }, token);
+  },
 
   addUser: (data: { rollNumber: string; name: string; pin: string }, token: string) =>
     request<AddUserResult>(

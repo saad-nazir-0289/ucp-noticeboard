@@ -454,13 +454,6 @@ export function App() {
                   <span>Send feedback</span>
                   <Icon name="externalLink" size={16} />
                 </a>
-                {import.meta.env.VITE_SUPPORT_URL && (
-                  <a className="ucpnb-menu-item" href={import.meta.env.VITE_SUPPORT_URL} target="_blank" rel="noopener noreferrer">
-                    <Icon name="heartHandshake" />
-                    <span>Support NoticeBoard</span>
-                    <Icon name="externalLink" size={16} />
-                  </a>
-                )}
                 <button
                   className="ucpnb-menu-item ucpnb-menu-item-danger"
                   onClick={() => {

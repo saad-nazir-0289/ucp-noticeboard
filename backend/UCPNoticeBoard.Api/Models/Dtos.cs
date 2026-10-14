@@ -23,6 +23,9 @@ public record UserDto(
     int ActiveDevices = 0
 );
 
+/// <summary>One page of a longer list, with the total so clients can page through it.</summary>
+public record PagedResult<T>(List<T> Items, int Total, int Page, int PageSize);
+
 public record UnlockDeviceRequest(string? Pin, string? Label);
 
 public record UnlockDeviceResponse(string DeviceToken, int DeviceId, DateTime ExpiresAt);

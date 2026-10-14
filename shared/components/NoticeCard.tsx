@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
-import { timeAgo } from "../format";
+import { categoryTone, timeAgo } from "../format";
 import { Icon } from "./Icon";
 import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
 
@@ -17,9 +17,9 @@ interface Props {
 }
 
 /**
- * A notice in a feed. With a poster: poster on top. Without: a text card
- * with a short preview, so posterless notices look intentional rather
- * than like something failed to load.
+ * A notice in a feed. Every card has the same shape so feeds line up: the
+ * poster on top, or — for notices without one — a banner in the
+ * category's colour, then a fixed-height title, preview and footer.
  */
 export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, imageWidth = 600 }: Props) {
   const [shared, setShared] = useState(false);
@@ -37,7 +37,7 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, image
 
   return (
     <article
-      className={notice.imageUrl ? "ucpnb-card has-image" : "ucpnb-card"}
+      className="ucpnb-card"
       onClick={() => onView(notice)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -49,7 +49,7 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, image
       tabIndex={0}
       aria-label={notice.title}
     >
-      {notice.imageUrl && (
+      {notice.imageUrl ? (
         <div className="ucpnb-card-media">
           <div
             className="ucpnb-card-media-bg"
@@ -58,15 +58,20 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, image
           />
           <img src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined} alt="" loading="lazy" />
         </div>
+      ) : (
+        <div className={`ucpnb-card-media ucpnb-card-banner ucpnb-tone-${categoryTone(notice.categoryName ?? "Notice")}`} aria-hidden="true">
+          <Icon name="megaphone" size={30} strokeWidth={1.8} />
+          <span>{notice.categoryName ?? "Notice"}</span>
+          <Icon name="megaphone" size={150} strokeWidth={1} className="ucpnb-card-banner-mark" />
+        </div>
       )}
 
       <div className="ucpnb-card-body">
-        {(notice.categoryName || notice.deadline) && (
-          <div className="ucpnb-card-tags">
-            {notice.categoryName && <CategoryTag name={notice.categoryName} />}
-            {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
-          </div>
-        )}
+        <div className="ucpnb-card-tags">
+          {/* Posterless cards already name the category on their banner. */}
+          {notice.categoryName && notice.imageUrl && <CategoryTag name={notice.categoryName} />}
+          {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
+        </div>
         <h3 className="ucpnb-card-title">{notice.title}</h3>
         <p className="ucpnb-card-excerpt">{notice.description}</p>
 

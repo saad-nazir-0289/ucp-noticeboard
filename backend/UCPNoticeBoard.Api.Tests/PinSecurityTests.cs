@@ -247,9 +247,9 @@ public class PinSecurityTests : IClassFixture<ApiFactory>
         using var admin = _api.CreateApiClient((await _api.GetAdminAsync()).Token);
         admin.DefaultRequestHeaders.Add("X-Admin-Pin", ApiFactory.AdminPin);
 
-        var before = (await admin.GetFromJsonAsync<List<UserDto>>("/users"))!.Single(u => u.Id == publisher.Id);
+        var before = (await admin.GetFromJsonAsync<PagedResult<UserDto>>($"/users?search={publisher.RollNumber}"))!.Items.Single(u => u.Id == publisher.Id);
         var revoke = await admin.DeleteAsync($"/users/{publisher.Id}/devices");
-        var after = (await admin.GetFromJsonAsync<List<UserDto>>("/users"))!.Single(u => u.Id == publisher.Id);
+        var after = (await admin.GetFromJsonAsync<PagedResult<UserDto>>($"/users?search={publisher.RollNumber}"))!.Items.Single(u => u.Id == publisher.Id);
         using var device = DeviceClient(publisher, token);
 
         Assert.Equal(1, before.ActiveDevices);
@@ -266,9 +266,9 @@ public class PinSecurityTests : IClassFixture<ApiFactory>
         using var admin = _api.CreateApiClient((await _api.GetAdminAsync()).Token);
         admin.DefaultRequestHeaders.Add("X-Admin-Pin", ApiFactory.AdminPin);
 
-        var users = await admin.GetFromJsonAsync<List<UserDto>>("/users");
+        var users = await admin.GetFromJsonAsync<PagedResult<UserDto>>($"/users?search={publisher.RollNumber}");
 
-        Assert.True(users!.Single(u => u.Id == publisher.Id).PinLocked);
+        Assert.True(users!.Items.Single(u => u.Id == publisher.Id).PinLocked);
     }
 
     [Fact]

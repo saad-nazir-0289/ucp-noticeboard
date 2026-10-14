@@ -403,7 +403,7 @@ select.ucpnb-input {
 
 .ucpnb-card-media {
   position: relative;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   overflow: hidden;
   background: var(--nb-surface-2);
 }
@@ -415,6 +415,32 @@ select.ucpnb-input {
   background-position: center;
   filter: blur(18px) saturate(1.2);
   opacity: 0.7;
+}
+
+/* Posterless notices: a banner in the category colour, same size as a poster. */
+.ucpnb-card-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 18px;
+  background-image:
+    radial-gradient(circle at 85% 15%, color-mix(in srgb, currentColor 26%, transparent), transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, currentColor 4%, transparent) 30%, color-mix(in srgb, currentColor 16%, transparent));
+}
+
+.ucpnb-card-banner > span {
+  font: 800 var(--nb-text-lg) / 1.2 var(--nb-font);
+  letter-spacing: -0.01em;
+}
+
+.ucpnb-card-banner-mark {
+  position: absolute;
+  top: -18px;
+  right: -22px;
+  opacity: 0.12;
+  transform: rotate(-12deg);
 }
 
 .ucpnb-card-media img,
@@ -440,8 +466,16 @@ select.ucpnb-input {
   gap: 6px;
 }
 
+/* Inside a card, every row has a fixed height so all cards match. */
+.ucpnb-card .ucpnb-card-tags {
+  flex-wrap: nowrap;
+  min-height: 22px;
+  overflow: hidden;
+}
+
 .ucpnb-card-title {
   margin: 0;
+  min-height: calc(2 * 1.35em);
   font: 700 var(--nb-text-md) / 1.35 var(--nb-font);
   letter-spacing: -0.01em;
   color: var(--nb-text);
@@ -453,16 +487,13 @@ select.ucpnb-input {
 
 .ucpnb-card-excerpt {
   margin: 0;
+  min-height: calc(2 * 1.5em);
   font: 400 var(--nb-text-sm) / 1.5 var(--nb-font);
   color: var(--nb-text-2);
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.ucpnb-card.has-image .ucpnb-card-excerpt {
-  -webkit-line-clamp: 2;
 }
 
 .ucpnb-card-footer {

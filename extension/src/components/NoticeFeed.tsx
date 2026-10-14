@@ -139,6 +139,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       <div className="ucpnb-carousel">
         {[0, 1, 2, 3].map((i) => (
           <div className="ucpnb-card ucpnb-card-skeleton" key={i}>
+              <div className="ucpnb-skeleton ucpnb-card-media" style={{ borderRadius: 0 }} />
             <div className="ucpnb-card-body">
               <div className="ucpnb-skeleton" style={{ width: "35%", height: 18 }} />
               <div className="ucpnb-skeleton" style={{ width: "90%", height: 16 }} />

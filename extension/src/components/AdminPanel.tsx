@@ -13,9 +13,15 @@ interface Props {
 }
 
 const ROLES: UserRole[] = ["Student", "Publisher", "Admin"];
+const PAGE_SIZE = 20;
 
 export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   const [users, setUsers] = useState<UserListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState(""); // `search`, debounced
+  const [listLoading, setListLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,26 +40,58 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
+  const fetchUsers = async (pin: string, q: string, p: number) => {
+    const result = await api.getUsers(pin, user.token, { search: q, page: p, pageSize: PAGE_SIZE });
+    setUsers(result.items);
+    setTotal(result.total);
+  };
+
   const fetchAll = async (pin: string) => {
-    const [u, c] = await Promise.all([api.getUsers(pin, user.token), api.getCategories(user.token)]);
-    setUsers(u);
+    const [, c] = await Promise.all([fetchUsers(pin, query, page), api.getCategories(user.token)]);
     setCategories(c);
     setError(null);
   };
 
+  /** Reloads the page of users currently shown (after adding someone, etc.). */
   const load = () => {
     if (!adminPin) return;
-    setLoading(true);
-    fetchAll(adminPin)
+    setListLoading(true);
+    fetchUsers(adminPin, query, page)
+      .then(() => setError(null))
       .catch(() => {
         // Most likely the PIN changed since it was unlocked — ask again.
         onAdminPinChange(null);
         setError("Could not load users.");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setListLoading(false);
+        setLoading(false);
+      });
   };
 
-  useEffect(load, [user]);
+  useEffect(() => {
+    if (!adminPin) return;
+    if (loading) {
+      fetchAll(adminPin)
+        .catch(() => {
+          onAdminPinChange(null);
+          setError("Could not load users.");
+        })
+        .finally(() => setLoading(false));
+    } else {
+      load();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, query, page]);
+
+  // Search as you type, without a request per keystroke.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   if (!adminPin) {
     return (
@@ -226,7 +264,18 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
           )}
         </div>
         {error && <p className="ucpnb-form-error">{error}</p>}
-        <div className="ucpnb-table-wrap">
+        <label className="ucpnb-search ucpnb-users-search">
+          <Icon name="search" size={17} />
+          <input
+            className="ucpnb-input"
+            type="search"
+            placeholder="Search by Roll Number or name"
+            aria-label="Search users"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <div className={listLoading ? "ucpnb-table-wrap is-loading" : "ucpnb-table-wrap"}>
           <table className="ucpnb-table">
             <thead>
               <tr>
@@ -308,7 +357,33 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
               ))}
             </tbody>
           </table>
+          {users.length === 0 && !listLoading && (
+            <p className="ucpnb-table-empty">{query ? `No one matches "${query}".` : "No users yet."}</p>
+          )}
         </div>
+        {total > 0 && (
+          <div className="ucpnb-pager">
+            <span>
+              Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total.toLocaleString()}
+            </span>
+            <div>
+              <button className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined" onClick={() => setPage((p) => p - 1)} disabled={page <= 1 || listLoading} aria-label="Previous page">
+                <Icon name="chevronLeft" size={16} />
+              </button>
+              <span className="ucpnb-pager-page">
+                Page {page} of {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+              </span>
+              <button
+                className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page * PAGE_SIZE >= total || listLoading}
+                aria-label="Next page"
+              >
+                <Icon name="chevronRight" size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="ucpnb-form-card">

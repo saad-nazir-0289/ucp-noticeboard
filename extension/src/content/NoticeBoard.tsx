@@ -11,9 +11,6 @@ import { Icon, type IconName } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 
 const REVIEW_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb";
-// Optional, set at build time — a plain link, never an ad (the extension
-// runs inside the university's portal; see docs/MONETIZATION.md).
-const SUPPORT_URL = import.meta.env.VITE_SUPPORT_URL;
 
 type Tab = "feed" | "myNotices" | "allNotices" | "users" | "analytics";
 type Status = "loading" | "ready" | "identity-not-found" | "error";
@@ -85,6 +82,7 @@ export function NoticeBoard() {
         <div className="ucpnb-carousel">
           {[0, 1, 2, 3].map((i) => (
             <div className="ucpnb-card ucpnb-card-skeleton" key={i}>
+              <div className="ucpnb-skeleton ucpnb-card-media" style={{ borderRadius: 0 }} />
               <div className="ucpnb-card-body">
                 <div className="ucpnb-skeleton" style={{ width: "35%", height: 18 }} />
                 <div className="ucpnb-skeleton" style={{ width: "90%", height: 16 }} />
@@ -153,11 +151,6 @@ export function NoticeBoard() {
         <a className="ucpnb-icon-btn" href={REVIEW_URL} target="_blank" rel="noopener noreferrer" aria-label="Send feedback" title="Send feedback">
           <Icon name="message" size={19} />
         </a>
-        {SUPPORT_URL && (
-          <a className="ucpnb-icon-btn" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" aria-label="Support NoticeBoard" title="Support NoticeBoard">
-            <Icon name="heartHandshake" size={19} />
-          </a>
-        )}
       </PanelHeader>
 
       {tab === "feed" && (

@@ -1,11 +1,10 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
 import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeListItem } from "./NoticeListItem";
 import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { NoticeSkeleton } from "./NoticeSkeleton";
-import { SponsorSlot, hasSponsorSlotAfter } from "./SponsorSlot";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 
@@ -237,20 +236,14 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
         )
       ) : viewMode === "list" ? (
         <div className="ucpnb-list">
-          {filtered.map((notice, i) => (
-            <Fragment key={notice.id}>
-              <NoticeListItem notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
-              {hasSponsorSlotAfter(i) && <SponsorSlot variant="row" />}
-            </Fragment>
+          {filtered.map((notice) => (
+            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
           ))}
         </div>
       ) : (
         <div className="ucpnb-feed">
-          {filtered.map((notice, i) => (
-            <Fragment key={notice.id}>
-              <NoticeCard notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
-              {hasSponsorSlotAfter(i) && <SponsorSlot variant="card" />}
-            </Fragment>
+          {filtered.map((notice) => (
+            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
           ))}
         </div>
       )}

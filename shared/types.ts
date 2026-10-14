@@ -60,6 +60,14 @@ export interface UserListItem {
   activeDevices?: number;
 }
 
+/** One page of a longer list, with the total for paging. */
+export interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface UnlockDeviceResult {
   deviceToken: string;
   deviceId: number;

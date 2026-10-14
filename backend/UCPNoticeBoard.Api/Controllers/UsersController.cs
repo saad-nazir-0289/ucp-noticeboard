@@ -51,9 +51,17 @@ public class UsersController : ControllerBase
     /// — an Admin token alone (which anyone knowing the Admin's Roll Number
     /// can get) must not be enough to read it. Sent as a header since GET
     /// has no body.
+    ///
+    /// One page at a time (Admins at a whole university shouldn't load
+    /// every account at once), optionally filtered by `search`, which
+    /// matches part of a Roll Number or a name, case-insensitively.
     /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetUsers([FromHeader(Name = AdminPinHeader)] string? adminPin)
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        [FromHeader(Name = AdminPinHeader)] string? adminPin,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = DefaultPageSize)
     {
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
@@ -61,17 +69,38 @@ public class UsersController : ControllerBase
         var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
         if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var query = _db.Users.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{EscapeLike(search.Trim())}%";
+            query = query.Where(u => EF.Functions.ILike(u.RollNumber, pattern) || EF.Functions.ILike(u.Name, pattern));
+        }
+
+        var total = await query.CountAsync();
         var now = _time.GetUtcNow().UtcDateTime;
-        var users = await _db.Users
+        var users = await query
             .OrderBy(u => u.Name)
+            .ThenBy(u => u.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(u => new UserDto(
                 u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt,
                 u.PinLockedUntil != null && u.PinLockedUntil > now,
                 _db.DeviceSessions.Count(d => d.UserId == u.Id && d.ExpiresAt > now && d.SecurityStamp == u.SecurityStamp)))
             .ToListAsync();
 
-        return Ok(users);
+        return Ok(new PagedResult<UserDto>(users, total, page, pageSize));
     }
+
+    private const int DefaultPageSize = 20;
+    private const int MaxPageSize = 100;
+
+    /// <summary>So a search for "50%" or "a_b" matches those characters literally.</summary>
+    private static string EscapeLike(string value) =>
+        value.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_");
 
     /// <summary>
     /// Adds someone directly as a Publisher — immediate, but now requires
