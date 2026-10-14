@@ -73,7 +73,8 @@ production one. Then:
    domain. Note the URL (e.g. `https://ucp-noticeboard-api-staging.up.railway.app`);
    the PWA and extension need it below.
 5. Deploy. On first start the API migrates the empty staging database and
-   fills it with demo data. Check `https://<staging-api>/swagger` loads.
+   fills it with demo data. Check `https://<staging-api>/health` shows
+   `{"status":"ok"}`.
 
 ### 3. PWA on Cloudflare
 
