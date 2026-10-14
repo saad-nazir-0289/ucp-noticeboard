@@ -91,7 +91,7 @@ textarea {
 
 /* ---------- App shell ---------- */
 .ucpnb-app {
-  min-height: 100vh;
+  min-height: calc(100 * var(--nb-vh, 1vh));
   padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
@@ -190,13 +190,13 @@ textarea {
 }
 
 @media (min-width: 640px) {
-  .ucpnb-appbar-btn {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-appbar-btn {
     width: auto;
     padding: 0 14px;
     border-radius: var(--nb-r-md);
   }
 
-  .ucpnb-appbar-btn span {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-appbar-btn span {
     display: inline;
   }
 }
@@ -251,14 +251,14 @@ textarea {
 }
 
 @media (min-width: 640px) {
-  .ucpnb-feed {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-feed {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
   }
 }
 
 @media (min-width: 1000px) {
-  .ucpnb-feed {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-feed {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
   }
@@ -269,7 +269,7 @@ textarea {
 }
 
 @media (min-width: 720px) {
-  .ucpnb-feed-sheet {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-feed-sheet {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -459,8 +459,8 @@ textarea {
 }
 
 @media (min-width: 1240px) {
-  .ucpnb-fab {
-    right: calc((100vw - 1240px) / 2 + 16px);
+  :root:not(.ucpnb-phone-zoom) .ucpnb-fab {
+    right: calc((100 * var(--nb-vw, 1vw) - 1240px) / 2 + 16px);
   }
 }
 
@@ -475,8 +475,13 @@ textarea {
 
 @media (max-width: 719px) {
   .ucpnb-sheet-tall {
-    height: 92vh;
+    height: calc(92 * var(--nb-vh, 1vh));
   }
+}
+
+/* The same phone rule while correcting Chrome's desktop mode (phoneLayout.ts). */
+.ucpnb-phone-zoom .ucpnb-sheet-tall {
+  height: calc(92 * var(--nb-vh, 1vh));
 }
 
 .ucpnb-sheet-header-actions {
@@ -775,7 +780,7 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 28px;
-  min-height: 100vh;
+  min-height: calc(100 * var(--nb-vh, 1vh));
   padding: calc(32px + env(safe-area-inset-top)) 16px 32px;
   background:
     radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--nb-primary) 22%, transparent), transparent 70%),
@@ -925,4 +930,54 @@ textarea {
   color: var(--nb-warning);
   font-size: var(--nb-text-xs);
   line-height: 1.45;
+}
+
+/* ---------- Install banner (InstallBanner.tsx) ---------- */
+.ucpnb-install {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 12px 12px 14px;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-lg);
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-1);
+}
+
+.ucpnb-install-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.ucpnb-install-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ucpnb-install-text strong {
+  font: 700 var(--nb-text-sm) / 1.3 var(--nb-font);
+  color: var(--nb-text);
+}
+
+.ucpnb-install-text span {
+  font: 400 var(--nb-text-xs) / 1.45 var(--nb-font);
+  color: var(--nb-text-2);
+}
+
+.ucpnb-install-text .ucpnb-icon {
+  display: inline-block;
+  vertical-align: -2px;
+}
+
+.ucpnb-install-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }

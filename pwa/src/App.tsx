@@ -18,6 +18,7 @@ import { NoticeSkeleton } from "./components/NoticeSkeleton";
 import { NoticeEditor } from "./components/NoticeEditor";
 import { ManageNotices } from "./components/ManageNotices";
 import { UnlockPrompt } from "./components/UnlockPrompt";
+import { InstallBanner } from "./components/InstallBanner";
 import { Icon } from "@shared/components/Icon";
 import { Avatar } from "@shared/components/Tags";
 import { EmptyState } from "@shared/components/EmptyState";
@@ -427,6 +428,7 @@ export function App() {
       )}
 
       <main className="ucpnb-main">
+        <InstallBanner onInstalled={() => showToast("NoticeBoard installed. Open it from your home screen.")} />
         <NoticeFeed
           key={refreshKey}
           token={user.token}

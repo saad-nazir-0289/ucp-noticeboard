@@ -1,8 +1,10 @@
 {
   "name": "UCP NoticeBoard",
   "short_name": "NoticeBoard",
+  "id": "/",
   "description": "Campus notices from UCP, on your phone.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f4f6fa",
   "theme_color": "#ffffff",
@@ -43,5 +45,12 @@
         }
       ]
     }
-  }
+  },
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "/manifest.json"
+    }
+  ],
+  "prefer_related_applications": false
 }

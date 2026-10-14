@@ -8,6 +8,7 @@ import { NoticeSkeleton } from "./NoticeSkeleton";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 import { CategoryMenu } from "@shared/components/CategoryMenu";
+import { isPhoneLayout } from "../phoneLayout";
 import { compareNotices } from "@shared/noticeForm";
 
 interface Props {
@@ -30,7 +31,7 @@ const SWIPE_DEMO_KEY = "ucpnb_swipeDemoSeen";
 export function getSavedViewMode(): ViewMode {
   const saved = localStorage.getItem(VIEW_MODE_KEY);
   if (saved === "list" || saved === "card") return saved;
-  return window.matchMedia("(max-width: 640px)").matches ? "list" : "card";
+  return isPhoneLayout() ? "list" : "card";
 }
 
 export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId }: Props) {

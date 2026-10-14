@@ -737,7 +737,7 @@ select.ucpnb-input {
   flex-direction: column;
   width: 100%;
   max-width: 560px;
-  max-height: 92vh;
+  max-height: calc(92 * var(--nb-vh, 1vh));
   overflow-y: auto;
   overscroll-behavior: contain;
   border-radius: var(--nb-r-xl) var(--nb-r-xl) 0 0;
@@ -804,18 +804,18 @@ select.ucpnb-input {
 
 /* Wider screens: sheets become centred dialogs. */
 @media (min-width: 720px) {
-  .ucpnb-overlay {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-overlay {
     align-items: center;
     padding: 24px;
   }
 
-  .ucpnb-sheet {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-sheet {
     border-radius: var(--nb-r-xl);
-    max-height: 88vh;
+    max-height: calc(88 * var(--nb-vh, 1vh));
     animation-name: ucpnb-dialog-in;
   }
 
-  .ucpnb-sheet-handle {
+  :root:not(.ucpnb-phone-zoom) .ucpnb-sheet-handle {
     display: none;
   }
 
@@ -842,7 +842,7 @@ select.ucpnb-input {
   position: relative;
   flex-shrink: 0;
   margin-top: 12px;
-  max-height: 46vh;
+  max-height: calc(46 * var(--nb-vh, 1vh));
   aspect-ratio: 4 / 3;
   overflow: hidden;
   background: var(--nb-surface-2);
@@ -1005,7 +1005,7 @@ select.ucpnb-input {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  max-width: calc(100vw - 32px);
+  max-width: calc(100 * var(--nb-vw, 1vw) - 32px);
   padding: 12px 18px;
   border-radius: var(--nb-r-full);
   background: #0f1b2d;
