@@ -20,3 +20,6 @@ context.md
 
 # Vite per-machine env overrides (e.g. .env.staging.local)
 .env*.local
+
+# Local preview runtime files (logs, pids)
+dev/.run/
