@@ -27,7 +27,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
   const [categoryId, setCategoryId] = useState<number | "all">("all");
   const [showGrid, setShowGrid] = useState(false);
 
-  const [showHidden, setShowHidden] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -87,8 +87,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     });
   };
 
-  const openHidden = () => {
-    setShowHidden(true);
+  const openArchive = () => {
+    setShowArchive(true);
     setDismissedLoading(true);
     api
       .getDismissedNotices(token)
@@ -189,8 +189,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
             <Icon name="grid" size={15} />
             View all
           </button>
-          <button className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined" onClick={openHidden} aria-label="Hidden notices" title="Hidden notices">
-            <Icon name="eyeOff" size={16} />
+          <button className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined" onClick={openArchive} aria-label="Archived notices" title="Archived notices">
+            <Icon name="archive" size={16} />
           </button>
         </div>
       </div>
@@ -238,22 +238,22 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
         </div>
       )}
 
-      {showHidden && (
-        <div className="ucpnb-overlay" onClick={() => setShowHidden(false)}>
-          <div className="ucpnb-sheet ucpnb-sheet-wide" role="dialog" aria-modal="true" aria-label="Hidden notices" onClick={(e) => e.stopPropagation()}>
+      {showArchive && (
+        <div className="ucpnb-overlay" onClick={() => setShowArchive(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-wide" role="dialog" aria-modal="true" aria-label="Archived notices" onClick={(e) => e.stopPropagation()}>
             <div className="ucpnb-sheet-header">
-              <h3>Hidden notices</h3>
-              <button className="ucpnb-icon-btn" onClick={() => setShowHidden(false)} aria-label="Close">
+              <h3>Archive</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowArchive(false)} aria-label="Close">
                 <Icon name="x" />
               </button>
             </div>
             <div className="ucpnb-sheet-content">
-              <p className="ucpnb-sheet-text">Only hidden for you. Restore one to bring it back to your feed.</p>
+              <p className="ucpnb-sheet-text">Archived just for you — nobody else is affected. Restore one to bring it back to your feed.</p>
               {dismissedLoading ? (
                 <div className="ucpnb-skeleton" style={{ height: 120 }} />
               ) : dismissedNotices.length === 0 ? (
-                <EmptyState icon="eyeOff" title="Nothing hidden">
-                  Use the hide icon on a notice to tuck it away.
+                <EmptyState icon="archive" title="Nothing archived">
+                  Use the archive icon on a notice to tuck it away.
                 </EmptyState>
               ) : (
                 <div className="ucpnb-grid">

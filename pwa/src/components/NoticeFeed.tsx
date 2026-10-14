@@ -18,9 +18,17 @@ interface Props {
 export type ViewMode = "card" | "list";
 const VIEW_MODE_KEY = "ucpnb_viewMode";
 
+const SWIPE_DEMO_KEY = "ucpnb_swipeDemoSeen";
+
+/**
+ * The view someone last picked; until they pick one, phones get the list
+ * (more notices per screen, and swipe-to-archive) and wider screens the
+ * cards.
+ */
 export function getSavedViewMode(): ViewMode {
   const saved = localStorage.getItem(VIEW_MODE_KEY);
-  return saved === "list" ? "list" : "card";
+  if (saved === "list" || saved === "card") return saved;
+  return window.matchMedia("(max-width: 640px)").matches ? "list" : "card";
 }
 
 export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId }: Props) {
@@ -33,8 +41,15 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "all">("all");
   const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
+  // First time in the list: the top row slides aside once to show that
+  // swiping right archives a notice.
+  const [swipeDemoSeen, setSwipeDemoSeen] = useState(() => localStorage.getItem(SWIPE_DEMO_KEY) === "1");
+  const markSwipeDemoSeen = () => {
+    localStorage.setItem(SWIPE_DEMO_KEY, "1");
+    setSwipeDemoSeen(true);
+  };
 
-  const [showHidden, setShowHidden] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
 
@@ -106,8 +121,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     localStorage.setItem(VIEW_MODE_KEY, mode);
   };
 
-  const openHidden = () => {
-    setShowHidden(true);
+  const openArchive = () => {
+    setShowArchive(true);
     setDismissedLoading(true);
     api
       .getDismissedNotices(token)
@@ -173,8 +188,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
               <Icon name="list" size={17} />
             </button>
           </div>
-          <button className="ucpnb-icon-btn ucpnb-icon-btn-outlined" onClick={openHidden} aria-label="Hidden notices" title="Hidden notices">
-            <Icon name="eyeOff" size={18} />
+          <button className="ucpnb-icon-btn ucpnb-icon-btn-outlined" onClick={openArchive} aria-label="Archived notices" title="Archived notices">
+            <Icon name="archive" size={18} />
           </button>
         </div>
 
@@ -217,8 +232,17 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
         )
       ) : viewMode === "list" ? (
         <div className="ucpnb-list">
-          {filtered.map((notice) => (
-            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
+          {filtered.map((notice, i) => (
+            <NoticeListItem
+              key={notice.id}
+              notice={notice}
+              onView={handleView}
+              onDismiss={(n) => {
+                markSwipeDemoSeen();
+                handleDismiss(n);
+              }}
+              onSwipeDemoDone={i === 0 && !swipeDemoSeen ? markSwipeDemoSeen : undefined}
+            />
           ))}
         </div>
       ) : (
@@ -229,22 +253,22 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
         </div>
       )}
 
-      {showHidden && (
-        <div className="ucpnb-overlay" onClick={() => setShowHidden(false)}>
-          <div className="ucpnb-sheet ucpnb-sheet-tall" role="dialog" aria-modal="true" aria-label="Hidden notices" onClick={(e) => e.stopPropagation()}>
+      {showArchive && (
+        <div className="ucpnb-overlay" onClick={() => setShowArchive(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-tall" role="dialog" aria-modal="true" aria-label="Archived notices" onClick={(e) => e.stopPropagation()}>
             <div className="ucpnb-sheet-header">
-              <h3>Hidden notices</h3>
-              <button className="ucpnb-icon-btn" onClick={() => setShowHidden(false)} aria-label="Close">
+              <h3>Archive</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowArchive(false)} aria-label="Close">
                 <Icon name="x" />
               </button>
             </div>
             <div className="ucpnb-sheet-content">
-              <p className="ucpnb-sheet-text">Only hidden for you. Restore one to bring it back to your feed.</p>
+              <p className="ucpnb-sheet-text">Archived just for you — nobody else is affected. Restore one to bring it back to your feed.</p>
               {dismissedLoading ? (
                 <NoticeSkeleton viewMode="list" count={3} />
               ) : dismissedNotices.length === 0 ? (
-                <EmptyState icon="eyeOff" title="Nothing hidden">
-                  Swipe a notice right in list view, or tap the hide icon, to tuck it away.
+                <EmptyState icon="archive" title="Nothing archived">
+                  Swipe a notice right in list view, or tap the archive icon, to tuck it away.
                 </EmptyState>
               ) : (
                 <div className="ucpnb-feed ucpnb-feed-sheet">

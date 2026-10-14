@@ -38,7 +38,7 @@ Behind both is one shared system: a Manifest V3 Chrome extension, a standalone R
 
 | Role | Capabilities |
 |---|---|
-| **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, dismiss notices they don't want to see, share any notice via a real link |
+| **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, archive notices they don't need (just for themselves), share any notice via a real link |
 | **Publisher** | Create / edit / delete their own notices — title, description, poster image, external link, category, and an optional deadline |
 | **Admin** | Everything a Publisher can do, on *any* notice, plus how many times each notice was opened (visible to the Admin only), user management (add Publishers via one-time activation links, change any role, correct a name), category management, and a live usage-analytics dashboard |
 
@@ -144,9 +144,9 @@ production is always the default.
 | `POST` | `/login` | — | Identify/register a user by Roll Number; bundles first-load notices + categories |
 | `GET` | `/notices` | any user | Active notices, newest first (`?includeExpired=true`, `?includeDismissed=true` for management views) |
 | `GET` | `/notices/{id}` | any user | Single notice, regardless of expiry — what makes shared links always work |
-| `GET` | `/notices/dismissed` | any user | Notices the caller has personally hidden |
+| `GET` | `/notices/dismissed` | any user | Notices the caller has archived for themselves |
 | `POST` / `PUT` / `DELETE` | `/notices` `/notices/{id}` | Publisher, Admin | Create / edit / remove a notice |
-| `POST` / `DELETE` | `/notices/{id}/dismiss` | any user | Hide / restore a notice, for the caller only |
+| `POST` / `DELETE` | `/notices/{id}/dismiss` | any user | Archive / restore a notice, for the caller only |
 | `GET` / `POST` | `/categories` | any / Admin | List categories / create one |
 | `GET` / `POST` | `/users` | Admin | List users / add a Publisher (returns a one-time activation link) |
 | `PATCH` | `/users/{id}/role` \| `/users/{id}/name` | Admin | Change a user's role or correct their name |

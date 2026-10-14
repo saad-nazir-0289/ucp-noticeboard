@@ -250,7 +250,7 @@ export function NoticeManager({ user, scope }: Props) {
                 <div className="ucpnb-manage-info">
                   <div className="ucpnb-card-tags">
                     <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
-                      {expired ? "Hidden from students" : "Live"}
+                      {expired ? "Expired" : "Live"}
                     </span>
                     {n.categoryName && <CategoryTag name={n.categoryName} />}
                   </div>

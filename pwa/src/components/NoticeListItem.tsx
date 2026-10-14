@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSwipeable } from "react-swipeable";
 import type { Notice } from "@shared/types";
 import { optimizeImageUrl } from "@shared/imageOptimize";
@@ -10,6 +10,12 @@ interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
   onDismiss: (notice: Notice) => void;
+  /**
+   * Set on the first row for someone who hasn't seen it yet: the row
+   * slides right to show the archive action underneath, then this is
+   * called so it never plays again.
+   */
+  onSwipeDemoDone?: () => void;
 }
 
 // A swipe counts as "dismiss" if it travels far enough OR is a fast
@@ -19,11 +25,32 @@ interface Props {
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 0.5;
 
-export function NoticeListItem({ notice, onView, onDismiss }: Props) {
+export function NoticeListItem({ notice, onView, onDismiss, onSwipeDemoDone }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dismissing, setDismissing] = useState(false);
 
+  const [demo, setDemo] = useState(false);
+
+  useEffect(() => {
+    if (!onSwipeDemoDone) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onSwipeDemoDone();
+      return;
+    }
+    // A moment after the feed appears, so it's noticed rather than missed.
+    const start = setTimeout(() => setDemo(true), 700);
+    return () => clearTimeout(start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSwipeDemoDone != null]);
+
+  const endDemo = () => {
+    if (!demo) return;
+    setDemo(false);
+    onSwipeDemoDone?.();
+  };
+
   const handlers = useSwipeable({
+    onSwipeStart: endDemo,
     onSwiping: (eventData) => {
       // Only dragging right does anything — left stays put at 0.
       if (eventData.dir === "Right") {
@@ -57,12 +84,13 @@ export function NoticeListItem({ notice, onView, onDismiss }: Props) {
   return (
     <div className="ucpnb-row-wrap">
       <div className="ucpnb-row-hint" aria-hidden="true">
-        <Icon name="eyeOff" size={18} />
-        Hide
+        <Icon name="archive" size={18} />
+        {demo ? "Swipe right to archive" : "Archive"}
       </div>
       <div
         {...handlers}
-        className="ucpnb-row"
+        className={demo ? "ucpnb-row ucpnb-row-demo" : "ucpnb-row"}
+        onAnimationEnd={endDemo}
         role="button"
         tabIndex={0}
         aria-label={notice.title}

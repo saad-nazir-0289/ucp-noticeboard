@@ -5,7 +5,22 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>UCPNoticeBoard.Api</RootNamespace>
+
+    <!-- Hosting is billed by memory held, and this API is small and mostly
+         idle. Server GC (the ASP.NET default) keeps a heap per CPU core and
+         holds on to memory for throughput we don't need; workstation GC
+         with conserve-memory keeps the footprint close to what's in use.
+         Invariant globalization skips loading ICU culture data — nothing
+         here formats or sorts by culture. -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="7" />
+    <RuntimeHostConfigurationOption Include="System.GC.RetainVM" Value="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />

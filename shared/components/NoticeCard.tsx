@@ -96,10 +96,10 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 
                   stop(e);
                   onDismiss(notice);
                 }}
-                aria-label="Hide from my feed"
-                title="Hide from my feed"
+                aria-label="Archive"
+                title="Archive"
               >
-                <Icon name="eyeOff" size={17} />
+                <Icon name="archive" size={17} />
               </button>
             )}
             {onRestore && (

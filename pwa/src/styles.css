@@ -306,10 +306,28 @@ textarea {
   align-items: center;
   gap: 8px;
   padding-left: 20px;
-  background: var(--nb-surface-3);
-  color: var(--nb-text-2);
+  background: var(--nb-primary-soft);
+  color: var(--nb-primary);
   font-size: var(--nb-text-sm);
   font-weight: 600;
+}
+
+/* First visit to the list: the top row slides aside twice to show what
+   swiping right does (NoticeListItem's onSwipeDemoDone). */
+.ucpnb-row-demo {
+  animation: ucpnb-swipe-demo 2s var(--nb-ease) 2;
+}
+
+@keyframes ucpnb-swipe-demo {
+  0%, 12% { transform: translateX(0); }
+  40%, 62% { transform: translateX(min(65%, 240px)); }
+  88%, 100% { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ucpnb-row-demo {
+    animation: none;
+  }
 }
 
 .ucpnb-row {
