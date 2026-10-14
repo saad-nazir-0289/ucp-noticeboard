@@ -47,11 +47,35 @@ public class ShareController : ControllerBase
             return BuildHtml("UCP NoticeBoard", "This notice is no longer available.", null, destinationUrl);
         }
 
-        var description = notice.Description.Length > 200
-            ? notice.Description[..200] + "..."
+        var description = notice.Description.Length > 180
+            ? notice.Description[..180].TrimEnd() + "…"
             : notice.Description;
+        // The deadline first: it's what someone glancing at the preview needs.
+        if (notice.Deadline is DateTime deadline)
+        {
+            description = $"Deadline: {PakistanTime(deadline):ddd, d MMM yyyy, h:mm tt}. {description}";
+        }
 
-        return BuildHtml(notice.Title, description, notice.ImageUrl, destinationUrl);
+        return BuildHtml(notice.Title, description, PreviewImage(notice.ImageUrl), destinationUrl);
+    }
+
+    /// <summary>Deadlines are stored in UTC; students read them in Pakistan time.</summary>
+    private static DateTime PakistanTime(DateTime utc) =>
+        DateTime.SpecifyKind(utc, DateTimeKind.Utc).AddHours(5);
+
+    /// <summary>
+    /// The picture in a link preview: the poster, as a JPEG no wider than
+    /// 1200px (WhatsApp skips large or unusual images), or for notices
+    /// without one, NoticeBoard's own preview card.
+    /// </summary>
+    private string PreviewImage(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl)) return $"{_pwaBaseUrl}/og-image.jpg";
+        const string marker = "/upload/";
+        var at = imageUrl.IndexOf(marker, StringComparison.Ordinal);
+        return imageUrl.Contains("res.cloudinary.com") && at >= 0
+            ? imageUrl.Insert(at + marker.Length, "w_1200,c_limit,q_auto,f_jpg/")
+            : imageUrl;
     }
 
     private static ContentResult BuildHtml(string title, string description, string? imageUrl, string destinationUrl)
@@ -65,30 +89,30 @@ public class ShareController : ControllerBase
         var safeDescription = WebUtility.HtmlEncode(description);
         var safeDestination = WebUtility.HtmlEncode(destinationUrl);
 
-        // Omitted entirely (not a broken/placeholder image) when the
-        // notice has none — most platforms degrade cleanly to a
-        // text-only preview, which looks better than a broken image icon.
-        var imageTag = string.IsNullOrWhiteSpace(imageUrl)
+        var imageTags = string.IsNullOrWhiteSpace(imageUrl)
             ? ""
-            : $"<meta property=\"og:image\" content=\"{WebUtility.HtmlEncode(imageUrl)}\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />";
+            : $"<meta property=\"og:image\" content=\"{WebUtility.HtmlEncode(imageUrl)}\" />\n" +
+              $"<meta property=\"og:image:alt\" content=\"{safeTitle}\" />\n" +
+              "<meta name=\"twitter:card\" content=\"summary_large_image\" />";
 
         var html = $@"<!DOCTYPE html>
 <html>
 <head>
 <meta charset=""utf-8"" />
 <title>{safeTitle}</title>
+<meta property=""og:site_name"" content=""UCP NoticeBoard"" />
 <meta property=""og:title"" content=""{safeTitle}"" />
 <meta property=""og:description"" content=""{safeDescription}"" />
 <meta property=""og:url"" content=""{safeDestination}"" />
 <meta property=""og:type"" content=""article"" />
-{imageTag}
+{imageTags}
 <meta http-equiv=""refresh"" content=""0;url={safeDestination}"" />
 </head>
 <body>
-<p>Redirecting to <a href=""{safeDestination}"">UCP NoticeBoard</a>...</p>
+<p>Opening <a href=""{safeDestination}"">UCP NoticeBoard</a>…</p>
 </body>
 </html>";
 
-        return new ContentResult { Content = html, ContentType = "text/html" };
+        return new ContentResult { Content = html, ContentType = "text/html; charset=utf-8" };
     }
 }

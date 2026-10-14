@@ -1,5 +1,6 @@
 import type { Notice } from "./types";
 import { API_BASE_URL } from "./api/client";
+import { formatDateTime } from "./format";
 
 /**
  * Points at the backend's server-rendered preview page, NOT the PWA
@@ -10,12 +11,28 @@ import { API_BASE_URL } from "./api/client";
  * Graph tags (title, description, the notice's actual image) and
  * redirects an actual human straight into the real app instantly.
  */
+export function shareLink(notice: Notice): string {
+  return `${API_BASE_URL}/share/notice/${notice.id}`;
+}
+
+/**
+ * The message that goes with the link: the notice's name (and deadline)
+ * on top, so a chat shows what it is before the preview card loads, and
+ * even in apps that show no preview at all.
+ */
+export function shareMessage(notice: Notice): string {
+  const lines = [notice.title];
+  if (notice.deadline) lines.push(`Deadline: ${formatDateTime(notice.deadline).replace(" · ", ", ")}`);
+  return lines.join("\n");
+}
+
 export async function shareNotice(notice: Notice): Promise<"shared" | "copied" | "failed"> {
-  const url = `${API_BASE_URL}/share/notice/${notice.id}`;
+  const url = shareLink(notice);
+  const text = shareMessage(notice);
 
   if (navigator.share) {
     try {
-      await navigator.share({ title: notice.title, url });
+      await navigator.share({ title: notice.title, text, url });
       return "shared";
     } catch (err) {
       // The user closing the share sheet without picking anything throws
@@ -26,7 +43,7 @@ export async function shareNotice(notice: Notice): Promise<"shared" | "copied" |
   }
 
   try {
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(`${text}\n${url}`);
     return "copied";
   } catch {
     return "failed";

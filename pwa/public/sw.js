@@ -5,7 +5,7 @@
 // time — those files only change when you actually ship a new version.
 // Cache-first here means: if we already have it, serve it instantly and
 // skip the network entirely; only fetch if it's genuinely new.
-const APP_SHELL_CACHE = "ucpnb-shell-v1";
+const APP_SHELL_CACHE = "ucpnb-shell-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -99,8 +99,16 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title || "UCP NoticeBoard", {
       body: payload.body || "",
+      // The large picture beside the text: the full-colour app icon.
       icon: "/icon-192.png",
-      badge: "/icon-192.png",
+      // The small status-bar icon. Android shows only its shape (white on
+      // transparent), so a full-colour image here becomes a blank square.
+      badge: "/badge-96.png",
+      // One notification per notice: a reminder replaces the "new notice"
+      // one instead of stacking a second.
+      tag: payload.url || undefined,
+      renotify: Boolean(payload.url),
+      timestamp: Date.now(),
       // The large rich image shown inside the notification body itself
       // (supported on Android Chrome; other platforms that don't support
       // it simply ignore this field rather than breaking). Distinct from
