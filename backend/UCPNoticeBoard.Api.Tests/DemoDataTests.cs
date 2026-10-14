@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using UCPNoticeBoard.Api.Controllers;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
 using UCPNoticeBoard.Api.Services;
@@ -78,6 +79,28 @@ public class DemoDataTests : IClassFixture<DemoDataTests.SeededApiFactory>
 
         var after = await adminClient.GetFromJsonAsync<List<NoticeDto>>("/notices?includeExpired=true");
         Assert.Equal(notice.ViewCount + 1, after!.Single(n => n.Id == notice.Id).ViewCount);
+    }
+
+    [Fact]
+    public async Task AdminSummary_ShowsTopNoticesAndPublisherActivity()
+    {
+        var admin = await _api.LoginAsync(DemoDataSeeder.AdminRollNumber);
+        using var client = _api.CreateApiClient(admin.Token);
+        client.DefaultRequestHeaders.Add(UsersController.AdminPinHeader, DemoDataSeeder.DemoPin);
+
+        var summary = (await client.GetFromJsonAsync<AnalyticsSummaryDto>("/analytics/summary"))!;
+
+        // Other tests in this class may publish more, hence "at least".
+        Assert.True(summary.NoticesLast30Days >= 8);
+        Assert.Equal(5, summary.TopNotices.Count);
+        Assert.Equal(summary.TopNotices.OrderByDescending(n => n.ViewCount).Select(n => n.Id), summary.TopNotices.Select(n => n.Id));
+        Assert.Equal("Orientation week welcome session", summary.TopNotices[0].Title);
+
+        var society = Assert.Single(summary.Publishers, p => p.Name == "Computing Society");
+        Assert.True(society.TotalNotices >= 3);
+        Assert.Equal(society.TotalNotices, society.NoticesLast30Days); // all seeded within the month
+        Assert.NotNull(society.LastPostedAt);
+        Assert.Contains(summary.Publishers, p => p.Name == "Student Affairs Office");
     }
 
     [Fact]

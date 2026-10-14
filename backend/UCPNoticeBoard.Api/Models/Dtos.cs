@@ -77,8 +77,17 @@ public record AnalyticsSummaryDto(
     int TotalPublishers,
     int TotalAdmins,
     int TotalViews,
-    int ActiveLast7Days
+    int ActiveLast7Days,
+    int NoticesLast30Days,
+    // The most-opened notices posted in the last 30 days.
+    List<NoticeActivityDto> TopNotices,
+    // Every Publisher (and the Admin, if they post), most recently active first.
+    List<PublisherActivityDto> Publishers
 );
+
+public record NoticeActivityDto(int Id, string Title, string CreatedByName, DateTime CreatedAt, int ViewCount, bool IsPinned);
+
+public record PublisherActivityDto(int Id, string Name, int NoticesLast30Days, int TotalNotices, int ViewsLast30Days, DateTime? LastPostedAt);
 
 public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
 

@@ -47,6 +47,29 @@ export interface AnalyticsSummary {
   totalAdmins: number;
   totalViews: number;
   activeLast7Days: number;
+  noticesLast30Days: number;
+  /** Most-opened notices posted in the last 30 days. */
+  topNotices: NoticeActivity[];
+  /** Every Publisher (and the Admin, if they post), most recently active first. */
+  publishers: PublisherActivity[];
+}
+
+export interface NoticeActivity {
+  id: number;
+  title: string;
+  createdByName: string;
+  createdAt: string;
+  viewCount: number;
+  isPinned: boolean;
+}
+
+export interface PublisherActivity {
+  id: number;
+  name: string;
+  noticesLast30Days: number;
+  totalNotices: number;
+  viewsLast30Days: number;
+  lastPostedAt: string | null;
 }
 
 export interface UserListItem {
