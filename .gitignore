@@ -24,3 +24,6 @@ context.md
 
 # Local preview runtime files (logs, pids)
 dev/.run/
+
+# On-device OCR engine and model, copied from node_modules at build time
+pwa/public/ocr/

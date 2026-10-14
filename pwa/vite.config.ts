@@ -25,7 +25,7 @@ function resolveApiUrl(mode: string): string {
   const fromEnv = loadEnv(mode, process.cwd(), "VITE_").VITE_API_BASE_URL;
   if (fromEnv) return fromEnv.replace(/\/+$/, "");
   if (mode === "production") return PRODUCTION_API_URL;
-  if (mode === "development") return LOCAL_API_URL;
+  if (mode === "development" || mode === "test") return LOCAL_API_URL;
   throw new Error(
     `VITE_API_BASE_URL must be set for --mode ${mode} (e.g. in .env.${mode}.local). ` +
       "Refusing to guess, so a staging build can never silently talk to production."

@@ -3,6 +3,7 @@ import type { AuthUser, Category, Notice } from "@shared/types";
 import { api, setDeviceToken } from "@shared/api/client";
 import { getSavedIdentity, saveIdentity, clearIdentity } from "./storage";
 import { clearDeviceToken, getSavedDeviceToken, saveDeviceToken } from "./deviceUnlock";
+import { takeSharedPayload, type SharedPayload } from "./shareInbox";
 import {
   registerServiceWorker,
   getPushSubscriptionState,
@@ -41,7 +42,9 @@ export function App() {
   // `notice` set means editing rather than creating.
   const [unlocked, setUnlocked] = useState(false);
   const [showUnlock, setShowUnlock] = useState(false);
-  const [editor, setEditor] = useState<{ notice?: Notice } | null>(null);
+  const [editor, setEditor] = useState<{ notice?: Notice; shared?: SharedPayload } | null>(null);
+  // Arrived via "Share to NoticeBoard" (?share=1, see public/sw.js).
+  const [arrivedFromShare, setArrivedFromShare] = useState(false);
   const [showManage, setShowManage] = useState(false);
   // Bumped after a publish/edit/delete so the feed and list reload.
   const [refreshKey, setRefreshKey] = useState(0);
@@ -74,6 +77,11 @@ export function App() {
     // one click actually feel like one click — the permission prompt
     // fires automatically on arrival instead of making them find and tap
     // yet another button once they land.
+    if (params.get("share")) {
+      setArrivedFromShare(true);
+      params.delete("share");
+    }
+
     if (params.get("enableNotifications")) {
       setAutoEnableNotifications(true);
       params.delete("enableNotifications");
@@ -162,10 +170,25 @@ export function App() {
     setStatus("needs-identity");
   };
 
-  const openEditor = (notice?: Notice) => {
-    setEditor({ notice });
+  const openEditor = (notice?: Notice, shared?: SharedPayload) => {
+    setEditor({ notice, shared });
     if (!unlocked) setShowUnlock(true);
   };
+
+  // Once signed in, turn a share into a pre-filled new notice.
+  useEffect(() => {
+    if (status !== "ready" || !arrivedFromShare || !user) return;
+    setArrivedFromShare(false);
+    takeSharedPayload().then((payload) => {
+      if (!payload) return;
+      if (user.role === "Student") {
+        showToast("Only Publishers can post notices");
+        return;
+      }
+      openEditor(undefined, payload);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, arrivedFromShare, user]);
 
   const handleUnlocked = (deviceToken: string) => {
     if (!user) return;
@@ -527,6 +550,7 @@ export function App() {
           user={user}
           categories={bootstrapCategories}
           notice={editor.notice}
+          shared={editor.shared}
           onSaved={() => handleSaved(Boolean(editor.notice))}
           onClose={() => setEditor(null)}
           onNeedsUnlock={() => setShowUnlock(true)}

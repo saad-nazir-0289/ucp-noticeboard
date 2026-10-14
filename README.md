@@ -97,6 +97,10 @@ cd dev && npm install && cd ..
 dev/start-local.sh --reset      # see dev/README.md for URLs and demo accounts
 ```
 
+**Posting from WhatsApp, Instagram or email** — publishers can share
+straight into the installed app (Android) or use Quick fill to paste text or
+read a screenshot: see [`docs/SHARING.md`](./docs/SHARING.md).
+
 **Test on real devices before release** — a full staging copy (separate
 backend, database, PWA and extension build): see [`docs/STAGING.md`](./docs/STAGING.md).
 
@@ -124,6 +128,7 @@ npm run build:staging  # → dist-staging/, see docs/STAGING.md
 cd pwa
 npm install
 npm run dev            # talks to a backend on localhost:5000
+npm test               # unit tests (e.g. the share/screenshot reader)
 npm run build          # production → dist/
 npm run build:staging  # → dist-staging/, see docs/STAGING.md
 ```

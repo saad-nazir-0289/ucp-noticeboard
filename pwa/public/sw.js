@@ -16,14 +16,48 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((key) => key !== APP_SHELL_CACHE).map((key) => caches.delete(key)))
+        Promise.all(keys.filter((key) => key !== APP_SHELL_CACHE && key !== SHARE_CACHE).map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
   );
 });
 
+// "Share to NoticeBoard" (manifest share_target): Android hands the shared
+// text/link/image to us as a form POST. Stash it on the device and open
+// the app, which picks it up (src/shareInbox.ts) and pre-fills a notice.
+// Nothing is sent to any server here.
+const SHARE_CACHE = "ucpnb-share";
+
+async function receiveShare(request) {
+  try {
+    const form = await request.formData();
+    const cache = await caches.open(SHARE_CACHE);
+    const meta = {
+      title: form.get("title") || "",
+      text: form.get("text") || "",
+      url: form.get("url") || "",
+      receivedAt: Date.now(),
+    };
+    await cache.put("/__share/meta", new Response(JSON.stringify(meta), { headers: { "Content-Type": "application/json" } }));
+    const image = form.getAll("media").find((f) => f && typeof f !== "string" && f.type.startsWith("image/"));
+    if (image) {
+      await cache.put("/__share/image", new Response(image, { headers: { "Content-Type": image.type, "X-File-Name": encodeURIComponent(image.name || "shared-image") } }));
+    } else {
+      await cache.delete("/__share/image");
+    }
+  } catch {
+    /* if anything goes wrong, still open the app — it just won't be pre-filled */
+  }
+  return Response.redirect("/?share=1", 303);
+}
+
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
+
+  if (event.request.method === "POST" && url.origin === self.location.origin && url.pathname === "/share-target") {
+    event.respondWith(receiveShare(event.request));
+    return;
+  }
 
   // Only cache same-origin, GET requests for the app's own files — never
   // API calls (those need to always be fresh) and never cross-origin

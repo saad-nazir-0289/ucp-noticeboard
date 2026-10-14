@@ -174,11 +174,11 @@ export function NoticeManager({ user, scope }: Props) {
             </label>
             <label className="ucpnb-field ucpnb-span-2">
               <span className="ucpnb-field-label">Details</span>
-              <textarea className="ucpnb-input" placeholder="What students need to know" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+              <textarea className="ucpnb-input" aria-label="Details" placeholder="What students need to know" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
             </label>
             <label className="ucpnb-field">
               <span className="ucpnb-field-label">Category</span>
-              <select className="ucpnb-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
+              <select className="ucpnb-input" aria-label="Category" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
                 <option value="">None</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>

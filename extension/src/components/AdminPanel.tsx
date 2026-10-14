@@ -317,6 +317,7 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
                     <td>
                       <select
                         className="ucpnb-input ucpnb-input-sm"
+                        aria-label={`Role for ${u.name}`}
                         value={u.role}
                         disabled={pendingId === u.id}
                         onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}

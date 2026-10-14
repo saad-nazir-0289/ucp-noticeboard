@@ -834,3 +834,86 @@ textarea {
 .ucpnb-onboarding-note .ucpnb-icon {
   margin-top: 2px;
 }
+
+/* ---------- Quick fill (paste / screenshot / shared into the app) ---------- */
+.ucpnb-quickfill {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, var(--nb-primary) 22%, var(--nb-border));
+  border-radius: var(--nb-r-lg);
+  background: linear-gradient(160deg, var(--nb-primary-soft), transparent 70%);
+}
+
+.ucpnb-quickfill-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--nb-primary);
+}
+
+.ucpnb-quickfill-head strong {
+  display: block;
+  color: var(--nb-text);
+  font-size: var(--nb-text-sm);
+}
+
+.ucpnb-quickfill-head span {
+  display: block;
+  color: var(--nb-text-2);
+  font-size: var(--nb-text-xs);
+  line-height: 1.45;
+}
+
+.ucpnb-quickfill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ucpnb-quickfill-actions .ucpnb-btn {
+  flex: 1;
+  min-width: 140px;
+  min-height: 38px;
+}
+
+.ucpnb-btn.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ucpnb-quickfill-paste {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ucpnb-quickfill-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nb-text-2);
+  font-size: var(--nb-text-sm);
+  font-weight: 600;
+}
+
+.ucpnb-quickfill-status.is-done {
+  color: var(--nb-success);
+}
+
+.ucpnb-quickfill-status .ucpnb-spinner {
+  width: 15px;
+  height: 15px;
+}
+
+.ucpnb-quickfill-hint {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--nb-r-sm);
+  background: var(--nb-warning-soft);
+  color: var(--nb-warning);
+  font-size: var(--nb-text-xs);
+  line-height: 1.45;
+}

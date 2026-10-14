@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, hasDeviceToken } from "@shared/api/client";
 import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@shared/noticeForm";
 import { optimizeImageUrl } from "@shared/imageOptimize";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { Icon } from "@shared/components/Icon";
+import { cleanOcrText, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
+import { readTextFromImage } from "../ocr";
 
 /** Pre-filled values for a new notice (e.g. from something shared into the app). */
 export interface NoticeDraft {
@@ -22,13 +24,15 @@ interface Props {
   /** Editing an existing notice; omit to create a new one. */
   notice?: Notice;
   draft?: NoticeDraft;
+  /** Something shared into the app ("Share to NoticeBoard"), to pre-fill from. */
+  shared?: { content: SharedContent; image?: File };
   onSaved: (notice: Notice) => void;
   onClose: () => void;
   /** The server said this phone is no longer unlocked — ask for the PIN, keeping the form. */
   onNeedsUnlock: () => void;
 }
 
-export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose, onNeedsUnlock }: Props) {
+export function NoticeEditor({ user, categories, notice, draft, shared, onSaved, onClose, onNeedsUnlock }: Props) {
   const initial = notice
     ? { ...notice, deadline: notice.deadline ?? undefined }
     : draft ?? {};
@@ -42,10 +46,15 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
+  // Quick fill: from pasted text, a screenshot, or a share.
+  const [hints, setHints] = useState<string[]>([]);
+  const [reading, setReading] = useState<number | null>(null); // OCR progress 0-1, null when idle
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [filledFrom, setFilledFrom] = useState<string | null>(null);
+  const handledShare = useRef(false);
+
+  const uploadPoster = async (file: File) => {
     setUploading(true);
     setError(null);
     try {
@@ -56,6 +65,84 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
       setUploading(false);
     }
   };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) await uploadPoster(file);
+  };
+
+  /** Puts what was understood into the form, leaving fields it found nothing for as they are. */
+  const applyParsed = (parsed: ParsedShare, from: string) => {
+    if (parsed.title) setTitle(parsed.title);
+    if (parsed.description) setDescription(parsed.description);
+    if (parsed.linkUrl) setLinkUrl(parsed.linkUrl);
+    if (parsed.deadline) setDeadline(toDatetimeLocalValue(parsed.deadline));
+    if (parsed.categoryId) setCategoryId(parsed.categoryId);
+    setHints(parsed.hints);
+    setFilledFrom(from);
+  };
+
+  const fillFromText = (content: SharedContent, from: string) => {
+    applyParsed(parseSharedContent(content, categories), from);
+  };
+
+  /** Reads a screenshot's text on the device, then fills the form from it (plus any shared link). */
+  const fillFromImage = async (file: File, extra: SharedContent = {}) => {
+    setReading(0);
+    setError(null);
+    try {
+      const text = cleanOcrText(await readTextFromImage(file, setReading));
+      if (!text) {
+        setHints(["Couldn't find any text in that image. Fill in the details by hand."]);
+        return;
+      }
+      const parsed = parseSharedContent({ ...extra, text: [text, extra.text].filter(Boolean).join("\n") }, categories);
+      applyParsed({ ...parsed, hints: [] }, "the screenshot");
+    } catch {
+      setHints(["Couldn't read the image right now. Fill in the details by hand."]);
+    } finally {
+      setReading(null);
+    }
+  };
+
+  const handleScreenshot = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    void uploadPoster(file);
+    await fillFromImage(file);
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        fillFromText({ text }, "the copied text");
+        return;
+      }
+    } catch {
+      /* clipboard access refused or unsupported (common on iPhone) — paste by hand below */
+    }
+    setPasteOpen(true);
+  };
+
+  // Something shared into the app: fill from its text, use its image as the
+  // poster, and read the image too when the share carried little text
+  // (an Instagram link, a bare screenshot).
+  useEffect(() => {
+    if (!shared || handledShare.current) return;
+    handledShare.current = true;
+    const parsed = parseSharedContent(shared.content, categories);
+    applyParsed(parsed, "what you shared");
+    if (shared.image) {
+      void uploadPoster(shared.image);
+      if ((shared.content.text ?? "").replace(/https?:\/\/\S+/g, "").trim().length < 40) {
+        void fillFromImage(shared.image, shared.content);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shared]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +200,70 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
         </div>
 
         <div className="ucpnb-sheet-content">
+          {!notice && (
+            <div className="ucpnb-quickfill">
+              <div className="ucpnb-quickfill-head">
+                <Icon name="sparkles" size={18} />
+                <div>
+                  <strong>Quick fill</strong>
+                  <span>From a WhatsApp message, an email, or a screenshot of a post.</span>
+                </div>
+              </div>
+              <div className="ucpnb-quickfill-actions">
+                <button type="button" className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={handlePaste} disabled={reading !== null}>
+                  <Icon name="fileText" size={15} />
+                  Paste text
+                </button>
+                <label className={`ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm${reading !== null ? " is-disabled" : ""}`}>
+                  <Icon name="image" size={15} />
+                  Read screenshot
+                  <input type="file" accept="image/*" onChange={handleScreenshot} disabled={reading !== null} hidden />
+                </label>
+              </div>
+              {pasteOpen && (
+                <div className="ucpnb-quickfill-paste">
+                  <textarea
+                    className="ucpnb-input"
+                    rows={4}
+                    autoFocus
+                    placeholder="Paste the message or email here"
+                    value={pasteText}
+                    onChange={(e) => setPasteText(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-sm"
+                    disabled={!pasteText.trim()}
+                    onClick={() => {
+                      fillFromText({ text: pasteText }, "the pasted text");
+                      setPasteOpen(false);
+                      setPasteText("");
+                    }}
+                  >
+                    Fill the form
+                  </button>
+                </div>
+              )}
+              {reading !== null && (
+                <div className="ucpnb-quickfill-status" role="status">
+                  <span className="ucpnb-spinner" />
+                  Reading text from the image… {Math.round(reading * 100)}%
+                </div>
+              )}
+              {filledFrom && reading === null && (
+                <div className="ucpnb-quickfill-status is-done" role="status">
+                  <Icon name="check" size={15} strokeWidth={2.6} />
+                  Filled from {filledFrom} — check everything before publishing.
+                </div>
+              )}
+              {hints.map((hint) => (
+                <p key={hint} className="ucpnb-quickfill-hint">
+                  {hint}
+                </p>
+              ))}
+            </div>
+          )}
+
           <label className="ucpnb-field">
             <span className="ucpnb-field-label">Title</span>
             <input className="ucpnb-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Hackathon registrations open" />
@@ -120,7 +271,7 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
 
           <label className="ucpnb-field">
             <span className="ucpnb-field-label">Details</span>
-            <textarea className="ucpnb-input" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know — dates, venue, who it's for" />
+            <textarea className="ucpnb-input" aria-label="Details" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know — dates, venue, who it's for" />
           </label>
 
           <div className="ucpnb-field">
@@ -145,7 +296,7 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
           <div className="ucpnb-field-pair">
             <label className="ucpnb-field">
               <span className="ucpnb-field-label">Category</span>
-              <select className="ucpnb-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
+              <select className="ucpnb-input" aria-label="Category" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
                 <option value="">None</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
