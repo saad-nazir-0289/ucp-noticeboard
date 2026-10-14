@@ -1,14 +1,18 @@
 import { Fragment, useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { AuthUser, Category, UserListItem, UserRole } from "../types";
+import { AdminPinPrompt } from "./AdminPinPrompt";
 
 interface Props {
   user: AuthUser;
+  /** Unlocked Admin PIN (see AdminPinPrompt), or null until entered. */
+  adminPin: string | null;
+  onAdminPinChange: (pin: string | null) => void;
 }
 
 const ROLES: UserRole[] = ["Student", "Publisher", "Admin"];
 
-export function AdminPanel({ user }: Props) {
+export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +25,6 @@ export function AdminPanel({ user }: Props) {
 
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
-  const [addPin, setAddPin] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [addSuccess, setAddSuccess] = useState<string | null>(null);
 
@@ -29,23 +32,41 @@ export function AdminPanel({ user }: Props) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryError, setCategoryError] = useState<string | null>(null);
 
+  const fetchAll = async (pin: string) => {
+    const [u, c] = await Promise.all([api.getUsers(pin, user.token), api.getCategories(user.token)]);
+    setUsers(u);
+    setCategories(c);
+    setError(null);
+  };
+
   const load = () => {
+    if (!adminPin) return;
     setLoading(true);
-    Promise.all([api.getUsers(user.token), api.getCategories(user.token)])
-      .then(([u, c]) => {
-        setUsers(u);
-        setCategories(c);
+    fetchAll(adminPin)
+      .catch(() => {
+        // Most likely the PIN changed since it was unlocked — ask again.
+        onAdminPinChange(null);
+        setError("Could not load users.");
       })
-      .catch(() => setError("Could not load users."))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [user]);
 
-  const handleRoleChange = async (id: number, newRole: UserRole) => {
-    const adminPin = window.prompt("Enter your PIN to confirm this role change:");
-    if (!adminPin) return;
+  if (!adminPin) {
+    return (
+      <AdminPinPrompt
+        section="Manage Users"
+        onUnlock={async (pin) => {
+          await fetchAll(pin);
+          setLoading(false);
+          onAdminPinChange(pin);
+        }}
+      />
+    );
+  }
 
+  const handleRoleChange = async (id: number, newRole: UserRole) => {
     setPendingId(id);
     setSuccessMessage(null);
     setRowError(null);
@@ -65,8 +86,6 @@ export function AdminPanel({ user }: Props) {
 
   const handleResetPin = async (id: number, name: string) => {
     if (!confirm(`Reset ${name}'s PIN? They'll be asked to choose a new one next time they publish something.`)) return;
-    const adminPin = window.prompt("Enter your PIN to confirm this reset:");
-    if (!adminPin) return;
 
     setPendingId(id);
     setSuccessMessage(null);
@@ -102,7 +121,7 @@ export function AdminPanel({ user }: Props) {
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, name: trimmed } : u)));
     cancelEditName();
     try {
-      await api.updateUserName(id, trimmed, user.token);
+      await api.updateUserName(id, trimmed, adminPin, user.token);
     } catch {
       setUsers(previous);
       setError("Could not update name.");
@@ -117,23 +136,17 @@ export function AdminPanel({ user }: Props) {
       setAddError("Roll Number and Name are required.");
       return;
     }
-    if (!/^\d{4,6}$/.test(addPin)) {
-      setAddError("Enter your own 4-6 digit PIN to confirm this action.");
-      return;
-    }
     try {
       const result = await api.addUser(
-        { rollNumber: rollNumber.trim(), name: name.trim(), pin: addPin },
+        { rollNumber: rollNumber.trim(), name: name.trim(), pin: adminPin },
         user.token
       );
       setAddSuccess(`${result.name} can publish immediately — no link needed. They'll set their own PIN the first time they publish something.`);
       setRollNumber("");
       setName("");
-      setAddPin("");
       load();
     } catch (err) {
       setAddError(err instanceof Error ? err.message : "Could not add user.");
-      setAddPin("");
     }
   };
 
@@ -145,7 +158,7 @@ export function AdminPanel({ user }: Props) {
       return;
     }
     try {
-      const category = await api.createCategory(newCategoryName.trim(), user.token);
+      const category = await api.createCategory(newCategoryName.trim(), adminPin, user.token);
       setCategories((prev) => [...prev, category].sort((a, b) => a.name.localeCompare(b.name)));
       setNewCategoryName("");
     } catch {
@@ -161,9 +174,7 @@ export function AdminPanel({ user }: Props) {
       <p className="ucpnb-status">
         Adding someone here grants Publisher access immediately — no link to
         send, no activation step. They'll be prompted to choose their own PIN
-        the first time they actually publish something. Requires your own
-        PIN below to confirm — this is what stops anyone who merely learns
-        your Roll Number from granting themselves access here.
+        the first time they actually publish something.
       </p>
       <form className="ucpnb-form" onSubmit={handleAddUser}>
         <input
@@ -178,14 +189,6 @@ export function AdminPanel({ user }: Props) {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
-          type="password"
-          inputMode="numeric"
-          placeholder="Your PIN"
-          value={addPin}
-          onChange={(e) => setAddPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          maxLength={6}
-        />
         {addError && <p className="ucpnb-error">{addError}</p>}
         {addSuccess && <p className="ucpnb-status">{addSuccess}</p>}
         <div className="ucpnb-form-actions">
@@ -199,8 +202,7 @@ export function AdminPanel({ user }: Props) {
       {error && <p className="ucpnb-error">{error}</p>}
       {successMessage && <p className="ucpnb-status ucpnb-status-active">{successMessage}</p>}
       <p className="ucpnb-status">
-        Change anyone's role here — takes effect immediately, on any device,
-        but now asks for your own PIN each time to confirm it's really you.
+        Change anyone's role here — takes effect immediately, on any device.
         Click a name to correct it. "Reset PIN" clears a forgotten PIN so
         they can choose a new one next time they publish.
       </p>

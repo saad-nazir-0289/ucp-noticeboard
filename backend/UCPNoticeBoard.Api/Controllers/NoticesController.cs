@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -15,8 +14,6 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Authorize]
 public class NoticesController : ControllerBase
 {
-    private static readonly Regex PinFormat = new(@"^\d{4,6}$", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
     private readonly INoticeQueryService _noticeQuery;
     private readonly IServiceScopeFactory _scopeFactory;
@@ -35,32 +32,6 @@ public class NoticesController : ControllerBase
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
         n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.LikeCount, likedByMe);
-
-    /// <summary>
-    /// The actual security boundary for anything that changes public
-    /// content. If this account has never set a PIN, whatever's supplied
-    /// here becomes their PIN from this point on — otherwise it must
-    /// match exactly. Mutates the passed-in user (caller is responsible
-    /// for SaveChangesAsync). Returns null on success, an error message
-    /// on failure.
-    /// </summary>
-    private static string? VerifyOrSetPin(User user, string? pin)
-    {
-        if (string.IsNullOrWhiteSpace(pin) || !PinFormat.IsMatch(pin))
-        {
-            return "A 4-6 digit PIN is required.";
-        }
-
-        var hash = PinHasher.Hash(pin);
-
-        if (user.PinHash is null)
-        {
-            user.PinHash = hash;
-            return null;
-        }
-
-        return user.PinHash == hash ? null : "Incorrect PIN.";
-    }
 
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices(
@@ -194,7 +165,7 @@ public class NoticesController : ControllerBase
     // top of the general one, not instead of it.
     [HttpPost]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
+    [EnableRateLimiting("pin-check")]
     public async Task<ActionResult<NoticeDto>> CreateNotice([FromBody] CreateNoticeRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
@@ -205,7 +176,7 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, request.Pin);
+        var pinError = PinHasher.VerifyOrSet(currentUser, request.Pin);
         if (pinError is not null)
         {
             return BadRequest(pinError);
@@ -263,7 +234,7 @@ public class NoticesController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
+    [EnableRateLimiting("pin-check")]
     public async Task<ActionResult<NoticeDto>> UpdateNotice(int id, [FromBody] UpdateNoticeRequest request)
     {
         var notice = await _db.Notices
@@ -286,7 +257,7 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, request.Pin);
+        var pinError = PinHasher.VerifyOrSet(currentUser, request.Pin);
         if (pinError is not null)
         {
             return BadRequest(pinError);
@@ -309,7 +280,7 @@ public class NoticesController : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
+    [EnableRateLimiting("pin-check")]
     public async Task<IActionResult> DeleteNotice(int id, [FromQuery] string pin)
     {
         var notice = await _db.Notices.FindAsync(id);
@@ -324,7 +295,7 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, pin);
+        var pinError = PinHasher.VerifyOrSet(currentUser, pin);
         if (pinError is not null)
         {
             return BadRequest(pinError);

@@ -1,9 +1,11 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
+using UCPNoticeBoard.Api.Services;
 
 namespace UCPNoticeBoard.Api.Controllers;
 
@@ -37,8 +39,19 @@ public class AnalyticsController : ControllerBase
 
     [HttpGet("summary")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<AnalyticsSummaryDto>> GetSummary()
+    [EnableRateLimiting("pin-check")]
+    public async Task<ActionResult<AnalyticsSummaryDto>> GetSummary([FromHeader(Name = UsersController.AdminPinHeader)] string? adminPin)
     {
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinError = PinHasher.VerifyOrSet(admin, adminPin, "Your 4-6 digit PIN is required for this action.");
+        if (pinError is not null)
+        {
+            return BadRequest(pinError);
+        }
+        await _db.SaveChangesAsync(); // persists a first-use PIN, if one was just set
+
         var users = await _db.Users.ToListAsync();
         var activeCutoff = DateTime.UtcNow.AddDays(-7);
 

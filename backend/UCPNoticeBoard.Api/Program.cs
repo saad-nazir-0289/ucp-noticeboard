@@ -144,14 +144,15 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
-    // Notice create/edit/delete is where a PIN actually gets checked — a
+    // Every endpoint that checks a PIN (notice create/edit/delete and all
+    // Admin actions) shares this bucket — a
     // 4-6 digit PIN has low enough entropy that even the general 60/min
     // limit isn't tight enough to meaningfully slow down a brute-force
     // attempt on its own. This doesn't fully solve that on its own either
     // (worth knowing honestly), but it meaningfully raises the cost of
     // trying, on top of the general limit, without throttling a real
     // Publisher's actual (infrequent) use of these endpoints at all.
-    options.AddPolicy("notice-mutation", context =>
+    options.AddPolicy("pin-check", context =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions

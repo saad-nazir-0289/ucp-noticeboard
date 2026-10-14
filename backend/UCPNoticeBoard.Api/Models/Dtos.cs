@@ -18,7 +18,7 @@ public record UpdateUserRoleRequest(string Role, string Pin);
 
 public record UpdateUserRoleResponse(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 
-public record UpdateUserNameRequest(string Name);
+public record UpdateUserNameRequest(string Name, string? Pin);
 
 public record AddUserRequest(string RollNumber, string Name, string Pin);
 
@@ -52,7 +52,7 @@ public record UpdateNoticeRequest(string Title, string Description, string? Imag
 
 public record CategoryDto(int Id, string Name);
 
-public record CreateCategoryRequest(string Name);
+public record CreateCategoryRequest(string Name, string? Pin);
 
 public record AnalyticsSummaryDto(
     int TotalUsers,

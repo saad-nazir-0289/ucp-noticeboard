@@ -70,13 +70,15 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     }
 
     /// <summary>
-    /// An anonymous client. Every request gets a unique X-Forwarded-For
-    /// address so the per-IP rate limits (which Program.cs keys on the
-    /// forwarded client IP) never trip across unrelated tests.
+    /// A client, optionally authenticated. By default every request gets a
+    /// unique X-Forwarded-For address so the per-IP rate limits (which
+    /// Program.cs keys on the forwarded client IP) never trip across
+    /// unrelated tests; pass <paramref name="clientIp"/> to pin one
+    /// address, e.g. to test those limits.
     /// </summary>
-    public HttpClient CreateApiClient(string? token = null)
+    public HttpClient CreateApiClient(string? token = null, string? clientIp = null)
     {
-        var client = CreateDefaultClient(new UniqueClientIpHandler());
+        var client = CreateDefaultClient(new ClientIpHandler(clientIp));
         if (token is not null)
         {
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -151,14 +153,14 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    private sealed class UniqueClientIpHandler : DelegatingHandler
+    private sealed class ClientIpHandler(string? fixedIp) : DelegatingHandler
     {
         private static int _counter;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var n = Interlocked.Increment(ref _counter);
-            request.Headers.Add("X-Forwarded-For", $"10.{(n >> 16) & 255}.{(n >> 8) & 255}.{n & 255}");
+            request.Headers.Add("X-Forwarded-For", fixedIp ?? $"10.{(n >> 16) & 255}.{(n >> 8) & 255}.{n & 255}");
             return base.SendAsync(request, cancellationToken);
         }
     }

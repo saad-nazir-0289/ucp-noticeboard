@@ -1,7 +1,7 @@
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
@@ -12,16 +12,19 @@ namespace UCPNoticeBoard.Api.Controllers;
 [ApiController]
 [Route("users")]
 [Authorize(Roles = "Admin")]
+// Every action here checks the acting Admin's PIN, so every action shares
+// the same brute-force limit as the other PIN-checked endpoints.
+[EnableRateLimiting("pin-check")]
 public class UsersController : ControllerBase
 {
-    private static readonly Regex PinFormat = new(@"^\d{4,6}$", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
 
     public UsersController(AppDbContext db)
     {
         _db = db;
     }
+
+    public const string AdminPinHeader = "X-Admin-Pin";
 
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
@@ -37,27 +40,28 @@ public class UsersController : ControllerBase
     /// creating new privileged access now needs the real Admin's PIN,
     /// same as actually publishing does.
     /// </summary>
-    private static string? VerifyOrSetAdminPin(User admin, string? pin)
-    {
-        if (string.IsNullOrWhiteSpace(pin) || !PinFormat.IsMatch(pin))
-        {
-            return "Your 4-6 digit PIN is required for this action.";
-        }
+    private static string? VerifyOrSetAdminPin(User admin, string? pin) =>
+        PinHasher.VerifyOrSet(admin, pin, "Your 4-6 digit PIN is required for this action.");
 
-        var hash = PinHasher.Hash(pin);
-
-        if (admin.PinHash is null)
-        {
-            admin.PinHash = hash;
-            return null;
-        }
-
-        return admin.PinHash == hash ? null : "Incorrect PIN.";
-    }
-
+    /// <summary>
+    /// Lists every account's name and Roll Number, so it needs the PIN too
+    /// — an Admin token alone (which anyone knowing the Admin's Roll Number
+    /// can get) must not be enough to read it. Sent as a header since GET
+    /// has no body.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetUsers()
+    public async Task<ActionResult<List<UserDto>>> GetUsers([FromHeader(Name = AdminPinHeader)] string? adminPin)
     {
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinError = VerifyOrSetAdminPin(admin, adminPin);
+        if (pinError is not null)
+        {
+            return BadRequest(pinError);
+        }
+        await _db.SaveChangesAsync(); // persists a first-use PIN, if one was just set
+
         var users = await _db.Users
             .OrderBy(u => u.Name)
             .Select(u => new UserDto(u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt))
@@ -204,8 +208,8 @@ public class UsersController : ControllerBase
     /// <summary>
     /// The only way a name can change after account creation, now that
     /// /login no longer trusts a client-supplied name for existing users.
-    /// Admin-only and authenticated, unlike /login. Doesn't touch notice
-    /// publishing rights, so no PIN needed here.
+    /// Requires the acting Admin's PIN: renaming a Publisher changes who
+    /// students see a notice as coming from.
     /// </summary>
     [HttpPatch("{id}/name")]
     public async Task<ActionResult<UserDto>> UpdateName(int id, [FromBody] UpdateUserNameRequest request)
@@ -213,6 +217,15 @@ public class UsersController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest("name is required.");
+        }
+
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
+        if (pinError is not null)
+        {
+            return BadRequest(pinError);
         }
 
         var user = await _db.Users.FindAsync(id);

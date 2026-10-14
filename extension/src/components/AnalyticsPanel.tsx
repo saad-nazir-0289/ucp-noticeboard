@@ -1,22 +1,42 @@
 import { useEffect, useState } from "react";
 import { api } from "../api/client";
 import type { AnalyticsSummary, AuthUser } from "../types";
+import { AdminPinPrompt } from "./AdminPinPrompt";
 
 interface Props {
   user: AuthUser;
+  adminPin: string | null;
+  onAdminPinChange: (pin: string | null) => void;
 }
 
-export function AnalyticsPanel({ user }: Props) {
+export function AnalyticsPanel({ user, adminPin, onAdminPinChange }: Props) {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!adminPin || summary) return;
     api
-      .getAnalyticsSummary(user.token)
+      .getAnalyticsSummary(adminPin, user.token)
       .then(setSummary)
-      .catch(() => setError("Could not load analytics."));
-  }, [user]);
+      .catch(() => {
+        // Most likely the PIN changed since it was unlocked — ask again.
+        onAdminPinChange(null);
+        setError("Could not load analytics.");
+      });
+  }, [user, adminPin]);
 
+  if (!adminPin) {
+    return (
+      <AdminPinPrompt
+        section="Analytics"
+        onUnlock={async (pin) => {
+          setSummary(await api.getAnalyticsSummary(pin, user.token));
+          setError(null);
+          onAdminPinChange(pin);
+        }}
+      />
+    );
+  }
   if (error) return <p className="ucpnb-error">{error}</p>;
   if (!summary) return <p className="ucpnb-status">Loading...</p>;
 

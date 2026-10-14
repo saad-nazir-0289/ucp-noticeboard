@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
@@ -21,6 +23,9 @@ public class CategoriesController : ControllerBase
         _noticeQuery = noticeQuery;
     }
 
+    private int CurrentUserId =>
+        int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
+
     [HttpGet]
     public async Task<ActionResult<List<CategoryDto>>> GetCategories()
     {
@@ -29,11 +34,21 @@ public class CategoriesController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = "Admin")]
+    [EnableRateLimiting("pin-check")]
     public async Task<ActionResult<CategoryDto>> CreateCategory([FromBody] CreateCategoryRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return BadRequest("name is required.");
+        }
+
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinError = PinHasher.VerifyOrSet(admin, request.Pin, "Your 4-6 digit PIN is required for this action.");
+        if (pinError is not null)
+        {
+            return BadRequest(pinError);
         }
 
         var name = request.Name.Trim();

@@ -119,14 +119,15 @@ export const api = {
 
   getCategories: (token: string) => request<Category[]>("/categories", {}, token),
 
-  createCategory: (name: string, token: string) =>
+  createCategory: (name: string, adminPin: string, token: string) =>
     request<Category>(
       "/categories",
-      { method: "POST", body: JSON.stringify({ name }) },
+      { method: "POST", body: JSON.stringify({ name, pin: adminPin }) },
       token
     ),
 
-  getUsers: (token: string) => request<UserListItem[]>("/users", {}, token),
+  getUsers: (adminPin: string, token: string) =>
+    request<UserListItem[]>("/users", { headers: { "X-Admin-Pin": adminPin } }, token),
 
   addUser: (data: { rollNumber: string; name: string; pin: string }, token: string) =>
     request<AddUserResult>(
@@ -142,10 +143,10 @@ export const api = {
       token
     ),
 
-  updateUserName: (id: number, name: string, token: string) =>
+  updateUserName: (id: number, name: string, adminPin: string, token: string) =>
     request<UserListItem>(
       `/users/${id}/name`,
-      { method: "PATCH", body: JSON.stringify({ name }) },
+      { method: "PATCH", body: JSON.stringify({ name, pin: adminPin }) },
       token
     ),
 
@@ -155,8 +156,8 @@ export const api = {
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),
 
-  getAnalyticsSummary: (token: string) =>
-    request<AnalyticsSummary>("/analytics/summary", {}, token),
+  getAnalyticsSummary: (adminPin: string, token: string) =>
+    request<AnalyticsSummary>("/analytics/summary", { headers: { "X-Admin-Pin": adminPin } }, token),
 };
 
 export { ApiError };

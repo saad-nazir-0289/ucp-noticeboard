@@ -15,6 +15,9 @@ export function NoticeBoard() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [tab, setTab] = useState<Tab>("feed");
+  // The Admin's PIN once they've unlocked an Admin section — memory only,
+  // shared by Manage Users and Analytics so it's asked once per visit.
+  const [adminPin, setAdminPin] = useState<string | null>(null);
 
   // Bundled in the /login response — lets the feed render on the very
   // first paint without waiting on a second network round trip.
@@ -174,8 +177,12 @@ export function NoticeBoard() {
       {tab === "allNotices" && user.role === "Admin" && (
         <NoticeManager user={user} scope="all" />
       )}
-      {tab === "users" && user.role === "Admin" && <AdminPanel user={user} />}
-      {tab === "analytics" && user.role === "Admin" && <AnalyticsPanel user={user} />}
+      {tab === "users" && user.role === "Admin" && (
+        <AdminPanel user={user} adminPin={adminPin} onAdminPinChange={setAdminPin} />
+      )}
+      {tab === "analytics" && user.role === "Admin" && (
+        <AnalyticsPanel user={user} adminPin={adminPin} onAdminPinChange={setAdminPin} />
+      )}
 
 
     </div>

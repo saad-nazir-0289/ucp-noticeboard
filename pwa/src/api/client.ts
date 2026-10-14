@@ -117,14 +117,15 @@ export const api = {
 
   getCategories: (token: string) => request<Category[]>("/categories", {}, token),
 
-  createCategory: (name: string, token: string) =>
+  createCategory: (name: string, adminPin: string, token: string) =>
     request<Category>(
       "/categories",
-      { method: "POST", body: JSON.stringify({ name }) },
+      { method: "POST", body: JSON.stringify({ name, pin: adminPin }) },
       token
     ),
 
-  getUsers: (token: string) => request<UserListItem[]>("/users", {}, token),
+  getUsers: (adminPin: string, token: string) =>
+    request<UserListItem[]>("/users", { headers: { "X-Admin-Pin": adminPin } }, token),
 
   addUser: (data: { rollNumber: string; name: string }, token: string) =>
     request<AddUserResult>(
@@ -143,8 +144,8 @@ export const api = {
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),
 
-  getAnalyticsSummary: (token: string) =>
-    request<AnalyticsSummary>("/analytics/summary", {}, token),
+  getAnalyticsSummary: (adminPin: string, token: string) =>
+    request<AnalyticsSummary>("/analytics/summary", { headers: { "X-Admin-Pin": adminPin } }, token),
 
   getVapidPublicKey: (token: string) =>
     request<{ publicKey: string }>("/push/vapid-public-key", {}, token),
