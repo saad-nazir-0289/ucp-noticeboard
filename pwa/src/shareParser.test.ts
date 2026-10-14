@@ -65,7 +65,7 @@ describe("parseSharedContent", () => {
 
     expect(parsed.source).toBe("email");
     expect(parsed.title).toBe("Mid-term examination schedule");
-    expect(parsed.description).toContain("Dear students");
+    expect(parsed.description.startsWith("The mid-term schedule is attached.")).toBe(true); // greeting dropped
     expect(local(parsed.deadline)).toEqual([2026, 10, 18, 23, 59]);
     expect(parsed.categoryId).toBe(1);
   });
@@ -174,5 +174,17 @@ describe("screenshot text", () => {
     expect(cleanOcrText("Photography walk through the old city\nthis Sunday! Bring any\ncamera, phones welcome.\nARTS SOCIETY")).toBe(
       "Photography walk through the old city this Sunday! Bring any camera, phones welcome.\nARTS SOCIETY"
     );
+  });
+});
+
+describe("titles", () => {
+  it("never uses a greeting or a mail banner", () => {
+    const parsed = parseSharedContent({ text: "CAUTION: This email originated outside UCP.\nDear all,\nLibrary closed on Friday for maintenance." }, categories, NOW);
+    expect(parsed.title).toBe("Library closed on Friday for maintenance.");
+  });
+
+  it("uses a quoted name the text gives", () => {
+    const parsed = parseSharedContent({ text: 'You are invited to a seminar entitled “AI in Healthcare” on 20 Oct.' }, categories, NOW);
+    expect(parsed.title).toBe("Seminar: AI in Healthcare");
   });
 });

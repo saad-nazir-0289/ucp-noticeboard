@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
-import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGNITE_SFF_OCR, MEDIA_CLUB_OCR } from "./shareSamples";
+import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, MEDIA_CLUB_OCR } from "./shareSamples";
 
 const categories: Category[] = [
   { id: 1, name: "Academics" },
@@ -82,5 +82,18 @@ describe("real WhatsApp messages", () => {
     expect(parsed.description).toContain("Contact: fakihacoretech@gmail.com");
     expect(parsed.deadline).toBeUndefined();
     expect(parsed.categoryId).toBe(2);
+  });
+});
+
+describe("real email pasted from Outlook", () => {
+  it("IGDA workshop: the workshop's name, not the banner or greeting, is the title", () => {
+    const parsed = fromWhatsApp(IGDA_WORKSHOP_OUTLOOK);
+    expect(parsed.title).toBe("Workshop: Discover the World of Game Development");
+    // Who it's for stays in the details; "Dear Students," doesn't.
+    expect(parsed.description.startsWith("This email is targeted at students who are enrolled in 6th, 7th and 8th semesters.")).toBe(true);
+    expect(parsed.description).not.toMatch(/^Dear Students,$/m);
+    expect(local(parsed.deadline)).toEqual([2026, 10, 16, 14, 0]); // the "Time:" line under the date
+    expect(parsed.linkUrl).toMatch(/^https:\/\/forms\.cloud\.microsoft\/Pages\/ResponsePage\.aspx\?id=syGyEmQEI0KJ5YiINXeLWMZ/);
+    expect(parsed.categoryId).toBe(3);
   });
 });

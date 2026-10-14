@@ -73,8 +73,14 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
     if (bodyLines.join(" ").length < 300 && posterLines.length > 0) {
       bodyLines = [...bodyLines, "", ...posterLines];
     }
+  } else if (namedTitle(prose)) {
+    // 'a workshop titled "Discover the World of Game Development"': the
+    // name it was given beats whatever line happens to come first.
+    title = namedTitle(prose)!;
   } else {
-    const firstIndex = lines.findIndex((l) => /[\p{L}\p{N}]/u.test(l.replace(URL_PATTERN, "")) && !isHandle(l));
+    const firstIndex = lines.findIndex(
+      (l) => /[\p{L}\p{N}]/u.test(l.replace(URL_PATTERN, "")) && !isHandle(l) && !isGreeting(l) && !isEmailBanner(l)
+    );
     if (firstIndex >= 0) {
       title = stripEmailPrefix(lines[firstIndex].replace(URL_PATTERN, "").trim());
       bodyLines = lines.slice(firstIndex + 1);
@@ -85,7 +91,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   // Description: the rest of the message, or the whole message when the
   // title already used up its only line. Links stay in the text too;
   // lines of nothing but hashtags don't need to.
-  bodyLines = bodyLines.filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l));
+  bodyLines = bodyLines.filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l) && !isGreeting(l));
   let description = bodyLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   if (!description) description = lines.join("\n").trim();
   if (description === title) description = "";
@@ -250,6 +256,29 @@ function findCaption(lines: string[], fromScreenshot: boolean): { text: string; 
 function captionStart(line: string): { text: string; handle: string } | undefined {
   const m = line.match(/^@?([a-z][a-z0-9._]{4,29}) (\p{Lu}[^ ]*(?: [^ ]+){2,})$/u);
   return m && !SHORT_WORDS.has(m[1]) ? { handle: m[1], text: m[2] } : undefined;
+}
+
+/** "Dear Students,", "Hello everyone" — how a message opens, never its title. */
+function isGreeting(line: string): boolean {
+  return line.length <= 40 && /^(dear|hi|hello|hey|respected|assalam|salam|greetings)\b[^.!?]*[,!]?$/i.test(line);
+}
+
+/** Lines mail apps and senders put on top: "This email is targeted at…", "CAUTION: external email". */
+function isEmailBanner(line: string): boolean {
+  return /^(this (e-?mail|message) (is|was|has)\b|caution\b|external (e-?mail|sender)|you don't often get email)/i.test(line);
+}
+
+/**
+ * The name something was given in the text: 'a workshop titled "X"' →
+ * "Workshop: X", 'a session called "X"' → "Session: X".
+ */
+function namedTitle(text: string): string | undefined {
+  const m = text.match(
+    /\b(?:(workshop|seminar|webinar|session|talk|event|competition|hackathon|bootcamp|training|lecture|course|programme|program|contest|conference|meetup)\s+)?(?:titled|entitled|called|named)\s*[:]?\s*["“'‘]([^"”'’\n]{6,80})["”'’]/i
+  );
+  if (!m) return undefined;
+  const name = m[2].replace(/[.,;:!]+$/, "").trim();
+  return m[1] ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}: ${name}` : name;
 }
 
 function firstSentence(value: string): string {
