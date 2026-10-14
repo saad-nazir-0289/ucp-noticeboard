@@ -79,24 +79,30 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // --- CORS ---
-// Restricted to the two real client origins instead of a wildcard. Note
-// this is browser-enforced defense-in-depth, not a security boundary on
-// its own — a non-browser client (curl, a script) never sends or is
-// bound by an Origin header at all, CORS is purely about what a *browser*
-// running on someone else's page is allowed to read. The extension's own
-// requests aren't blocked by this either way, since Manifest V3
-// host_permissions already exempt it from CORS enforcement on the
-// requesting side — this specifically stops an unrelated website's JS
-// from successfully reading responses using a visiting browser.
+// Restricted to the real client origins instead of a wildcard. Note this
+// is browser-enforced defense-in-depth, not a security boundary on its
+// own — a non-browser client (curl, a script) never sends or is bound by
+// an Origin header at all, CORS is purely about what a *browser* running
+// on someone else's page is allowed to read. The extension's requests
+// come from a content script, which Chrome treats as the host page's own
+// origin for CORS — that's why the portal origin is on this list.
+//
+// Cors:AllowedOrigins is a comma-separated list, so a staging deploy can
+// point at its own PWA with a single environment variable
+// (Cors__AllowedOrigins). In Development, any localhost origin is also
+// allowed, for the local PWA dev server and the mock portal page.
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+var allowLocalhostOrigins = builder.Environment.IsDevelopment();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Extension", policy =>
     {
         policy
-            .WithOrigins(
-                "https://horizon.ucp.edu.pk",
-                "https://ucp-noticeboard.msndev.workers.dev"
-            )
+            .SetIsOriginAllowed(origin =>
+                allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase) ||
+                (allowLocalhostOrigins && Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.IsLoopback))
             .AllowAnyHeader()
             .AllowAnyMethod();
     });

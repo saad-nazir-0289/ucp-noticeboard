@@ -4,7 +4,8 @@ import { API_BASE_URL } from "../api/client";
 // Still used directly by the notifications bell (NoticeBoard.tsx) — that
 // link is meant to open the real app, unlike a notice share link, which
 // needs the rich-preview endpoint below instead.
-export const PWA_BASE_URL = "https://ucp-noticeboard.msndev.workers.dev";
+// Set per build mode in vite.content.config.ts.
+export const PWA_BASE_URL = import.meta.env.VITE_PWA_BASE_URL;
 
 /**
  * Points at the backend's server-rendered preview page, NOT the PWA

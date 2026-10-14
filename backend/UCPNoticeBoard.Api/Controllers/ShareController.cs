@@ -8,14 +8,16 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Route("share")]
 public class ShareController : ControllerBase
 {
-    // Update this if the PWA ever moves to a different host.
-    private const string PwaBaseUrl = "https://ucp-noticeboard.msndev.workers.dev";
-
     private readonly AppDbContext _db;
 
-    public ShareController(AppDbContext db)
+    // Where a human following a share link ends up. Comes from
+    // Pwa:BaseUrl so a staging API redirects into the staging PWA.
+    private readonly string _pwaBaseUrl;
+
+    public ShareController(AppDbContext db, IConfiguration configuration)
     {
         _db = db;
+        _pwaBaseUrl = (configuration["Pwa:BaseUrl"] ?? "https://ucp-noticeboard.msndev.workers.dev").TrimEnd('/');
     }
 
     /// <summary>
@@ -37,7 +39,7 @@ public class ShareController : ControllerBase
     [HttpGet("notice/{id}")]
     public async Task<ContentResult> SharePreview(int id)
     {
-        var destinationUrl = $"{PwaBaseUrl}/?notice={id}";
+        var destinationUrl = $"{_pwaBaseUrl}/?notice={id}";
         var notice = await _db.Notices.FindAsync(id);
 
         if (notice is null)

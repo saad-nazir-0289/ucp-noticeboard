@@ -16,7 +16,7 @@
     <!-- Starts the DNS lookup + TLS handshake for these before the app's
          JS even runs its first fetch — shaves that round trip off the
          very first request instead of paying for it inline. -->
-    <link rel="preconnect" href="https://ucp-noticeboard-api-production.up.railway.app" />
+    <link rel="preconnect" href="%VITE_API_BASE_URL%" />
     <link rel="preconnect" href="https://res.cloudinary.com" />
   </head>
   <body>

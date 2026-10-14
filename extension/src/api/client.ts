@@ -1,7 +1,7 @@
 import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
-// Change this to your deployed backend URL in production.
-export const API_BASE_URL = "https://ucp-noticeboard-api-production.up.railway.app";
+// Set per build mode (production / staging / local) in vite.content.config.ts.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 class ApiError extends Error {
   status: number;
