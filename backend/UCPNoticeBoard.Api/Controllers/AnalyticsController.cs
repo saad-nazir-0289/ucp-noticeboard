@@ -15,10 +15,12 @@ namespace UCPNoticeBoard.Api.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IPinService _pins;
 
-    public AnalyticsController(AppDbContext db)
+    public AnalyticsController(AppDbContext db, IPinService pins)
     {
         _db = db;
+        _pins = pins;
     }
 
     private int CurrentUserId =>
@@ -45,13 +47,8 @@ public class AnalyticsController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = PinHasher.VerifyOrSet(admin, adminPin, "Your 4-6 digit PIN is required for this action.");
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
-        await _db.SaveChangesAsync(); // persists a first-use PIN, if one was just set
-
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, UsersController.AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
         var users = await _db.Users.ToListAsync();
         var activeCutoff = DateTime.UtcNow.AddDays(-7);
 

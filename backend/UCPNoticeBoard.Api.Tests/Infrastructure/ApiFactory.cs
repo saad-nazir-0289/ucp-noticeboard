@@ -37,6 +37,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
     public FakePushNotificationService Push { get; } = new();
 
+    /// <summary>The app's clock (PIN lockouts, device expiry); tests can advance it.</summary>
+    public TestClock Clock { get; } = new();
+
     public ApiFactory()
     {
         _serverConnectionString = Environment.GetEnvironmentVariable("UCP_TEST_POSTGRES") ?? DefaultServer;
@@ -66,6 +69,9 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.RemoveAll<IPushNotificationService>();
             services.AddSingleton<IPushNotificationService>(Push);
+
+            services.RemoveAll<TimeProvider>();
+            services.AddSingleton<TimeProvider>(Clock);
         });
     }
 

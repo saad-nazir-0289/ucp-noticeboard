@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<NoticeDismissal> NoticeDismissals => Set<NoticeDismissal>();
     public DbSet<NoticeLike> NoticeLikes => Set<NoticeLike>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+    public DbSet<DeviceSession> DeviceSessions => Set<DeviceSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,7 +25,9 @@ public class AppDbContext : DbContext
             entity.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
             entity.Property(u => u.PrivilegedCredential).HasMaxLength(40);
             entity.Property(u => u.SecurityStamp).HasMaxLength(64);
-            entity.Property(u => u.PinHash).HasMaxLength(64);
+            // Room for the salted PBKDF2 format ("pbkdf2-sha256$iterations$salt$hash"),
+            // not just the old 64-character unsalted SHA-256 hex.
+            entity.Property(u => u.PinHash).HasMaxLength(200);
         });
 
         modelBuilder.Entity<Category>(entity =>
@@ -74,6 +77,16 @@ public class AppDbContext : DbContext
             // it rather than creating a duplicate.
             entity.HasIndex(p => p.Endpoint).IsUnique();
             entity.HasIndex(p => p.UserId);
+        });
+
+        modelBuilder.Entity<DeviceSession>(entity =>
+        {
+            entity.Property(d => d.TokenHash).IsRequired().HasMaxLength(64);
+            entity.Property(d => d.SecurityStamp).IsRequired().HasMaxLength(64);
+            entity.Property(d => d.Label).IsRequired().HasMaxLength(200);
+            entity.HasIndex(d => d.TokenHash).IsUnique();
+            entity.HasIndex(d => d.UserId);
+            entity.HasOne(d => d.User).WithMany().HasForeignKey(d => d.UserId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

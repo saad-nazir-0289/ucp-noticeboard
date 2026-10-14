@@ -87,16 +87,18 @@ public class AdminPinTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task AdminPinGuesses_AreRateLimited()
+    public async Task AdminPinRequests_AreRateLimitedPerIp()
     {
         var admin = await _api.GetAdminAsync();
         // Pin the client IP so every guess lands in the same rate-limit bucket.
         using var client = _api.CreateApiClient(admin.Token, clientIp: "203.0.113.7");
 
+        // A malformed PIN is refused without counting toward the account
+        // lock, so any 429 here comes from the per-IP limiter.
         var statuses = new List<HttpStatusCode>();
         for (var i = 0; i < 25; i++)
         {
-            statuses.Add((await client.SendAsync(Get("/users", WrongPin))).StatusCode);
+            statuses.Add((await client.SendAsync(Get("/users", "not-a-pin"))).StatusCode);
         }
 
         Assert.Contains(HttpStatusCode.TooManyRequests, statuses);

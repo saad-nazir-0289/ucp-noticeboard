@@ -49,6 +49,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INoticeQueryService, NoticeQueryService>();
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
+builder.Services.AddScoped<IPinService, PinService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<DeadlineReminderService>();
 
 // --- Auth ---
@@ -104,7 +107,9 @@ builder.Services.AddCors(options =>
                 allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase) ||
                 (allowLocalhostOrigins && Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.IsLoopback))
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            // Lets the clients see when their device unlock has lapsed.
+            .WithExposedHeaders(PinService.DeviceTokenStatusHeader);
     });
 });
 

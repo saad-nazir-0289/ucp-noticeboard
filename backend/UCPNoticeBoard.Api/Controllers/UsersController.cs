@@ -18,10 +18,14 @@ namespace UCPNoticeBoard.Api.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly IPinService _pins;
+    private readonly TimeProvider _time;
 
-    public UsersController(AppDbContext db)
+    public UsersController(AppDbContext db, IPinService pins, TimeProvider time)
     {
         _db = db;
+        _pins = pins;
+        _time = time;
     }
 
     public const string AdminPinHeader = "X-Admin-Pin";
@@ -40,8 +44,7 @@ public class UsersController : ControllerBase
     /// creating new privileged access now needs the real Admin's PIN,
     /// same as actually publishing does.
     /// </summary>
-    private static string? VerifyOrSetAdminPin(User admin, string? pin) =>
-        PinHasher.VerifyOrSet(admin, pin, "Your 4-6 digit PIN is required for this action.");
+    public const string AdminPinMessage = "Your 4-6 digit PIN is required for this action.";
 
     /// <summary>
     /// Lists every account's name and Roll Number, so it needs the PIN too
@@ -55,16 +58,16 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, adminPin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
-        await _db.SaveChangesAsync(); // persists a first-use PIN, if one was just set
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
+        var now = _time.GetUtcNow().UtcDateTime;
         var users = await _db.Users
             .OrderBy(u => u.Name)
-            .Select(u => new UserDto(u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt))
+            .Select(u => new UserDto(
+                u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt,
+                u.PinLockedUntil != null && u.PinLockedUntil > now,
+                _db.DeviceSessions.Count(d => d.UserId == u.Id && d.ExpiresAt > now && d.SecurityStamp == u.SecurityStamp)))
             .ToListAsync();
 
         return Ok(users);
@@ -88,11 +91,8 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
 
@@ -140,11 +140,8 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)
@@ -157,10 +154,12 @@ public class UsersController : ControllerBase
 
         if (newRole == UserRole.Student)
         {
-            user.PinHash = null;
+            _pins.ClearPin(user);
         }
 
         await _db.SaveChangesAsync();
+        // The stamp rotation above already invalidates them; this removes the rows.
+        await _pins.RevokeDevicesAsync(user.Id);
 
         return Ok(new UpdateUserRoleResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));
     }
@@ -173,7 +172,7 @@ public class UsersController : ControllerBase
     /// role visibility alone got them here).
     /// </summary>
     [HttpPost("{id}/reset-pin")]
-    public async Task<IActionResult> ResetPin(int id, [FromQuery] string adminPin)
+    public async Task<IActionResult> ResetPin(int id, [FromQuery] string? adminPin)
     {
         if (id == CurrentUserId)
         {
@@ -187,11 +186,8 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, adminPin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)
@@ -199,9 +195,31 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        user.PinHash = null;
+        // Also the way to lift a lockout, and a reset is often because a
+        // device or PIN leaked, so every unlocked device is logged out too.
+        _pins.ClearPin(user);
         await _db.SaveChangesAsync();
+        await _pins.RevokeDevicesAsync(user.Id);
 
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Logs every unlocked device of this user out (e.g. a society member
+    /// left, or lost their phone), without touching their PIN.
+    /// </summary>
+    [HttpDelete("{id}/devices")]
+    public async Task<IActionResult> RevokeDevices(int id, [FromHeader(Name = AdminPinHeader)] string? adminPin)
+    {
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        if (!await _db.Users.AnyAsync(u => u.Id == id)) return NotFound();
+
+        await _pins.RevokeDevicesAsync(id);
         return NoContent();
     }
 
@@ -222,11 +240,8 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)

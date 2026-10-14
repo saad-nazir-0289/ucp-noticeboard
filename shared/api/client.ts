@@ -1,4 +1,4 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Category, LoginResult, Notice, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, AuthUser, Category, DeviceSession, LoginResult, Notice, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -152,6 +152,18 @@ export const api = {
 
   resetUserPin: (id: number, adminPin: string, token: string) =>
     request<void>(`/users/${id}/reset-pin?adminPin=${encodeURIComponent(adminPin)}`, { method: "POST" }, token),
+
+  revokeUserDevices: (id: number, adminPin: string, token: string) =>
+    request<void>(`/users/${id}/devices`, { method: "DELETE", headers: { "X-Admin-Pin": adminPin } }, token),
+
+  /** Unlocks this device with the PIN; the returned token stands in for the PIN afterwards. */
+  unlockDevice: (pin: string, token: string, label?: string) =>
+    request<UnlockDeviceResult>("/auth/unlock", { method: "POST", body: JSON.stringify({ pin, label }) }, token),
+
+  getMyDevices: (token: string) => request<DeviceSession[]>("/auth/devices", {}, token),
+
+  revokeMyDevice: (id: number, token: string) =>
+    request<void>(`/auth/devices/${id}`, { method: "DELETE" }, token),
 
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),

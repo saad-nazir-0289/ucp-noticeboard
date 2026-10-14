@@ -16,11 +16,13 @@ public class CategoriesController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly INoticeQueryService _noticeQuery;
+    private readonly IPinService _pins;
 
-    public CategoriesController(AppDbContext db, INoticeQueryService noticeQuery)
+    public CategoriesController(AppDbContext db, INoticeQueryService noticeQuery, IPinService pins)
     {
         _db = db;
         _noticeQuery = noticeQuery;
+        _pins = pins;
     }
 
     private int CurrentUserId =>
@@ -45,11 +47,8 @@ public class CategoriesController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = PinHasher.VerifyOrSet(admin, request.Pin, "Your 4-6 digit PIN is required for this action.");
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, UsersController.AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var name = request.Name.Trim();
         var exists = await _db.Categories.AnyAsync(c => c.Name.ToLower() == name.ToLower());

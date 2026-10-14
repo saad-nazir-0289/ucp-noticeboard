@@ -85,17 +85,36 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   };
 
   const handleResetPin = async (id: number, name: string) => {
-    if (!confirm(`Reset ${name}'s PIN? They'll be asked to choose a new one next time they publish something.`)) return;
+    if (!confirm(`Reset ${name}'s PIN? This also lifts any lock and logs out their unlocked devices. They'll choose a new PIN next time they publish something.`)) return;
 
     setPendingId(id);
     setSuccessMessage(null);
     setRowError(null);
     try {
       await api.resetUserPin(id, adminPin, user.token);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, pinLocked: false, activeDevices: 0 } : u)));
       setSuccessMessage(`${name}'s PIN was reset.`);
       setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err) {
       setRowError({ id, message: err instanceof Error ? err.message : "Could not reset PIN." });
+    } finally {
+      setPendingId(null);
+    }
+  };
+
+  const handleRevokeDevices = async (id: number, name: string) => {
+    if (!confirm(`Log out all of ${name}'s unlocked devices? They'll need their PIN again on each one.`)) return;
+
+    setPendingId(id);
+    setSuccessMessage(null);
+    setRowError(null);
+    try {
+      await api.revokeUserDevices(id, adminPin, user.token);
+      setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, activeDevices: 0 } : u)));
+      setSuccessMessage(`${name}'s devices were logged out.`);
+      setTimeout(() => setSuccessMessage(null), 2500);
+    } catch (err) {
+      setRowError({ id, message: err instanceof Error ? err.message : "Could not log out devices." });
     } finally {
       setPendingId(null);
     }
@@ -203,8 +222,10 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
       {successMessage && <p className="ucpnb-status ucpnb-status-active">{successMessage}</p>}
       <p className="ucpnb-status">
         Change anyone's role here — takes effect immediately, on any device.
-        Click a name to correct it. "Reset PIN" clears a forgotten PIN so
-        they can choose a new one next time they publish.
+        Click a name to correct it. "Reset PIN" clears a forgotten PIN (and
+        lifts a lock after too many wrong PINs) so they can choose a new one
+        next time they publish. "Log out devices" signs out every phone or
+        browser they unlocked with their PIN.
       </p>
       <table className="ucpnb-table">
         <thead>
@@ -259,13 +280,25 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
                 </td>
                 <td>
                   {u.role !== "Student" && (
-                    <button
-                      className="ucpnb-btn ucpnb-btn-link"
-                      disabled={pendingId === u.id}
-                      onClick={() => handleResetPin(u.id, u.name)}
-                    >
-                      {pendingId === u.id ? "Saving..." : "Reset PIN"}
-                    </button>
+                    <>
+                      {u.pinLocked && <span className="ucpnb-badge-locked">Locked</span>}
+                      <button
+                        className="ucpnb-btn ucpnb-btn-link"
+                        disabled={pendingId === u.id}
+                        onClick={() => handleResetPin(u.id, u.name)}
+                      >
+                        {pendingId === u.id ? "Saving..." : "Reset PIN"}
+                      </button>
+                      {(u.activeDevices ?? 0) > 0 && (
+                        <button
+                          className="ucpnb-btn ucpnb-btn-link"
+                          disabled={pendingId === u.id}
+                          onClick={() => handleRevokeDevices(u.id, u.name)}
+                        >
+                          Log out devices ({u.activeDevices})
+                        </button>
+                      )}
+                    </>
                   )}
                 </td>
               </tr>

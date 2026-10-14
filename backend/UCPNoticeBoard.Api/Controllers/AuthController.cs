@@ -24,13 +24,16 @@ public class AuthController : ControllerBase
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IConfiguration _configuration;
     private readonly INoticeQueryService _noticeQuery;
+    private readonly IPinService _pins;
 
     public AuthController(
         AppDbContext db,
         IJwtTokenService jwtTokenService,
         IConfiguration configuration,
-        INoticeQueryService noticeQuery)
+        INoticeQueryService noticeQuery,
+        IPinService pins)
     {
+        _pins = pins;
         _db = db;
         _jwtTokenService = jwtTokenService;
         _configuration = configuration;
@@ -113,10 +116,14 @@ public class AuthController : ControllerBase
                     // AND the real AdminActivationSecret from Railway's
                     // config — the same bar as claiming Admin in the
                     // first place, not just knowing a Roll Number. Clears
-                    // the PIN; their next publish/manage-user action
-                    // prompts them to set a fresh one, same as first use.
-                    user.PinHash = null;
+                    // the PIN and any lockout (this is also how the Admin
+                    // gets back in if someone locked their account by
+                    // guessing), and logs out every unlocked device; their
+                    // next privileged action sets a fresh PIN, same as
+                    // first use.
+                    _pins.ClearPin(user);
                     user.SecurityStamp = Guid.NewGuid().ToString("N");
+                    await _pins.RevokeDevicesAsync(user.Id);
                     needsSave = true;
                 }
             }

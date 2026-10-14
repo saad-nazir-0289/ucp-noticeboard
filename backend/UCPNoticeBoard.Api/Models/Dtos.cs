@@ -12,15 +12,30 @@ public record LoginResponse(
     List<CategoryDto> Categories
 );
 
-public record UserDto(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
+// PinLocked / ActiveDevices are only filled in by the Admin user list.
+public record UserDto(
+    int Id,
+    string Name,
+    string RollNumber,
+    string Role,
+    DateTime CreatedAt,
+    bool PinLocked = false,
+    int ActiveDevices = 0
+);
 
-public record UpdateUserRoleRequest(string Role, string Pin);
+public record UnlockDeviceRequest(string? Pin, string? Label);
+
+public record UnlockDeviceResponse(string DeviceToken, int DeviceId, DateTime ExpiresAt);
+
+public record DeviceSessionDto(int Id, string Label, DateTime CreatedAt, DateTime LastUsedAt, bool IsCurrent);
+
+public record UpdateUserRoleRequest(string Role, string? Pin);
 
 public record UpdateUserRoleResponse(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 
 public record UpdateUserNameRequest(string Name, string? Pin);
 
-public record AddUserRequest(string RollNumber, string Name, string Pin);
+public record AddUserRequest(string RollNumber, string Name, string? Pin);
 
 public record NoticeDto(
     int Id,
@@ -43,12 +58,13 @@ public record NoticeDto(
     bool LikedByMe
 );
 
-// Pin is required for every notice-mutating action. If the account has no
-// PinHash set yet, whatever is supplied here becomes their PIN going
-// forward (first-use-sets-it) — otherwise it must match exactly.
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+// Pin is required for every notice-mutating action unless the request
+// comes from an unlocked device (X-Device-Token, see PinService). If the
+// account has no PIN yet, whatever is supplied here becomes their PIN
+// going forward (first-use-sets-it) — otherwise it must match exactly.
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin);
 
 public record CategoryDto(int Id, string Name);
 

@@ -17,12 +17,14 @@ public class NoticesController : ControllerBase
     private readonly AppDbContext _db;
     private readonly INoticeQueryService _noticeQuery;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPinService _pins;
 
-    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery, IServiceScopeFactory scopeFactory)
+    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery, IServiceScopeFactory scopeFactory, IPinService pins)
     {
         _db = db;
         _noticeQuery = noticeQuery;
         _scopeFactory = scopeFactory;
+        _pins = pins;
     }
 
     private int CurrentUserId =>
@@ -176,11 +178,8 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = PinHasher.VerifyOrSet(currentUser, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var notice = new Notice
         {
@@ -257,11 +256,8 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = PinHasher.VerifyOrSet(currentUser, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         notice.Title = request.Title;
         notice.Description = request.Description;
@@ -281,7 +277,7 @@ public class NoticesController : ControllerBase
     [HttpDelete("{id}")]
     [Authorize(Roles = "Publisher,Admin")]
     [EnableRateLimiting("pin-check")]
-    public async Task<IActionResult> DeleteNotice(int id, [FromQuery] string pin)
+    public async Task<IActionResult> DeleteNotice(int id, [FromQuery] string? pin)
     {
         var notice = await _db.Notices.FindAsync(id);
         if (notice is null) return NotFound();
@@ -295,11 +291,8 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = PinHasher.VerifyOrSet(currentUser, pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         _db.Notices.Remove(notice);
         await _db.SaveChangesAsync();

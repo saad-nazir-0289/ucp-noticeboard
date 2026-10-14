@@ -54,6 +54,24 @@ export interface UserListItem {
   rollNumber: string;
   role: UserRole;
   createdAt: string;
+  /** Locked after too many wrong PINs (Admin user list only). */
+  pinLocked?: boolean;
+  /** Devices this user has unlocked with their PIN (Admin user list only). */
+  activeDevices?: number;
+}
+
+export interface UnlockDeviceResult {
+  deviceToken: string;
+  deviceId: number;
+  expiresAt: string;
+}
+
+export interface DeviceSession {
+  id: number;
+  label: string;
+  createdAt: string;
+  lastUsedAt: string;
+  isCurrent: boolean;
 }
 
 // Adding a Publisher grants the role immediately now — no activation
