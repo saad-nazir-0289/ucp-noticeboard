@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#f6f1e9"/>
+  <rect x="980" y="0" width="620" height="900" fill="#0b2545"/>
+  <circle cx="1290" cy="450" r="210" fill="#f2b33d"/>
+  <text x="90" y="250" font-family="Inter, Arial, sans-serif" font-size="44" font-weight="700" fill="#c4320a">CAREER CENTRE</text>
+  <text x="90" y="400" font-family="Inter, Arial, sans-serif" font-size="120" font-weight="800" fill="#0b2545">Internship</text>
+  <text x="90" y="530" font-family="Inter, Arial, sans-serif" font-size="120" font-weight="800" fill="#0b2545">Drive 2026</text>
+  <text x="90" y="640" font-family="Inter, Arial, sans-serif" font-size="42" fill="#4a5568">12 companies · Software engineering roles</text>
+  <text x="1290" y="470" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="70" font-weight="800" fill="#0b2545">2–5 PM</text>
+</svg>

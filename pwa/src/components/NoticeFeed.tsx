@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
 import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeListItem } from "./NoticeListItem";
 import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { NoticeSkeleton } from "./NoticeSkeleton";
+import { SponsorSlot, hasSponsorSlotAfter } from "./SponsorSlot";
+import { Icon } from "@shared/components/Icon";
+import { EmptyState } from "@shared/components/EmptyState";
 
 interface Props {
   token: string;
@@ -30,7 +33,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "all">("all");
-  const [showGrid, setShowGrid] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
 
   const [showHidden, setShowHidden] = useState(false);
@@ -146,140 +148,143 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     });
   };
 
-  if (error) return <p className="ucpnb-error">{error}</p>;
+  if (error) {
+    return (
+      <EmptyState icon="inbox" title="Couldn't load notices">
+        Check your connection and pull to refresh.
+      </EmptyState>
+    );
+  }
 
-  const toolbar = (
-    <div className="ucpnb-toolbar">
-      <input
-        type="text"
-        className="ucpnb-search"
-        placeholder="Search notices..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <div className="ucpnb-toolbar-row">
-        {categories.length > 0 && (
-          <select
-            className="ucpnb-category-select"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value === "all" ? "all" : Number(e.target.value))}
-          >
-            <option value="all">All categories</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        )}
-        <div className="ucpnb-view-toggle" role="group" aria-label="Choose view">
-          <button
-            className={viewMode === "card" ? "ucpnb-view-toggle-btn active" : "ucpnb-view-toggle-btn"}
-            onClick={() => handleViewModeChange("card")}
-            title="Card view"
-          >
-            ▦
-          </button>
-          <button
-            className={viewMode === "list" ? "ucpnb-view-toggle-btn active" : "ucpnb-view-toggle-btn"}
-            onClick={() => handleViewModeChange("list")}
-            title="List view"
-          >
-            ☰
-          </button>
-        </div>
-        <button className="ucpnb-btn ucpnb-btn-viewall" onClick={() => setShowGrid(true)}>
-          View All
-        </button>
-        <button className="ucpnb-btn" onClick={openHidden}>
-          Hidden
-        </button>
-      </div>
-    </div>
-  );
+  const hasFilters = search.trim() !== "" || categoryId !== "all";
 
   return (
     <>
-      {toolbar}
+      <div className="ucpnb-toolbar">
+        <div className="ucpnb-toolbar-row">
+          <label className="ucpnb-search">
+            <Icon name="search" size={18} />
+            <input
+              className="ucpnb-input"
+              type="search"
+              placeholder="Search notices"
+              aria-label="Search notices"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <div className="ucpnb-segmented" role="group" aria-label="Layout">
+            <button
+              className={viewMode === "card" ? "is-active" : ""}
+              onClick={() => handleViewModeChange("card")}
+              aria-label="Card view"
+              aria-pressed={viewMode === "card"}
+              title="Card view"
+            >
+              <Icon name="grid" size={17} />
+            </button>
+            <button
+              className={viewMode === "list" ? "is-active" : ""}
+              onClick={() => handleViewModeChange("list")}
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
+              title="List view"
+            >
+              <Icon name="list" size={17} />
+            </button>
+          </div>
+          <button className="ucpnb-icon-btn ucpnb-icon-btn-outlined" onClick={openHidden} aria-label="Hidden notices" title="Hidden notices">
+            <Icon name="eyeOff" size={18} />
+          </button>
+        </div>
+
+        {categories.length > 0 && (
+          <div className="ucpnb-chips" role="tablist" aria-label="Categories">
+            <button
+              className={categoryId === "all" ? "ucpnb-chip is-active" : "ucpnb-chip"}
+              onClick={() => setCategoryId("all")}
+              role="tab"
+              aria-selected={categoryId === "all"}
+            >
+              All
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                className={categoryId === c.id ? "ucpnb-chip is-active" : "ucpnb-chip"}
+                onClick={() => setCategoryId(c.id)}
+                role="tab"
+                aria-selected={categoryId === c.id}
+              >
+                {c.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {loading ? (
         <NoticeSkeleton viewMode={viewMode} />
       ) : filtered.length === 0 ? (
-        <p className="ucpnb-status">
-          {notices.length === 0 ? "No notices yet." : "No notices match your search/filter."}
-        </p>
+        hasFilters ? (
+          <EmptyState icon="search" title="No matching notices">
+            Try a different word or category.
+          </EmptyState>
+        ) : (
+          <EmptyState icon="megaphone" title="You're all caught up">
+            New notices from societies and departments will show up here.
+          </EmptyState>
+        )
       ) : viewMode === "list" ? (
         <div className="ucpnb-list">
-          {filtered.map((notice) => (
-            <NoticeListItem key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+          {filtered.map((notice, i) => (
+            <Fragment key={notice.id}>
+              <NoticeListItem notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+              {hasSponsorSlotAfter(i) && <SponsorSlot variant="row" />}
+            </Fragment>
           ))}
         </div>
       ) : (
         <div className="ucpnb-feed">
-          {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+          {filtered.map((notice, i) => (
+            <Fragment key={notice.id}>
+              <NoticeCard notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
+              {hasSponsorSlotAfter(i) && <SponsorSlot variant="card" />}
+            </Fragment>
           ))}
         </div>
       )}
 
-      {showGrid && (
-        <div className="ucpnb-grid-overlay" onClick={() => setShowGrid(false)}>
-          <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ucpnb-grid-header">
-              <h3>All Notices</h3>
-              <button className="ucpnb-modal-close" onClick={() => setShowGrid(false)} aria-label="Close">
-                ×
-              </button>
-            </div>
-            {toolbar}
-            {filtered.length === 0 ? (
-              <p className="ucpnb-status">No notices match your search/filter.</p>
-            ) : (
-              <div className="ucpnb-grid">
-                {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {showHidden && (
-        <div className="ucpnb-grid-overlay" onClick={() => setShowHidden(false)}>
-          <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ucpnb-grid-header">
-              <h3>Hidden Notices</h3>
-              <button className="ucpnb-modal-close" onClick={() => setShowHidden(false)} aria-label="Close">
-                ×
+        <div className="ucpnb-overlay" onClick={() => setShowHidden(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-tall" role="dialog" aria-modal="true" aria-label="Hidden notices" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-sheet-header">
+              <h3>Hidden notices</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowHidden(false)} aria-label="Close">
+                <Icon name="x" />
               </button>
             </div>
-            <p className="ucpnb-status">
-              Notices you've hidden from your own feed. Restoring one brings it back for you only.
-            </p>
-            {dismissedLoading ? (
-              <p className="ucpnb-status">Loading...</p>
-            ) : dismissedNotices.length === 0 ? (
-              <p className="ucpnb-status">Nothing hidden right now.</p>
-            ) : (
-              <div className="ucpnb-grid">
-                {dismissedNotices.map((notice) => (
-                  <NoticeCard
-                    key={notice.id}
-                    notice={notice}
-                    onView={handleView}
-                    onRestore={handleRestore}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="ucpnb-sheet-content">
+              <p className="ucpnb-sheet-text">Only hidden for you. Restore one to bring it back to your feed.</p>
+              {dismissedLoading ? (
+                <NoticeSkeleton viewMode="list" count={3} />
+              ) : dismissedNotices.length === 0 ? (
+                <EmptyState icon="eyeOff" title="Nothing hidden">
+                  Swipe a notice right in list view, or tap the hide icon, to tuck it away.
+                </EmptyState>
+              ) : (
+                <div className="ucpnb-feed ucpnb-feed-sheet">
+                  {dismissedNotices.map((notice) => (
+                    <NoticeCard key={notice.id} notice={notice} onView={handleView} onRestore={handleRestore} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {selected && (
-        <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} />
-      )}
+      {selected && <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} onLike={handleLike} />}
     </>
   );
 }

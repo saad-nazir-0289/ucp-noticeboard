@@ -7,6 +7,13 @@ import { NoticeFeed } from "../components/NoticeFeed";
 import { NoticeManager } from "../components/NoticeManager";
 import { AdminPanel } from "../components/AdminPanel";
 import { AnalyticsPanel } from "../components/AnalyticsPanel";
+import { Icon, type IconName } from "@shared/components/Icon";
+import { EmptyState } from "@shared/components/EmptyState";
+
+const REVIEW_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb";
+// Optional, set at build time — a plain link, never an ad (the extension
+// runs inside the university's portal; see docs/MONETIZATION.md).
+const SUPPORT_URL = import.meta.env.VITE_SUPPORT_URL;
 
 type Tab = "feed" | "myNotices" | "allNotices" | "users" | "analytics";
 type Status = "loading" | "ready" | "identity-not-found" | "error";
@@ -71,120 +78,116 @@ export function NoticeBoard() {
     };
   }, []);
 
-  if (status === "loading") return null;
-
-  if (status === "identity-not-found") {
+  if (status === "loading") {
     return (
-      <div className="ucpnb-section">
-        <h3>Latest Updates</h3>
-        <p className="ucpnb-error">
-          Couldn't detect your Roll Number on this page. If the dashboard layout
-          changed, this needs a small selector update.
-        </p>
-      </div>
-    );
-  }
-
-  if (status === "error" || !user) {
-    return (
-      <div className="ucpnb-section">
-        <h3>Latest Updates</h3>
-        <p className="ucpnb-error">
-          Couldn't reach the NoticeBoard server. Make sure the backend is running.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="ucpnb-section">
-      <div className="ucpnb-header">
-        <h3>Latest Updates</h3>
-        <div className="ucpnb-header-actions">
-          {(user.role === "Publisher" || user.role === "Admin") && (
-            <nav className="ucpnb-tabs">
-              <button
-                className={tab === "feed" ? "ucpnb-tab active" : "ucpnb-tab"}
-                onClick={() => setTab("feed")}
-              >
-                Notices
-              </button>
-              {user.role === "Publisher" && (
-                <button
-                  className={tab === "myNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
-                  onClick={() => setTab("myNotices")}
-                >
-                  My Notices
-                </button>
-              )}
-              {user.role === "Admin" && (
-                <>
-                  <button
-                    className={tab === "allNotices" ? "ucpnb-tab active" : "ucpnb-tab"}
-                    onClick={() => setTab("allNotices")}
-                  >
-                    All Notices
-                  </button>
-                  <button
-                    className={tab === "users" ? "ucpnb-tab active" : "ucpnb-tab"}
-                    onClick={() => setTab("users")}
-                  >
-                    Manage Users
-                  </button>
-                  <button
-                    className={tab === "analytics" ? "ucpnb-tab active" : "ucpnb-tab"}
-                    onClick={() => setTab("analytics")}
-                  >
-                    Analytics
-                  </button>
-                </>
-              )}
-            </nav>
-          )}
-          <a
-            className="ucpnb-bell-btn"
-            href={`${PWA_BASE_URL}/?enableNotifications=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Notifications"
-            title="Notifications aren't available inside the extension itself — this opens the mobile-friendly site, where they are"
-          >
-            🔔
-          </a>
-          <a
-            className="ucpnb-feedback-btn"
-            href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Leave feedback and a review"
-            title="Leave feedback and a review"
-          >
-            💬
-          </a>
+      <div className="ucpnb-panel-root">
+        <PanelHeader />
+        <div className="ucpnb-carousel">
+          {[0, 1, 2, 3].map((i) => (
+            <div className="ucpnb-card ucpnb-card-skeleton" key={i}>
+              <div className="ucpnb-card-body">
+                <div className="ucpnb-skeleton" style={{ width: "35%", height: 18 }} />
+                <div className="ucpnb-skeleton" style={{ width: "90%", height: 16 }} />
+                <div className="ucpnb-skeleton" style={{ width: "100%", height: 12 }} />
+                <div className="ucpnb-skeleton" style={{ width: "60%", height: 12 }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
+    );
+  }
+
+  if (status === "identity-not-found" || status === "error" || !user) {
+    return (
+      <div className="ucpnb-panel-root">
+        <PanelHeader />
+        {status === "identity-not-found" ? (
+          <EmptyState icon="users" title="Couldn't find your Roll Number">
+            The dashboard layout may have changed — NoticeBoard needs a small update to read it.
+          </EmptyState>
+        ) : (
+          <EmptyState icon="inbox" title="Can't reach NoticeBoard right now">
+            Notices will be back shortly. Try reloading the page in a minute.
+          </EmptyState>
+        )}
+      </div>
+    );
+  }
+
+  const tabs: { id: Tab; label: string; icon: IconName }[] = [
+    { id: "feed", label: "Notices", icon: "megaphone" },
+    ...(user.role === "Publisher" ? [{ id: "myNotices" as Tab, label: "My notices", icon: "fileText" as IconName }] : []),
+    ...(user.role === "Admin"
+      ? [
+          { id: "allNotices" as Tab, label: "All notices", icon: "fileText" as IconName },
+          { id: "users" as Tab, label: "Users", icon: "users" as IconName },
+          { id: "analytics" as Tab, label: "Analytics", icon: "chart" as IconName },
+        ]
+      : []),
+  ];
+
+  return (
+    <div className="ucpnb-panel-root">
+      <PanelHeader>
+        {tabs.length > 1 && (
+          <nav className="ucpnb-segmented ucpnb-tabs" aria-label="NoticeBoard sections">
+            {tabs.map((t) => (
+              <button key={t.id} className={tab === t.id ? "is-active" : ""} onClick={() => setTab(t.id)} aria-current={tab === t.id}>
+                <Icon name={t.icon} size={15} />
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        )}
+        <a
+          className="ucpnb-icon-btn"
+          href={`${PWA_BASE_URL}/?enableNotifications=1`}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Get notifications on your phone"
+          title="Get notifications — opens the NoticeBoard app, where they work"
+        >
+          <Icon name="bell" size={19} />
+        </a>
+        <a className="ucpnb-icon-btn" href={REVIEW_URL} target="_blank" rel="noopener noreferrer" aria-label="Send feedback" title="Send feedback">
+          <Icon name="message" size={19} />
+        </a>
+        {SUPPORT_URL && (
+          <a className="ucpnb-icon-btn" href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" aria-label="Support NoticeBoard" title="Support NoticeBoard">
+            <Icon name="heartHandshake" size={19} />
+          </a>
+        )}
+      </PanelHeader>
 
       {tab === "feed" && (
-        <NoticeFeed
-          token={user.token}
-          initialNotices={bootstrapNotices}
-          initialCategories={bootstrapCategories}
-        />
+        <NoticeFeed token={user.token} initialNotices={bootstrapNotices} initialCategories={bootstrapCategories} />
       )}
-      {tab === "myNotices" && user.role === "Publisher" && (
-        <NoticeManager user={user} scope="mine" />
-      )}
-      {tab === "allNotices" && user.role === "Admin" && (
-        <NoticeManager user={user} scope="all" />
-      )}
+      {tab === "myNotices" && user.role === "Publisher" && <NoticeManager user={user} scope="mine" />}
+      {tab === "allNotices" && user.role === "Admin" && <NoticeManager user={user} scope="all" />}
       {tab === "users" && user.role === "Admin" && (
         <AdminPanel user={user} adminPin={adminPin} onAdminPinChange={setAdminPin} />
       )}
       {tab === "analytics" && user.role === "Admin" && (
         <AnalyticsPanel user={user} adminPin={adminPin} onAdminPinChange={setAdminPin} />
       )}
+    </div>
+  );
+}
 
-
+function PanelHeader({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="ucpnb-panel-header">
+      <div className="ucpnb-brand">
+        <span className="ucpnb-logo">
+          <Icon name="megaphone" size={17} />
+        </span>
+        <div className="ucpnb-brand-text">
+          <strong>NoticeBoard</strong>
+          <span>Campus notices</span>
+        </div>
+      </div>
+      {children && <div className="ucpnb-panel-actions">{children}</div>}
     </div>
   );
 }

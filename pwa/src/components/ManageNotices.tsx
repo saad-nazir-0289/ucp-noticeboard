@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { api, hasDeviceToken } from "@shared/api/client";
 import { isExpired } from "@shared/noticeForm";
 import type { AuthUser, Notice } from "@shared/types";
+import { Icon } from "@shared/components/Icon";
+import { EmptyState } from "@shared/components/EmptyState";
+import { CategoryTag } from "@shared/components/Tags";
+import { timeAgo } from "@shared/format";
 
 interface Props {
   user: AuthUser;
@@ -14,10 +18,6 @@ interface Props {
   onNeedsUnlock: () => void;
   onLockPhone: () => void;
   onClose: () => void;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
 /**
@@ -58,59 +58,86 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
   };
 
   return (
-    <div className="ucpnb-grid-overlay" onClick={onClose}>
-      <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="ucpnb-overlay" onClick={onClose}>
+      <div className="ucpnb-sheet ucpnb-sheet-tall" role="dialog" aria-modal="true" aria-label="Manage notices" onClick={(e) => e.stopPropagation()}>
         <div className="ucpnb-sheet-header">
           <h3>{isAdmin ? "All notices" : "My notices"}</h3>
-          <button className="ucpnb-modal-close" onClick={onClose} aria-label="Close">
-            ×
-          </button>
+          <div className="ucpnb-sheet-header-actions">
+            <button className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-sm" onClick={onNew}>
+              <Icon name="plus" size={16} />
+              New
+            </button>
+            <button className="ucpnb-icon-btn" onClick={onClose} aria-label="Close">
+              <Icon name="x" />
+            </button>
+          </div>
         </div>
 
-        <button className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-block" onClick={onNew}>
-          + New notice
-        </button>
+        <div className="ucpnb-sheet-content">
+          {error && <p className="ucpnb-form-error">{error}</p>}
+          {!notices && !error && (
+            <div className="ucpnb-manage-list">
+              {[0, 1, 2].map((i) => (
+                <div className="ucpnb-manage-row" key={i}>
+                  <div className="ucpnb-skeleton" style={{ width: "70%", height: 14 }} />
+                </div>
+              ))}
+            </div>
+          )}
+          {notices?.length === 0 && (
+            <EmptyState icon="megaphone" title="Nothing posted yet">
+              Your notices will appear here, including ones students no longer see.
+            </EmptyState>
+          )}
 
-        {error && <p className="ucpnb-form-error">{error}</p>}
-        {!notices && !error && <p className="ucpnb-status">Loading...</p>}
-        {notices?.length === 0 && <p className="ucpnb-status">Nothing posted yet.</p>}
-
-        <ul className="ucpnb-manage-list">
-          {notices?.map((n) => (
-            <li key={n.id} className="ucpnb-manage-row">
-              <div className="ucpnb-manage-info">
-                <strong>{n.title}</strong>
-                <span>
-                  {isExpired(n) ? <em className="ucpnb-pill ucpnb-pill-muted">Expired</em> : <em className="ucpnb-pill">Live</em>}
-                  {" "}
-                  {formatDate(n.createdAt)}
-                  {isAdmin && ` · ${n.createdByName}`}
-                  {` · ${n.viewCount} views`}
-                </span>
-              </div>
-              <div className="ucpnb-manage-actions">
-                <button className="ucpnb-btn ucpnb-btn-link" onClick={() => onEdit(n)}>
-                  Edit
-                </button>
-                <button
-                  className="ucpnb-btn ucpnb-btn-link ucpnb-btn-danger"
-                  onClick={() => handleDelete(n)}
-                  disabled={deletingId === n.id}
-                >
-                  {deletingId === n.id ? "Deleting..." : "Delete"}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+          {notices && notices.length > 0 && (
+            <ul className="ucpnb-manage-list">
+              {notices.map((n) => {
+                const expired = isExpired(n);
+                return (
+                  <li key={n.id} className="ucpnb-manage-row">
+                    <div className="ucpnb-manage-info">
+                      <div className="ucpnb-card-tags">
+                        <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
+                          {expired ? "Expired" : "Live"}
+                        </span>
+                        {n.categoryName && <CategoryTag name={n.categoryName} />}
+                      </div>
+                      <strong>{n.title}</strong>
+                      <span className="ucpnb-manage-meta">
+                        {isAdmin && <>{n.createdByName} · </>}
+                        {timeAgo(n.createdAt)} · <Icon name="eye" size={13} /> {n.viewCount} · <Icon name="heart" size={13} /> {n.likeCount}
+                      </span>
+                    </div>
+                    <div className="ucpnb-manage-actions">
+                      <button className="ucpnb-icon-btn" onClick={() => onEdit(n)} aria-label={`Edit ${n.title}`} title="Edit">
+                        <Icon name="pencil" size={18} />
+                      </button>
+                      <button
+                        className="ucpnb-icon-btn ucpnb-icon-btn-danger"
+                        onClick={() => handleDelete(n)}
+                        disabled={deletingId === n.id}
+                        aria-label={`Delete ${n.title}`}
+                        title="Delete"
+                      >
+                        {deletingId === n.id ? <span className="ucpnb-spinner" /> : <Icon name="trash" size={18} />}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
 
         {hasDeviceToken() && (
-          <p className="ucpnb-sheet-text ucpnb-sheet-footer">
-            🔓 This phone is unlocked for posting.{" "}
-            <button className="ucpnb-btn ucpnb-btn-link" onClick={onLockPhone}>
+          <div className="ucpnb-sheet-footer ucpnb-unlocked-note">
+            <Icon name="unlock" size={16} />
+            <span>This phone is unlocked for posting.</span>
+            <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" onClick={onLockPhone}>
               Lock it
             </button>
-          </p>
+          </div>
         )}
       </div>
     </div>

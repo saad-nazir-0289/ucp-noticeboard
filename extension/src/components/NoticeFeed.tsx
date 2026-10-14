@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
 import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
+import { Icon } from "@shared/components/Icon";
+import { EmptyState } from "@shared/components/EmptyState";
 
 // Desktop cards and the modal are narrower than the PWA's, so request smaller posters.
 const CARD_IMAGE_WIDTH = 400;
@@ -28,6 +30,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
   const [showHidden, setShowHidden] = useState(false);
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Already have data from the login bootstrap — nothing to fetch on
@@ -126,109 +129,157 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     });
   };
 
-  if (loading) return <p className="ucpnb-status">Loading notices...</p>;
-  if (error) return <p className="ucpnb-error">{error}</p>;
+  const scrollCarousel = (direction: 1 | -1) => {
+    const el = carouselRef.current;
+    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: "smooth" });
+  };
 
-  const toolbar = (
-    <div className="ucpnb-toolbar">
-      <input
-        type="text"
-        className="ucpnb-search"
-        placeholder="Search notices..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+  if (loading) {
+    return (
+      <div className="ucpnb-carousel">
+        {[0, 1, 2, 3].map((i) => (
+          <div className="ucpnb-card ucpnb-card-skeleton" key={i}>
+            <div className="ucpnb-card-body">
+              <div className="ucpnb-skeleton" style={{ width: "35%", height: 18 }} />
+              <div className="ucpnb-skeleton" style={{ width: "90%", height: 16 }} />
+              <div className="ucpnb-skeleton" style={{ width: "100%", height: 12 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <EmptyState icon="inbox" title="Couldn't load notices">
+        Try reloading the page in a minute.
+      </EmptyState>
+    );
+  }
+
+  const hasFilters = search.trim() !== "" || categoryId !== "all";
+
+  const filters = (
+    <div className="ucpnb-filters">
+      <label className="ucpnb-search">
+        <Icon name="search" size={17} />
+        <input
+          className="ucpnb-input"
+          type="search"
+          placeholder="Search notices"
+          aria-label="Search notices"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </label>
       {categories.length > 0 && (
-        <select
-          className="ucpnb-category-select"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value === "all" ? "all" : Number(e.target.value))}
-        >
-          <option value="all">All categories</option>
+        <div className="ucpnb-chips" aria-label="Categories">
+          <button className={categoryId === "all" ? "ucpnb-chip is-active" : "ucpnb-chip"} onClick={() => setCategoryId("all")}>
+            All
+          </button>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
+            <button key={c.id} className={categoryId === c.id ? "ucpnb-chip is-active" : "ucpnb-chip"} onClick={() => setCategoryId(c.id)}>
               {c.name}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       )}
-      <button className="ucpnb-btn" onClick={() => setShowGrid(true)}>
-        View All
-      </button>
-      <button className="ucpnb-btn" onClick={openHidden}>
-        Hidden Notices
-      </button>
     </div>
+  );
+
+  const empty = hasFilters ? (
+    <EmptyState icon="search" title="No matching notices">
+      Try a different word or category.
+    </EmptyState>
+  ) : (
+    <EmptyState icon="megaphone" title="You're all caught up">
+      New notices from societies and departments will show up here.
+    </EmptyState>
   );
 
   return (
     <>
-      {toolbar}
+      <div className="ucpnb-feed-toolbar">
+        {filters}
+        <div className="ucpnb-feed-toolbar-actions">
+          <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => setShowGrid(true)}>
+            <Icon name="grid" size={15} />
+            View all
+          </button>
+          <button className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined" onClick={openHidden} aria-label="Hidden notices" title="Hidden notices">
+            <Icon name="eyeOff" size={16} />
+          </button>
+        </div>
+      </div>
 
       {filtered.length === 0 ? (
-        <p className="ucpnb-status">
-          {notices.length === 0 ? "No notices yet." : "No notices match your search/filter."}
-        </p>
+        empty
       ) : (
-        <div className="ucpnb-feed">
-          {filtered.map((notice) => (
-            <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
-          ))}
+        <div className="ucpnb-carousel-wrap">
+          <button className="ucpnb-icon-btn ucpnb-carousel-nav is-prev" onClick={() => scrollCarousel(-1)} aria-label="Previous notices">
+            <Icon name="chevronLeft" />
+          </button>
+          <div className="ucpnb-carousel" ref={carouselRef}>
+            {filtered.map((notice) => (
+              <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
+            ))}
+          </div>
+          <button className="ucpnb-icon-btn ucpnb-carousel-nav is-next" onClick={() => scrollCarousel(1)} aria-label="More notices">
+            <Icon name="chevronRight" />
+          </button>
         </div>
       )}
 
       {showGrid && (
-        <div className="ucpnb-grid-overlay" onClick={() => setShowGrid(false)}>
-          <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ucpnb-grid-header">
-              <h3>All Notices</h3>
-              <button className="ucpnb-modal-close" onClick={() => setShowGrid(false)} aria-label="Close">
-                ×
+        <div className="ucpnb-overlay" onClick={() => setShowGrid(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-wide" role="dialog" aria-modal="true" aria-label="All notices" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-sheet-header">
+              <h3>All notices</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowGrid(false)} aria-label="Close">
+                <Icon name="x" />
               </button>
             </div>
-            {toolbar}
-            {filtered.length === 0 ? (
-              <p className="ucpnb-status">No notices match your search/filter.</p>
-            ) : (
-              <div className="ucpnb-grid">
-                {filtered.map((notice) => (
-                  <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
-                ))}
-              </div>
-            )}
+            <div className="ucpnb-sheet-content">
+              {filters}
+              {filtered.length === 0 ? (
+                empty
+              ) : (
+                <div className="ucpnb-grid">
+                  {filtered.map((notice) => (
+                    <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} onLike={handleLike} imageWidth={CARD_IMAGE_WIDTH} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {showHidden && (
-        <div className="ucpnb-grid-overlay" onClick={() => setShowHidden(false)}>
-          <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="ucpnb-grid-header">
-              <h3>Hidden Notices</h3>
-              <button className="ucpnb-modal-close" onClick={() => setShowHidden(false)} aria-label="Close">
-                ×
+        <div className="ucpnb-overlay" onClick={() => setShowHidden(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-wide" role="dialog" aria-modal="true" aria-label="Hidden notices" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-sheet-header">
+              <h3>Hidden notices</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowHidden(false)} aria-label="Close">
+                <Icon name="x" />
               </button>
             </div>
-            <p className="ucpnb-status">
-              Notices you've hidden from your own feed. Restoring one brings it back for you only.
-            </p>
-            {dismissedLoading ? (
-              <p className="ucpnb-status">Loading...</p>
-            ) : dismissedNotices.length === 0 ? (
-              <p className="ucpnb-status">Nothing hidden right now.</p>
-            ) : (
-              <div className="ucpnb-grid">
-                {dismissedNotices.map((notice) => (
-                  <NoticeCard
-                    key={notice.id}
-                    notice={notice}
-                    onView={handleView}
-                    onRestore={handleRestore}
-                    imageWidth={CARD_IMAGE_WIDTH}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="ucpnb-sheet-content">
+              <p className="ucpnb-sheet-text">Only hidden for you. Restore one to bring it back to your feed.</p>
+              {dismissedLoading ? (
+                <div className="ucpnb-skeleton" style={{ height: 120 }} />
+              ) : dismissedNotices.length === 0 ? (
+                <EmptyState icon="eyeOff" title="Nothing hidden">
+                  Use the hide icon on a notice to tuck it away.
+                </EmptyState>
+              ) : (
+                <div className="ucpnb-grid">
+                  {dismissedNotices.map((notice) => (
+                    <NoticeCard key={notice.id} notice={notice} onView={handleView} onRestore={handleRestore} imageWidth={CARD_IMAGE_WIDTH} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -4,6 +4,7 @@ import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@shared/noticeForm";
 import { optimizeImageUrl } from "@shared/imageOptimize";
 import type { AuthUser, Category, Notice } from "@shared/types";
+import { Icon } from "@shared/components/Icon";
 
 /** Pre-filled values for a new notice (e.g. from something shared into the app). */
 export interface NoticeDraft {
@@ -95,69 +96,84 @@ export function NoticeEditor({ user, categories, notice, draft, onSaved, onClose
   };
 
   return (
-    <div className="ucpnb-modal-overlay" onClick={onClose}>
-      <form className="ucpnb-sheet ucpnb-form" onClick={(e) => e.stopPropagation()} onSubmit={submit}>
+    <div className="ucpnb-overlay" onClick={onClose}>
+      <form
+        className="ucpnb-sheet ucpnb-sheet-tall"
+        role="dialog"
+        aria-modal="true"
+        aria-label={notice ? "Edit notice" : "New notice"}
+        onClick={(e) => e.stopPropagation()}
+        onSubmit={submit}
+      >
         <div className="ucpnb-sheet-header">
           <h3>{notice ? "Edit notice" : "New notice"}</h3>
-          <button type="button" className="ucpnb-modal-close" onClick={onClose} aria-label="Close">
-            ×
+          <button type="button" className="ucpnb-icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="x" />
           </button>
         </div>
 
-        <label className="ucpnb-field">
-          <span>Title</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Hackathon registrations open" />
-        </label>
+        <div className="ucpnb-sheet-content">
+          <label className="ucpnb-field">
+            <span className="ucpnb-field-label">Title</span>
+            <input className="ucpnb-input" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Hackathon registrations open" />
+          </label>
 
-        <label className="ucpnb-field">
-          <span>Details</span>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know" />
-        </label>
+          <label className="ucpnb-field">
+            <span className="ucpnb-field-label">Details</span>
+            <textarea className="ucpnb-input" value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={4000} placeholder="What students need to know — dates, venue, who it's for" />
+          </label>
 
-        <div className="ucpnb-field">
-          <span>Poster</span>
-          {imageUrl ? (
-            <div className="ucpnb-poster-preview">
-              <img src={optimizeImageUrl(imageUrl, 600) ?? imageUrl} alt="" />
-              <button type="button" className="ucpnb-btn ucpnb-btn-link ucpnb-btn-danger" onClick={() => setImageUrl("")}>
-                Remove
-              </button>
-            </div>
-          ) : (
-            <label className={`ucpnb-btn ucpnb-btn-block ucpnb-upload-btn${uploading ? " is-busy" : ""}`}>
-              {uploading ? "Uploading..." : "🖼 Add a poster (optional)"}
-              <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} hidden />
+          <div className="ucpnb-field">
+            <span className="ucpnb-field-label">Poster</span>
+            {imageUrl ? (
+              <div className="ucpnb-poster">
+                <img src={optimizeImageUrl(imageUrl, 700) ?? imageUrl} alt="" />
+                <button type="button" className="ucpnb-icon-btn ucpnb-poster-remove" onClick={() => setImageUrl("")} aria-label="Remove poster">
+                  <Icon name="trash" size={18} />
+                </button>
+              </div>
+            ) : (
+              <label className={`ucpnb-dropzone${uploading ? " is-busy" : ""}`}>
+                {uploading ? <span className="ucpnb-spinner" /> : <Icon name="image" size={24} />}
+                <strong>{uploading ? "Uploading…" : "Add a poster"}</strong>
+                <span>Optional · JPG or PNG up to 8 MB</span>
+                <input type="file" accept="image/*" onChange={handleFile} disabled={uploading} hidden />
+              </label>
+            )}
+          </div>
+
+          <div className="ucpnb-field-pair">
+            <label className="ucpnb-field">
+              <span className="ucpnb-field-label">Category</span>
+              <select className="ucpnb-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
+                <option value="">None</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </label>
-          )}
+            <label className="ucpnb-field">
+              <span className="ucpnb-field-label">Deadline</span>
+              <input className="ucpnb-input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+            </label>
+          </div>
+          <span className="ucpnb-field-hint">Without a deadline, a notice stays up for 7 days.</span>
+
+          <label className="ucpnb-field">
+            <span className="ucpnb-field-label">Link</span>
+            <input className="ucpnb-input" type="url" inputMode="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Registration form, event page… (optional)" />
+          </label>
+
+          {error && <p className="ucpnb-form-error">{error}</p>}
         </div>
 
-        <label className="ucpnb-field">
-          <span>Category</span>
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
-            <option value="">No category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className="ucpnb-field">
-          <span>Deadline (optional)</span>
-          <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-          <small>Without one, the notice shows for 7 days.</small>
-        </label>
-
-        <label className="ucpnb-field">
-          <span>Link (optional)</span>
-          <input type="url" inputMode="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://" />
-        </label>
-
-        {error && <p className="ucpnb-form-error">{error}</p>}
-        <button type="submit" className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-block" disabled={saving || uploading}>
-          {saving ? "Saving..." : notice ? "Save changes" : "Publish"}
-        </button>
+        <div className="ucpnb-sheet-footer">
+          <button type="submit" className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-lg ucpnb-btn-block" disabled={saving || uploading}>
+            {saving ? <span className="ucpnb-spinner" /> : notice ? "Save changes" : "Publish notice"}
+          </button>
+        </div>
       </form>
     </div>
   );

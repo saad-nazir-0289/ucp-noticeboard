@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "@shared/components/Icon";
 
 interface Props {
   /** What the PIN unlocks, e.g. "Manage Users". */
@@ -37,26 +38,28 @@ export function AdminPinPrompt({ section, onUnlock }: Props) {
   };
 
   return (
-    <div className="ucpnb-panel">
-      <form className="ucpnb-form" onSubmit={submit}>
-        <p className="ucpnb-status">
-          Enter your PIN to open {section}. You won't be asked again until you reload the page.
-        </p>
+    <div className="ucpnb-tab-panel">
+      <form className="ucpnb-form-card ucpnb-pin-card" onSubmit={submit}>
+        <span className="ucpnb-unlock-icon">
+          <Icon name="lock" size={24} />
+        </span>
+        <h4>Enter your PIN to open {section}</h4>
+        <p className="ucpnb-field-hint">You won't be asked again until you reload the page.</p>
         <input
+          className="ucpnb-input ucpnb-input-pin"
           type="password"
           inputMode="numeric"
           placeholder="Your PIN"
+          aria-label="Your PIN"
           autoFocus
           value={pin}
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
           maxLength={6}
         />
-        {error && <p className="ucpnb-error">{error}</p>}
-        <div className="ucpnb-form-actions">
-          <button type="submit" className="ucpnb-btn ucpnb-btn-primary" disabled={checking}>
-            {checking ? "Checking..." : "Unlock"}
-          </button>
-        </div>
+        {error && <p className="ucpnb-form-error">{error}</p>}
+        <button type="submit" className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-block" disabled={checking}>
+          {checking ? <span className="ucpnb-spinner" /> : "Unlock"}
+        </button>
       </form>
     </div>
   );

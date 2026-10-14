@@ -1,0 +1,71 @@
+/*
+ * NoticeBoard design tokens — the single source of colour, type, spacing,
+ * radius and elevation for both the PWA and the extension. Components
+ * only ever use these variables, so a re-theme happens here.
+ *
+ * Light theme only in this file. The PWA adds a dark theme on top
+ * (pwa/src/styles.css); the extension stays light to match the portal.
+ */
+:root {
+  /* Brand */
+  --nb-brand: #0b2545;          /* deep UCP navy: logo, headings */
+  --nb-primary: #2457d6;        /* actions, links, focus */
+  --nb-primary-hover: #1c47b5;
+  --nb-primary-soft: #edf2fe;
+  --nb-on-primary: #ffffff;
+
+  /* Surfaces */
+  --nb-bg: #f4f6fa;
+  --nb-surface: #ffffff;
+  --nb-surface-2: #f1f4f9;      /* subtle fills: inputs, chips, placeholders */
+  --nb-surface-3: #e6ebf2;      /* pressed / hover fills */
+  --nb-border: #e3e8ef;
+  --nb-border-strong: #cfd7e3;
+  --nb-overlay: rgba(9, 17, 33, 0.52);
+
+  /* Text */
+  --nb-text: #0f1b2d;
+  --nb-text-2: #4a5568;
+  --nb-text-3: #8492a6;
+
+  /* Status */
+  --nb-danger: #d92d20;
+  --nb-danger-soft: #fef0ef;
+  --nb-warning: #b54708;
+  --nb-warning-soft: #fff6ea;
+  --nb-success: #067647;
+  --nb-success-soft: #ebf8f1;
+  --nb-like: #e31b54;
+
+  /* Category tones (paired background / foreground), picked per category name */
+  --nb-tone-0-bg: #edf2fe; --nb-tone-0-fg: #2457d6;
+  --nb-tone-1-bg: #ecfdf3; --nb-tone-1-fg: #067647;
+  --nb-tone-2-bg: #fff4ed; --nb-tone-2-fg: #c4320a;
+  --nb-tone-3-bg: #f4f3ff; --nb-tone-3-fg: #5925dc;
+  --nb-tone-4-bg: #fdf2fa; --nb-tone-4-fg: #c11574;
+  --nb-tone-5-bg: #ecfdff; --nb-tone-5-fg: #0e7090;
+  --nb-tone-6-bg: #fefbe8; --nb-tone-6-fg: #a15c07;
+  --nb-tone-7-bg: #f0f9ff; --nb-tone-7-fg: #026aa2;
+
+  /* Type */
+  --nb-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nb-text-xs: 12px;
+  --nb-text-sm: 13px;
+  --nb-text-md: 15px;
+  --nb-text-lg: 17px;
+  --nb-text-xl: 20px;
+  --nb-text-2xl: 24px;
+
+  /* Shape & depth */
+  --nb-r-sm: 8px;
+  --nb-r-md: 12px;
+  --nb-r-lg: 16px;
+  --nb-r-xl: 22px;
+  --nb-r-full: 999px;
+  --nb-shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --nb-shadow-2: 0 4px 14px rgba(16, 24, 40, 0.08), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --nb-shadow-3: 0 18px 48px rgba(16, 24, 40, 0.2);
+  --nb-focus: 0 0 0 3px rgba(36, 87, 214, 0.28);
+
+  --nb-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

@@ -16,6 +16,9 @@ import { NoticeSkeleton } from "./components/NoticeSkeleton";
 import { NoticeEditor } from "./components/NoticeEditor";
 import { ManageNotices } from "./components/ManageNotices";
 import { UnlockPrompt } from "./components/UnlockPrompt";
+import { Icon } from "@shared/components/Icon";
+import { Avatar } from "@shared/components/Tags";
+import { EmptyState } from "@shared/components/EmptyState";
 
 type Status = "loading" | "needs-identity" | "ready" | "error";
 type PushState = "unsupported" | "subscribed" | "not-subscribed" | "working";
@@ -42,6 +45,7 @@ export function App() {
   const [showManage, setShowManage] = useState(false);
   // Bumped after a publish/edit/delete so the feed and list reload.
   const [refreshKey, setRefreshKey] = useState(0);
+  const [showAccount, setShowAccount] = useState(false);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -279,15 +283,30 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, autoEnableNotifications, pushState]);
 
+  const appBar = (actions?: React.ReactNode) => (
+    <header className="ucpnb-appbar">
+      <div className="ucpnb-appbar-inner">
+        <div className="ucpnb-brand">
+          <span className="ucpnb-logo">
+            <Icon name="megaphone" size={18} />
+          </span>
+          <div className="ucpnb-brand-text">
+            <strong>NoticeBoard</strong>
+            <span>UCP</span>
+          </div>
+        </div>
+        {actions && <div className="ucpnb-appbar-actions">{actions}</div>}
+      </div>
+    </header>
+  );
+
   if (status === "loading") {
     return (
-      <div className="ucpnb-page">
-        <div className="ucpnb-section">
-          <div className="ucpnb-header">
-            <h3>Latest Updates</h3>
-          </div>
+      <div className="ucpnb-app">
+        {appBar()}
+        <main className="ucpnb-main">
           <NoticeSkeleton viewMode={getSavedViewMode()} />
-        </div>
+        </main>
       </div>
     );
   }
@@ -298,83 +317,66 @@ export function App() {
 
   if (status === "error" || !user) {
     return (
-      <div className="ucpnb-page">
-        <p className="ucpnb-error">
-          Couldn't reach the NoticeBoard server. Please try again shortly.
-        </p>
+      <div className="ucpnb-app">
+        {appBar()}
+        <main className="ucpnb-main">
+          <EmptyState icon="inbox" title="Can't reach NoticeBoard">
+            Check your connection and try again.
+          </EmptyState>
+          <div className="ucpnb-center">
+            <button className="ucpnb-btn ucpnb-btn-primary" onClick={() => window.location.reload()}>
+              <Icon name="restore" size={16} />
+              Try again
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
 
+  const canPublish = user.role !== "Student";
+  const displayName = getSavedIdentity()?.name || user.name;
+  const notificationsOn = pushState === "subscribed";
+
   return (
-    <div className="ucpnb-page">
-      {toast && <div className="ucpnb-toast">{toast}</div>}
-      <div className="ucpnb-section">
-        <div className="ucpnb-header">
-          <h3>Latest Updates</h3>
-          <div className="ucpnb-header-actions">
-            {user.role !== "Student" && (
-              <button className="ucpnb-btn" onClick={() => setShowManage(true)}>
-                {user.role === "Admin" ? "All notices" : "My notices"}
-              </button>
-            )}
-            {pushState !== "unsupported" && (
-              <button
-                className="ucpnb-bell-btn"
-                onClick={handleToggleNotifications}
-                disabled={pushState === "working"}
-                aria-label={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
-                title={pushState === "subscribed" ? "Turn off notifications" : "Turn on notifications"}
-              >
-                {pushState === "subscribed" ? "🔕" : "🔔"}
-              </button>
-            )}
-            {pushState === "subscribed" && bootstrapCategories.length > 0 && (
-              <button className="ucpnb-btn ucpnb-btn-link" onClick={openCategoryPrefs}>
-                Customize
-              </button>
-            )}
-          </div>
+    <div className="ucpnb-app">
+      {toast && (
+        <div className="ucpnb-toast" role="status">
+          <Icon name="check" size={16} strokeWidth={2.6} />
+          {toast}
         </div>
+      )}
 
-        {showCategoryPrefs && (
-          <div className="ucpnb-grid-overlay" onClick={() => setShowCategoryPrefs(false)}>
-            <div className="ucpnb-grid-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="ucpnb-grid-header">
-                <h3>Notify me about</h3>
-                <button className="ucpnb-modal-close" onClick={() => setShowCategoryPrefs(false)} aria-label="Close">
-                  ×
-                </button>
-              </div>
-              {prefsLoading ? (
-                <p className="ucpnb-status">Loading...</p>
-              ) : (
-                <>
-                  <p className="ucpnb-status">
-                    Leave everything unchecked to get notified about everything, or pick
-                    specific categories to only hear about those.
-                  </p>
-                  {bootstrapCategories.map((c) => (
-                    <label key={c.id} className="ucpnb-checkbox-row">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategoryIds.includes(c.id)}
-                        onChange={() => toggleCategorySelection(c.id)}
-                      />
-                      {c.name}
-                    </label>
-                  ))}
-                  <div className="ucpnb-form-actions">
-                    <button className="ucpnb-btn ucpnb-btn-primary" onClick={saveCategoryPrefs}>
-                      Save
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+      {appBar(
+        <>
+          {canPublish && (
+            <button
+              className="ucpnb-btn ucpnb-btn-secondary ucpnb-appbar-btn"
+              onClick={() => setShowManage(true)}
+              aria-label={user.role === "Admin" ? "All notices" : "My notices"}
+            >
+              <Icon name="fileText" size={17} />
+              <span>{user.role === "Admin" ? "All notices" : "My notices"}</span>
+            </button>
+          )}
+          {pushState !== "unsupported" && (
+            <button
+              className={notificationsOn ? "ucpnb-icon-btn is-active" : "ucpnb-icon-btn"}
+              onClick={handleToggleNotifications}
+              disabled={pushState === "working"}
+              aria-label={notificationsOn ? "Turn off notifications" : "Turn on notifications"}
+              title={notificationsOn ? "Notifications on — tap to turn off" : "Turn on notifications"}
+            >
+              <Icon name={notificationsOn ? "bell" : "bellOff"} />
+            </button>
+          )}
+          <button className="ucpnb-avatar-btn" onClick={() => setShowAccount(true)} aria-label="Account and settings">
+            <Avatar name={displayName} size="md" />
+          </button>
+        </>
+      )}
 
+      <main className="ucpnb-main">
         <NoticeFeed
           key={refreshKey}
           token={user.token}
@@ -384,54 +386,161 @@ export function App() {
           initialCategories={bootstrapCategories}
           deepLinkNoticeId={refreshKey === 0 ? deepLinkNoticeId : undefined}
         />
+      </main>
 
-        {user.role !== "Student" && (
-          <button className="ucpnb-fab" onClick={() => openEditor()} aria-label="New notice">
-            + New notice
-          </button>
-        )}
+      {canPublish && (
+        <button className="ucpnb-fab" onClick={() => openEditor()} aria-label="New notice">
+          <Icon name="plus" size={22} strokeWidth={2.4} />
+          <span>New notice</span>
+        </button>
+      )}
 
-        {showManage && (
-          <ManageNotices
-            user={user}
-            refreshKey={refreshKey}
-            onNew={() => openEditor()}
-            onEdit={(n) => openEditor(n)}
-            onDeleted={() => {
-              setRefreshKey((k) => k + 1);
-              showToast("Notice deleted");
-            }}
-            onNeedsUnlock={() => setShowUnlock(true)}
-            onLockPhone={lockThisPhone}
-            onClose={() => setShowManage(false)}
-          />
-        )}
+      {showAccount && (
+        <div className="ucpnb-overlay" onClick={() => setShowAccount(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-compact" role="dialog" aria-modal="true" aria-label="Account" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-sheet-handle" aria-hidden="true" />
+            <div className="ucpnb-sheet-content">
+              <div className="ucpnb-account">
+                <Avatar name={displayName} size="md" />
+                <div>
+                  <strong>{displayName}</strong>
+                  <span>
+                    {user.rollNumber}
+                    {user.role !== "Student" && <span className="ucpnb-badge ucpnb-badge-success">{user.role}</span>}
+                  </span>
+                </div>
+              </div>
 
-        {editor && (
-          <NoticeEditor
-            user={user}
-            categories={bootstrapCategories}
-            notice={editor.notice}
-            onSaved={() => handleSaved(Boolean(editor.notice))}
-            onClose={() => setEditor(null)}
-            onNeedsUnlock={() => setShowUnlock(true)}
-          />
-        )}
-
-        {showUnlock && (
-          <UnlockPrompt token={user.token} onUnlocked={handleUnlocked} onClose={() => setShowUnlock(false)} />
-        )}
-
-        <div className="ucpnb-footer">
-          <a
-            href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            💬 Enjoying this? Leave feedback & a review
-          </a>
+              <div className="ucpnb-menu">
+                {pushState !== "unsupported" && (
+                  <button className="ucpnb-menu-item" onClick={handleToggleNotifications} disabled={pushState === "working"}>
+                    <Icon name={notificationsOn ? "bell" : "bellOff"} />
+                    <span>Notifications</span>
+                    <span className={notificationsOn ? "ucpnb-switch is-on" : "ucpnb-switch"} aria-hidden="true" />
+                  </button>
+                )}
+                {notificationsOn && bootstrapCategories.length > 0 && (
+                  <button
+                    className="ucpnb-menu-item"
+                    onClick={() => {
+                      setShowAccount(false);
+                      openCategoryPrefs();
+                    }}
+                  >
+                    <Icon name="sliders" />
+                    <span>Notification topics</span>
+                    <Icon name="chevronRight" size={18} />
+                  </button>
+                )}
+                {canPublish && unlocked && (
+                  <button
+                    className="ucpnb-menu-item"
+                    onClick={() => {
+                      setShowAccount(false);
+                      lockThisPhone();
+                    }}
+                  >
+                    <Icon name="lock" />
+                    <span>Lock posting on this phone</span>
+                  </button>
+                )}
+                <a
+                  className="ucpnb-menu-item"
+                  href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="message" />
+                  <span>Send feedback</span>
+                  <Icon name="externalLink" size={16} />
+                </a>
+                {import.meta.env.VITE_SUPPORT_URL && (
+                  <a className="ucpnb-menu-item" href={import.meta.env.VITE_SUPPORT_URL} target="_blank" rel="noopener noreferrer">
+                    <Icon name="heartHandshake" />
+                    <span>Support NoticeBoard</span>
+                    <Icon name="externalLink" size={16} />
+                  </a>
+                )}
+                <button
+                  className="ucpnb-menu-item ucpnb-menu-item-danger"
+                  onClick={() => {
+                    setShowAccount(false);
+                    handleChangeIdentity();
+                  }}
+                >
+                  <Icon name="restore" />
+                  <span>Switch account</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {showCategoryPrefs && (
+        <div className="ucpnb-overlay" onClick={() => setShowCategoryPrefs(false)}>
+          <div className="ucpnb-sheet ucpnb-sheet-compact" role="dialog" aria-modal="true" aria-label="Notification topics" onClick={(e) => e.stopPropagation()}>
+            <div className="ucpnb-sheet-header">
+              <h3>Notify me about</h3>
+              <button className="ucpnb-icon-btn" onClick={() => setShowCategoryPrefs(false)} aria-label="Close">
+                <Icon name="x" />
+              </button>
+            </div>
+            <div className="ucpnb-sheet-content">
+              <p className="ucpnb-sheet-text">Pick the topics you care about, or leave them all off to hear about everything.</p>
+              {prefsLoading ? (
+                <div className="ucpnb-skeleton" style={{ height: 34, width: "70%" }} />
+              ) : (
+                <div className="ucpnb-chips ucpnb-chips-wrap">
+                  {bootstrapCategories.map((c) => {
+                    const on = selectedCategoryIds.includes(c.id);
+                    return (
+                      <button key={c.id} className={on ? "ucpnb-chip is-active" : "ucpnb-chip"} onClick={() => toggleCategorySelection(c.id)} aria-pressed={on}>
+                        {on && <Icon name="check" size={14} strokeWidth={2.6} />}
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="ucpnb-sheet-footer">
+              <button className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-lg ucpnb-btn-block" onClick={saveCategoryPrefs} disabled={prefsLoading}>
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showManage && (
+        <ManageNotices
+          user={user}
+          refreshKey={refreshKey}
+          onNew={() => openEditor()}
+          onEdit={(n) => openEditor(n)}
+          onDeleted={() => {
+            setRefreshKey((k) => k + 1);
+            showToast("Notice deleted");
+          }}
+          onNeedsUnlock={() => setShowUnlock(true)}
+          onLockPhone={lockThisPhone}
+          onClose={() => setShowManage(false)}
+        />
+      )}
+
+      {editor && (
+        <NoticeEditor
+          user={user}
+          categories={bootstrapCategories}
+          notice={editor.notice}
+          onSaved={() => handleSaved(Boolean(editor.notice))}
+          onClose={() => setEditor(null)}
+          onNeedsUnlock={() => setShowUnlock(true)}
+        />
+      )}
+
+      {showUnlock && <UnlockPrompt token={user.token} onUnlocked={handleUnlocked} onClose={() => setShowUnlock(false)} />}
     </div>
   );
 }

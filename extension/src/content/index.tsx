@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { NoticeBoard } from "./NoticeBoard";
+import "@shared/styles/tokens.css";
+import "@shared/styles/components.css";
 import "./content.css";
 
 const CONTAINER_ID = "ucp-noticeboard-root";

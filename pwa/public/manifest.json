@@ -4,8 +4,8 @@
   "description": "Campus notices from UCP, on your phone.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#12395c",
+  "background_color": "#f4f6fa",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/icon-192.png",

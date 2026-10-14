@@ -1,18 +1,16 @@
 import { useState } from "react";
 import { useSwipeable } from "react-swipeable";
 import type { Notice } from "@shared/types";
-import { shareNotice } from "@shared/share";
 import { optimizeImageUrl } from "@shared/imageOptimize";
+import { categoryTone, timeAgo } from "@shared/format";
+import { Icon } from "@shared/components/Icon";
+import { DeadlineBadge } from "@shared/components/Tags";
 
 interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
   onDismiss: (notice: Notice) => void;
   onLike?: (notice: Notice) => void;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 // A swipe counts as "dismiss" if it travels far enough OR is a fast
@@ -25,7 +23,6 @@ const DISMISS_VELOCITY = 0.5;
 export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dismissing, setDismissing] = useState(false);
-  const [shared, setShared] = useState(false);
 
   const handlers = useSwipeable({
     onSwiping: (eventData) => {
@@ -58,61 +55,56 @@ export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
     // perfectly without it.
   });
 
-  const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const result = await shareNotice(notice);
-    if (result === "copied") {
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
-    }
-  };
-
   return (
-    <div className="ucpnb-list-item-wrap">
-      <div className="ucpnb-list-item-hint" aria-hidden="true">
-        Hidden
+    <div className="ucpnb-row-wrap">
+      <div className="ucpnb-row-hint" aria-hidden="true">
+        <Icon name="eyeOff" size={18} />
+        Hide
       </div>
       <div
         {...handlers}
-        className="ucpnb-list-item"
+        className="ucpnb-row"
+        role="button"
+        tabIndex={0}
+        aria-label={notice.title}
         style={{
           transform: `translateX(${dismissing ? "100%" : `${dragX}px`})`,
           opacity: dismissing ? 0 : 1,
         }}
         onClick={() => dragX === 0 && onView(notice)}
+        onKeyDown={(e) => e.key === "Enter" && onView(notice)}
       >
-        <div className="ucpnb-list-item-thumb">
+        <div className={`ucpnb-row-thumb${notice.imageUrl ? "" : ` ucpnb-tone-${categoryTone(notice.categoryName ?? notice.title)}`}`}>
           {notice.imageUrl ? (
-            <img src={optimizeImageUrl(notice.imageUrl, 120) ?? undefined} alt="" loading="lazy" />
+            <img src={optimizeImageUrl(notice.imageUrl, 160) ?? undefined} alt="" loading="lazy" />
           ) : (
-            <span aria-hidden="true">📌</span>
+            <Icon name="megaphone" size={22} />
           )}
         </div>
-        <div className="ucpnb-list-item-body">
-          {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
-          <h4 className="ucpnb-list-item-title">{notice.title}</h4>
-          {notice.deadline && (
-            <span className="ucpnb-card-deadline">Deadline: {formatDate(notice.deadline)}</span>
-          )}
+        <div className="ucpnb-row-body">
+          <div className="ucpnb-row-meta">
+            {notice.categoryName && <span className={`ucpnb-row-category ucpnb-tone-text-${categoryTone(notice.categoryName)}`}>{notice.categoryName}</span>}
+            {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
+          </div>
+          <h3 className="ucpnb-row-title">{notice.title}</h3>
+          <div className="ucpnb-row-source">
+            <span>{notice.createdByName}</span>
+            <span className="ucpnb-dot" aria-hidden="true" />
+            <time dateTime={notice.createdAt}>{timeAgo(notice.createdAt)}</time>
+          </div>
         </div>
-        <button
-          className="ucpnb-list-item-share"
-          aria-label="Share this notice"
-          title={shared ? "Link copied!" : "Share this notice"}
-          onClick={handleShare}
-        >
-          {shared ? "✓" : "🔗"}
-        </button>
         {onLike && (
           <button
-            className={notice.likedByMe ? "ucpnb-list-item-like liked" : "ucpnb-list-item-like"}
+            className={notice.likedByMe ? "ucpnb-like ucpnb-like-stacked is-liked" : "ucpnb-like ucpnb-like-stacked"}
             aria-label={notice.likedByMe ? "Unlike" : "Like"}
+            aria-pressed={notice.likedByMe}
             onClick={(e) => {
               e.stopPropagation();
               onLike(notice);
             }}
           >
-            {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
+            <Icon name="heart" size={18} filled={notice.likedByMe} />
+            <span>{notice.likeCount}</span>
           </button>
         )}
       </div>

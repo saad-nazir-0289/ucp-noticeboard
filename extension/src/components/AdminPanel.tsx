@@ -2,6 +2,8 @@ import { Fragment, useEffect, useState } from "react";
 import { api } from "@shared/api/client";
 import type { AuthUser, Category, UserListItem, UserRole } from "@shared/types";
 import { AdminPinPrompt } from "./AdminPinPrompt";
+import { Icon } from "@shared/components/Icon";
+import { Avatar, CategoryTag } from "@shared/components/Tags";
 
 interface Props {
   user: AuthUser;
@@ -185,163 +187,153 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
     }
   };
 
-  if (loading) return <p className="ucpnb-status">Loading users...</p>;
+  if (loading) return <div className="ucpnb-skeleton" style={{ height: 200, borderRadius: 16 }} />;
 
   return (
-    <div className="ucpnb-panel">
-      <h4>Add Publisher by Roll Number</h4>
-      <p className="ucpnb-status">
-        Adding someone here grants Publisher access immediately — no link to
-        send, no activation step. They'll be prompted to choose their own PIN
-        the first time they actually publish something.
-      </p>
-      <form className="ucpnb-form" onSubmit={handleAddUser}>
-        <input
-          type="text"
-          placeholder="Roll Number (e.g. L1S23BSCS0285)"
-          value={rollNumber}
-          onChange={(e) => setRollNumber(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        {addError && <p className="ucpnb-error">{addError}</p>}
-        {addSuccess && <p className="ucpnb-status">{addSuccess}</p>}
-        <div className="ucpnb-form-actions">
+    <div className="ucpnb-tab-panel">
+      <section className="ucpnb-form-card">
+        <div className="ucpnb-form-card-header">
+          <div>
+            <h4>Add a Publisher</h4>
+            <p className="ucpnb-field-hint">They can post right away and choose their own PIN the first time they publish.</p>
+          </div>
+        </div>
+        <form className="ucpnb-inline-form" onSubmit={handleAddUser}>
+          <input className="ucpnb-input" type="text" placeholder="Roll Number (e.g. L1S23BSCS0285)" value={rollNumber} onChange={(e) => setRollNumber(e.target.value)} />
+          <input className="ucpnb-input" type="text" placeholder="Name shown on their notices" value={name} onChange={(e) => setName(e.target.value)} />
           <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
+            <Icon name="plus" size={16} />
             Add Publisher
           </button>
-        </div>
-      </form>
+        </form>
+        {addError && <p className="ucpnb-form-error">{addError}</p>}
+        {addSuccess && <p className="ucpnb-form-success">{addSuccess}</p>}
+      </section>
 
-      <h4>All Users</h4>
-      {error && <p className="ucpnb-error">{error}</p>}
-      {successMessage && <p className="ucpnb-status ucpnb-status-active">{successMessage}</p>}
-      <p className="ucpnb-status">
-        Change anyone's role here — takes effect immediately, on any device.
-        Click a name to correct it. "Reset PIN" clears a forgotten PIN (and
-        lifts a lock after too many wrong PINs) so they can choose a new one
-        next time they publish. "Log out devices" signs out every phone or
-        browser they unlocked with their PIN.
-      </p>
-      <table className="ucpnb-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Roll Number</th>
-            <th>Role</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <Fragment key={u.id}>
-              <tr>
-                <td>
-                  {editingNameId === u.id ? (
-                    <input
-                      type="text"
-                      value={editingNameValue}
-                      autoFocus
-                      onChange={(e) => setEditingNameValue(e.target.value)}
-                      onBlur={() => saveEditName(u.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEditName(u.id);
-                        if (e.key === "Escape") cancelEditName();
-                      }}
-                    />
-                  ) : (
-                    <button
-                      className="ucpnb-btn ucpnb-btn-link"
-                      onClick={() => startEditName(u)}
-                      title="Click to edit name"
-                    >
-                      {u.name}
-                    </button>
-                  )}
-                </td>
-                <td>{u.rollNumber}</td>
-                <td>
-                  <select
-                    value={u.role}
-                    disabled={pendingId === u.id}
-                    onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                  >
-                    {ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  {pendingId === u.id && <span className="ucpnb-status"> Saving...</span>}
-                </td>
-                <td>
-                  {u.role !== "Student" && (
-                    <>
-                      {u.pinLocked && <span className="ucpnb-badge-locked">Locked</span>}
-                      <button
-                        className="ucpnb-btn ucpnb-btn-link"
-                        disabled={pendingId === u.id}
-                        onClick={() => handleResetPin(u.id, u.name)}
-                      >
-                        {pendingId === u.id ? "Saving..." : "Reset PIN"}
-                      </button>
-                      {(u.activeDevices ?? 0) > 0 && (
-                        <button
-                          className="ucpnb-btn ucpnb-btn-link"
-                          disabled={pendingId === u.id}
-                          onClick={() => handleRevokeDevices(u.id, u.name)}
-                        >
-                          Log out devices ({u.activeDevices})
-                        </button>
-                      )}
-                    </>
-                  )}
-                </td>
-              </tr>
-              {rowError?.id === u.id && (
-                <tr>
-                  <td colSpan={4}>
-                    <p className="ucpnb-error" style={{ margin: "4px 0" }}>
-                      {rowError.message}
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          ))}
-        </tbody>
-      </table>
-
-      <h4>Manage Categories</h4>
-      <p className="ucpnb-status">
-        Only Admins can create categories. Publishers pick from this list when
-        creating a notice.
-      </p>
-      <form className="ucpnb-form ucpnb-form-inline" onSubmit={handleAddCategory}>
-        <input
-          type="text"
-          placeholder="New category name"
-          value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
-        />
-        <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
-          Add Category
-        </button>
-      </form>
-      {categoryError && <p className="ucpnb-error">{categoryError}</p>}
-      {categories.length > 0 && (
-        <div className="ucpnb-category-chips">
-          {categories.map((c) => (
-            <span key={c.id} className="ucpnb-category-chip">
-              {c.name}
+      <section className="ucpnb-form-card">
+        <div className="ucpnb-form-card-header">
+          <div>
+            <h4>People</h4>
+            <p className="ucpnb-field-hint">
+              Role changes apply immediately. Click a name to correct it. Reset PIN also lifts a lock and logs out their devices.
+            </p>
+          </div>
+          {successMessage && (
+            <span className="ucpnb-badge ucpnb-badge-success">
+              <Icon name="check" size={12} strokeWidth={2.6} />
+              {successMessage}
             </span>
-          ))}
+          )}
         </div>
-      )}
+        {error && <p className="ucpnb-form-error">{error}</p>}
+        <div className="ucpnb-table-wrap">
+          <table className="ucpnb-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Roll Number</th>
+                <th>Role</th>
+                <th aria-label="Actions" />
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <Fragment key={u.id}>
+                  <tr>
+                    <td>
+                      <div className="ucpnb-user-cell">
+                        <Avatar name={u.name} />
+                        {editingNameId === u.id ? (
+                          <input
+                            className="ucpnb-input ucpnb-input-sm"
+                            type="text"
+                            value={editingNameValue}
+                            autoFocus
+                            onChange={(e) => setEditingNameValue(e.target.value)}
+                            onBlur={() => saveEditName(u.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEditName(u.id);
+                              if (e.key === "Escape") cancelEditName();
+                            }}
+                          />
+                        ) : (
+                          <button className="ucpnb-name-btn" onClick={() => startEditName(u)} title="Click to edit name">
+                            {u.name}
+                          </button>
+                        )}
+                        {u.pinLocked && <span className="ucpnb-badge ucpnb-badge-urgent">Locked</span>}
+                      </div>
+                    </td>
+                    <td className="ucpnb-mono">{u.rollNumber}</td>
+                    <td>
+                      <select
+                        className="ucpnb-input ucpnb-input-sm"
+                        value={u.role}
+                        disabled={pendingId === u.id}
+                        onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      {u.role !== "Student" && (
+                        <div className="ucpnb-row-actions">
+                          <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" disabled={pendingId === u.id} onClick={() => handleResetPin(u.id, u.name)}>
+                            <Icon name="restore" size={14} />
+                            Reset PIN
+                          </button>
+                          {(u.activeDevices ?? 0) > 0 && (
+                            <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" disabled={pendingId === u.id} onClick={() => handleRevokeDevices(u.id, u.name)}>
+                              <Icon name="lock" size={14} />
+                              Log out devices ({u.activeDevices})
+                            </button>
+                          )}
+                          {pendingId === u.id && <span className="ucpnb-spinner" />}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                  {rowError?.id === u.id && (
+                    <tr>
+                      <td colSpan={4}>
+                        <p className="ucpnb-form-error">{rowError.message}</p>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="ucpnb-form-card">
+        <div className="ucpnb-form-card-header">
+          <div>
+            <h4>Categories</h4>
+            <p className="ucpnb-field-hint">Publishers pick from these when posting; students filter by them.</p>
+          </div>
+        </div>
+        <form className="ucpnb-inline-form" onSubmit={handleAddCategory}>
+          <input className="ucpnb-input" type="text" placeholder="New category name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+          <button type="submit" className="ucpnb-btn ucpnb-btn-secondary">
+            <Icon name="plus" size={16} />
+            Add category
+          </button>
+        </form>
+        {categoryError && <p className="ucpnb-form-error">{categoryError}</p>}
+        {categories.length > 0 && (
+          <div className="ucpnb-card-tags">
+            {categories.map((c) => (
+              <CategoryTag key={c.id} name={c.name} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

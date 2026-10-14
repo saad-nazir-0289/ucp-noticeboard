@@ -1,1161 +1,692 @@
-* {
+/*
+ * PWA layout and chrome. Colours, type and shared components come from
+ * shared/styles (tokens.css, components.css), imported first in main.tsx.
+ */
+
+/* ---------- Dark theme (PWA only; the extension matches the light portal) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --nb-brand: #e8eefb;
+    --nb-primary: #6b97ff;
+    --nb-primary-hover: #86a9ff;
+    --nb-primary-soft: rgba(107, 151, 255, 0.14);
+    --nb-on-primary: #0a1424;
+
+    --nb-bg: #0b111c;
+    --nb-surface: #131b29;
+    --nb-surface-2: #1b2535;
+    --nb-surface-3: #243045;
+    --nb-border: #233047;
+    --nb-border-strong: #31405a;
+    --nb-overlay: rgba(0, 0, 0, 0.62);
+
+    --nb-text: #eef2f8;
+    --nb-text-2: #b2bdcf;
+    --nb-text-3: #7d8aa1;
+
+    --nb-danger: #ff8077;
+    --nb-danger-soft: rgba(255, 128, 119, 0.12);
+    --nb-warning: #ffb760;
+    --nb-warning-soft: rgba(255, 183, 96, 0.12);
+    --nb-success: #4fd18b;
+    --nb-success-soft: rgba(79, 209, 139, 0.12);
+    --nb-like: #ff5c8a;
+
+    --nb-tone-0-bg: rgba(107, 151, 255, 0.14); --nb-tone-0-fg: #8fb0ff;
+    --nb-tone-1-bg: rgba(79, 209, 139, 0.13); --nb-tone-1-fg: #6ddba0;
+    --nb-tone-2-bg: rgba(255, 140, 90, 0.13); --nb-tone-2-fg: #ffa278;
+    --nb-tone-3-bg: rgba(160, 130, 255, 0.15); --nb-tone-3-fg: #b8a2ff;
+    --nb-tone-4-bg: rgba(240, 110, 180, 0.14); --nb-tone-4-fg: #f58ec8;
+    --nb-tone-5-bg: rgba(70, 200, 230, 0.13); --nb-tone-5-fg: #6fd6ee;
+    --nb-tone-6-bg: rgba(240, 200, 80, 0.13); --nb-tone-6-fg: #f0cd6b;
+    --nb-tone-7-bg: rgba(80, 170, 240, 0.13); --nb-tone-7-fg: #7cc3f5;
+
+    --nb-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --nb-shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+    --nb-shadow-3: 0 24px 60px rgba(0, 0, 0, 0.6);
+    --nb-focus: 0 0 0 3px rgba(107, 151, 255, 0.35);
+
+    color-scheme: dark;
+  }
+
+  .ucpnb-chip.is-active {
+    color: #0b111c;
+  }
+}
+
+/* ---------- Base ---------- */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
-  color: #1f2937;
-  background: #f4f6f8;
-  /* Prevents the page from bouncing/rubber-banding horizontally on iOS,
-     which felt broken now that nothing scrolls sideways anymore. */
+  background: var(--nb-bg);
+  color: var(--nb-text);
+  font-family: var(--nb-font);
+  font-size: var(--nb-text-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-/* --- Page layout --- */
-.ucpnb-page {
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+.ucpnb-center {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- App shell ---------- */
+.ucpnb-app {
   min-height: 100vh;
-  padding: 0 0 32px;
-  max-width: 560px;
-  margin: 0 auto;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
 }
 
-/* Laptop/desktop: the page is no longer capped to a phone-width column —
-   it uses the full viewport, since that's what makes a grid worthwhile. */
-@media (min-width: 900px) {
-  .ucpnb-page {
-    max-width: 1400px;
-    padding: 0 24px 32px;
-  }
-}
-
-.ucpnb-header {
+.ucpnb-appbar {
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 14px 16px;
+  z-index: 40;
+  background: color-mix(in srgb, var(--nb-surface) 86%, transparent);
+  border-bottom: 1px solid var(--nb-border);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
+  padding-top: env(safe-area-inset-top);
+}
+
+.ucpnb-appbar-inner,
+.ucpnb-main {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.ucpnb-appbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-  width: 100%;
+  gap: 12px;
+  height: 60px;
 }
 
-.ucpnb-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #12395c;
-  min-width: 0;
-}
-
-.ucpnb-header-actions {
+.ucpnb-brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 10px;
   min-width: 0;
 }
 
-.ucpnb-section {
-  padding: 0;
-}
-
-/* --- Onboarding (one-time Roll Number entry) --- */
-.ucpnb-onboarding {
-  min-height: 100vh;
-  display: flex;
+.ucpnb-logo {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  background: #f4f6f8;
-}
-
-.ucpnb-onboarding-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 32px 24px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.ucpnb-onboarding-card h2 {
-  margin: 0 0 8px;
-  font-size: 20px;
-  color: #12395c;
-  text-align: center;
-}
-
-.ucpnb-onboarding-card > p {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-/* Used by the onboarding form (Roll Number + Name). This was accidentally
-   removed in an earlier pass on the assumption it was Admin/Publisher-only
-   — it wasn't, the onboarding screen needs it too. */
-.ucpnb-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-.ucpnb-form input {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid #d6dde5;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
-  padding: 11px 14px;
-  font-size: 15px;
-  font-family: inherit;
+  background: linear-gradient(140deg, #2457d6 0%, #0b2545 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(36, 87, 214, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-/* --- Toolbar: search + category + view-all/hidden, stacked cleanly for
-   a narrow screen instead of one cramped row --- */
+.ucpnb-logo-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+}
+
+.ucpnb-brand-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ucpnb-brand-text strong {
+  font-size: var(--nb-text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--nb-brand);
+}
+
+.ucpnb-brand-text span {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--nb-surface-2);
+  color: var(--nb-text-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.ucpnb-appbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ucpnb-appbar-btn span {
+  display: none;
+}
+
+.ucpnb-appbar-btn {
+  width: 40px;
+  padding: 0;
+  border-radius: var(--nb-r-full);
+}
+
+@media (min-width: 640px) {
+  .ucpnb-appbar-btn {
+    width: auto;
+    padding: 0 14px;
+    border-radius: var(--nb-r-md);
+  }
+
+  .ucpnb-appbar-btn span {
+    display: inline;
+  }
+}
+
+.ucpnb-avatar-btn {
+  display: inline-flex;
+  padding: 2px;
+  border: none;
+  border-radius: var(--nb-r-full);
+  background: transparent;
+  cursor: pointer;
+}
+
+.ucpnb-avatar-btn .ucpnb-avatar-md {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+
+.ucpnb-avatar-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--nb-focus);
+}
+
+.ucpnb-main {
+  padding-top: 16px;
+}
+
+/* ---------- Toolbar: search, layout toggle, hidden; category chips ---------- */
 .ucpnb-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.ucpnb-search {
-  width: 100%;
-  border: 1px solid #d6dde5;
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: 15px;
-  font-family: inherit;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .ucpnb-toolbar-row {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 
-.ucpnb-category-select {
-  flex: 1 1 140px;
-  min-width: 0;
-  border: 1px solid #d6dde5;
-  border-radius: 10px;
-  padding: 9px 10px;
-  font-size: 14px;
-  font-family: inherit;
-  background: #ffffff;
+.ucpnb-search input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
-/* --- The feed itself. On phones this is a normal vertical,
-   continuously-scrolling feed (like Instagram/Twitter) instead of the
-   extension's horizontal side-swipe carousel — nothing more exotic than
-   the page's natural up/down scroll. On a laptop/desktop screen, there's
-   room to actually use, so it switches to a real grid instead of one
-   narrow column stretched down an otherwise-empty wide page. --- */
+/* ---------- Feed ---------- */
 .ucpnb-feed {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
-@media (min-width: 900px) {
-  .ucpnb-feed {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 20px;
-    padding: 24px 0;
-  }
-}
-
-.ucpnb-card {
-  width: 100%;
-  max-width: 480px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  cursor: pointer;
-  transition: box-shadow 0.15s ease, transform 0.1s ease;
-}
-
-@media (min-width: 900px) {
-  .ucpnb-card {
-    max-width: none;
-  }
-
-  .ucpnb-card:hover {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-  }
-}
-
-.ucpnb-card:active {
-  transform: scale(0.99);
-}
-
-.ucpnb-card-dismiss {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(15, 23, 42, 0.55);
-  color: #ffffff;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ucpnb-card-dismiss:active {
-  background: rgba(15, 23, 42, 0.8);
-}
-
-.ucpnb-card-share {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(15, 23, 42, 0.55);
-  color: #ffffff;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ucpnb-card-share:active {
-  background: rgba(15, 23, 42, 0.8);
-}
-
-.ucpnb-card-like {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(15, 23, 42, 0.55);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ucpnb-card-like.liked {
-  background: rgba(190, 18, 60, 0.85);
-}
-
-.ucpnb-card-like:active {
-  background: rgba(15, 23, 42, 0.8);
-}
-
-.ucpnb-card-like.liked:active {
-  background: rgba(190, 18, 60, 1);
-}
-
-/* Bigger image area than the extension's version — full card width now,
-   not squeezed into a 210-280px carousel tile, so it can afford to breathe. */
-.ucpnb-card-image-wrap {
-  width: 100%;
-  height: 200px;
-  flex-shrink: 0;
-  background: #eef1f5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.ucpnb-card-image-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  filter: blur(18px) brightness(0.9);
-  transform: scale(1.15);
-}
-
-.ucpnb-card-image {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  z-index: 1;
-}
-
-.ucpnb-card-image-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36px;
-  color: #9fb2c6;
-}
-
-.ucpnb-card-category {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #1a5da8;
-  background: #eaf2fc;
-  border-radius: 5px;
-  padding: 3px 8px;
-  margin-bottom: 8px;
-  align-self: flex-start;
-}
-
-.ucpnb-card-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-}
-
-.ucpnb-card-title {
-  margin: 0 0 6px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #12395c;
-  line-height: 1.35;
-}
-
-.ucpnb-card-desc {
-  margin: 0 0 12px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #4b5563;
-}
-
-.ucpnb-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 10px;
-  border-top: 1px solid #f0f2f5;
-}
-
-@media (max-width: 380px) {
-  .ucpnb-header {
-    padding: 12px;
-  }
-
-  .ucpnb-toolbar {
-    padding: 10px 12px;
-  }
-
-  .ucpnb-feed {
-    padding: 12px;
-    gap: 12px;
-  }
-
-  .ucpnb-card-body {
-    padding: 12px;
-  }
-
-  .ucpnb-btn {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-
-  .ucpnb-onboarding-card {
-    padding: 24px 18px;
-  }
-}
-
-.ucpnb-card-date {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.ucpnb-card-deadline {
-  font-size: 12px;
-  color: #b45309;
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-/* --- Buttons — sized for a thumb, not a mouse pointer --- */
-.ucpnb-btn {
-  border: 1px solid #d6dde5;
-  background: #ffffff;
-  color: #12395c;
-  padding: 9px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  min-height: 40px;
-  min-width: 0;
-  white-space: nowrap;
-  flex-shrink: 1;
-}
-
-.ucpnb-btn-primary {
-  background: #1a5da8;
-  border-color: #1a5da8;
-  color: #ffffff;
-}
-
-.ucpnb-btn-link {
-  border: none;
-  background: none;
-  color: #1a5da8;
-  padding: 6px 8px;
-  font-weight: 600;
-  min-height: auto;
-  text-decoration: none;
-}
-
-.ucpnb-btn-danger {
-  color: #b91c1c;
-}
-
-.ucpnb-status {
-  color: #6b7280;
-  font-size: 14px;
-  padding: 24px 16px;
-  text-align: center;
-}
-
-.ucpnb-error {
-  color: #b91c1c;
-  font-size: 14px;
-  padding: 24px 16px;
-  text-align: center;
-}
-
-/* --- Notice detail — a bottom sheet on phones, not a floating centered
-   box, since that's the native pattern people already expect from every
-   other mobile app. Slides up from the bottom instead of just appearing. --- */
-.ucpnb-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 999999;
-}
-
-.ucpnb-modal {
-  background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-  animation: ucpnb-sheet-up 0.2s ease-out;
-}
-
-@keyframes ucpnb-sheet-up {
-  from {
-    transform: translateY(24px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.ucpnb-modal-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  border: none;
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 22px;
-  line-height: 1;
-  cursor: pointer;
-  color: #374151;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-  z-index: 2;
-}
-
-.ucpnb-modal-image-wrap {
-  width: 100%;
-  height: 240px;
-  background: #eef1f5;
-  position: relative;
-  overflow: hidden;
-}
-
-.ucpnb-modal-image-bg {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  filter: blur(20px) brightness(0.9);
-  transform: scale(1.15);
-}
-
-.ucpnb-modal-image {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  display: block;
-  z-index: 1;
-}
-
-.ucpnb-modal-actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.ucpnb-modal-actions .ucpnb-btn {
-  flex: 1;
-  text-align: center;
-}
-
-.ucpnb-modal-content {
-  padding: 20px 20px 28px;
-}
-
-.ucpnb-modal-title {
-  margin: 0 0 10px;
-  color: #12395c;
-  font-size: 21px;
-  line-height: 1.3;
-}
-
-.ucpnb-modal-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.ucpnb-modal-desc {
-  font-size: 15px;
-  line-height: 1.65;
-  color: #1f2937;
-  white-space: pre-wrap;
-  margin: 0 0 16px;
-}
-
-/* --- "View All" / "Hidden Notices" — a full-height sheet, single column
-   on phones (consistent with the feed itself), a wider grid sheet on
-   laptop/desktop (consistent with the main feed switching too). --- */
-.ucpnb-grid-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 999998;
-}
-
-.ucpnb-grid-modal {
-  background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-width: 560px;
-  height: 88vh;
-  overflow-y: auto;
-  padding: 16px;
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-  animation: ucpnb-sheet-up 0.2s ease-out;
-}
-
-@media (min-width: 900px) {
-  .ucpnb-grid-modal {
-    max-width: 1200px;
-    border-radius: 20px;
-    height: 85vh;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-}
-
-.ucpnb-grid-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.ucpnb-grid-header h3 {
-  margin: 0;
-  color: #12395c;
-  font-size: 17px;
-}
-
-.ucpnb-grid-header .ucpnb-modal-close {
-  position: static;
-}
-
-.ucpnb-grid {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
+  /* Cards keep their natural height; a text-only card next to a poster
+     card shouldn't stretch into a mostly-empty box. */
+  align-items: start;
 }
 
-.ucpnb-grid .ucpnb-card {
-  max-width: none;
-}
-
-@media (min-width: 900px) {
-  .ucpnb-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 18px;
+@media (min-width: 640px) {
+  .ucpnb-feed {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
 }
 
-/* --- View toggle (card vs list) --- */
-.ucpnb-view-toggle {
-  display: flex;
-  border: 1px solid #d6dde5;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.ucpnb-view-toggle-btn {
-  border: none;
-  background: #ffffff;
-  color: #6b7280;
-  font-size: 15px;
-  padding: 0 12px;
-  min-height: 40px;
-  cursor: pointer;
-}
-
-.ucpnb-view-toggle-btn + .ucpnb-view-toggle-btn {
-  border-left: 1px solid #d6dde5;
-}
-
-.ucpnb-view-toggle-btn.active {
-  background: #1a5da8;
-  color: #ffffff;
-}
-
-/* "View All" is redundant on a phone — the main feed already scrolls
-   through everything, so the button only earns its place once the feed
-   becomes a grid on wider screens. "Hidden" stays everywhere, since it's
-   a genuinely separate view, not just a bigger version of the same one. */
-@media (max-width: 899px) {
-  .ucpnb-btn-viewall {
-    display: none;
+@media (min-width: 1000px) {
+  .ucpnb-feed {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
   }
 }
 
-/* --- Skeleton loading state, left-to-right shimmer --- */
-.ucpnb-skeleton {
-  background: linear-gradient(90deg, #eef1f5 25%, #f7f9fb 37%, #eef1f5 63%);
-  background-size: 400% 100%;
-  animation: ucpnb-shimmer 1.4s ease-in-out infinite;
-  border-radius: 6px;
+.ucpnb-feed-sheet {
+  grid-template-columns: 1fr;
 }
 
-@keyframes ucpnb-shimmer {
-  0% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0 50%;
+@media (min-width: 720px) {
+  .ucpnb-feed-sheet {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-.ucpnb-skeleton-card {
-  width: 100%;
-  max-width: 480px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  overflow: hidden;
+.ucpnb-card-skeleton {
+  cursor: default;
+  pointer-events: none;
 }
 
-@media (min-width: 900px) {
-  .ucpnb-skeleton-card {
-    max-width: none;
-  }
-}
-
-.ucpnb-skeleton-image {
-  width: 100%;
-  height: 200px;
-  border-radius: 0;
-}
-
-.ucpnb-skeleton-card-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ucpnb-skeleton-line {
-  height: 14px;
-}
-
-.ucpnb-skeleton-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 10px;
-}
-
-.ucpnb-skeleton-thumb {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  border-radius: 10px;
-}
-
-.ucpnb-skeleton-list-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* --- List view: compact rows with swipe-right-to-dismiss --- */
+/* ---------- List view: compact rows, swipe right to hide ---------- */
 .ucpnb-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  max-width: 560px;
-  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-lg);
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-1);
 }
 
-@media (min-width: 900px) {
-  .ucpnb-list {
-    max-width: 720px;
+.ucpnb-row-wrap {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--nb-border);
+}
+
+.ucpnb-row-wrap:last-child {
+  border-bottom: none;
+}
+
+.ucpnb-row-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 20px;
+  background: var(--nb-surface-3);
+  color: var(--nb-text-2);
+  font-size: var(--nb-text-sm);
+  font-weight: 600;
+}
+
+.ucpnb-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 12px 12px 14px;
+  background: var(--nb-surface);
+  cursor: pointer;
+  transition: transform 0.18s var(--nb-ease), opacity 0.18s ease, background 0.15s ease;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+  .ucpnb-row:hover {
+    background: var(--nb-surface-2);
   }
 }
 
-.ucpnb-list-item-wrap {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
+.ucpnb-row-skeleton {
+  cursor: default;
+  border-bottom: 1px solid var(--nb-border);
 }
 
-/* Revealed underneath the row as it's dragged right — makes the gesture's
-   outcome obvious mid-swipe, not just after releasing. */
-.ucpnb-list-item-hint {
-  position: absolute;
-  inset: 0;
-  background: #fee2e2;
-  color: #b91c1c;
-  font-weight: 700;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  padding-left: 16px;
-}
-
-.ucpnb-list-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 10px;
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  touch-action: pan-y;
-  user-select: none;
-}
-
-.ucpnb-list-item-thumb {
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  background: #eef1f5;
+.ucpnb-row-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  border-radius: var(--nb-r-md);
 }
 
-.ucpnb-list-item-thumb img {
+.ucpnb-row-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.ucpnb-list-item-body {
-  flex: 1;
-  min-width: 0;
+.ucpnb-row-body {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
 }
 
-.ucpnb-list-item-title {
-  margin: 0;
-  font-size: 14px;
+.ucpnb-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ucpnb-row-category {
+  font-size: 11.5px;
   font-weight: 700;
-  color: #12395c;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.ucpnb-row-meta .ucpnb-badge {
+  height: 20px;
+  font-size: 11px;
+}
+
+.ucpnb-row-title {
+  margin: 0;
+  font-size: var(--nb-text-md);
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--nb-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ucpnb-row-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--nb-text-xs);
+  color: var(--nb-text-3);
+  min-width: 0;
+}
+
+.ucpnb-row-source span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.ucpnb-list-item-share {
-  flex-shrink: 0;
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
+.ucpnb-like-stacked {
+  flex-direction: column;
+  height: auto;
+  padding: 6px 8px;
+  gap: 2px;
+  border-radius: var(--nb-r-md);
+  font-size: var(--nb-text-xs);
+}
+
+/* ---------- Sponsored slot ---------- */
+.ucpnb-sponsor {
+  position: relative;
+  border: 1px dashed var(--nb-border-strong);
+  border-radius: var(--nb-r-lg);
+  background: var(--nb-surface);
+  padding: 28px 16px 16px;
+  min-width: 0;
+}
+
+.ucpnb-sponsor-row {
   border: none;
-  background: #f0f4f8;
-  color: #12395c;
-  font-size: 13px;
-  cursor: pointer;
+  border-bottom: 1px solid var(--nb-border);
+  border-radius: 0;
+}
+
+.ucpnb-sponsor-label {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nb-text-3);
+}
+
+.ucpnb-sponsor-house {
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.ucpnb-list-item-like {
-  flex-shrink: 0;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: none;
-  background: #f0f4f8;
-  color: #12395c;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.ucpnb-list-item-like.liked {
-  background: #fff1f2;
-  color: #be123c;
-}
-
-.ucpnb-footer {
-  margin-top: 8px;
-  padding: 16px;
-  text-align: center;
-}
-
-.ucpnb-footer a {
-  font-size: 13px;
-  color: #9ca3af;
-  text-decoration: none;
-}
-
-.ucpnb-footer a:active {
-  color: #1a5da8;
-}
-
-.ucpnb-bell-btn {
-  border: 1px solid #d6dde5;
-  background: #ffffff;
-  color: #12395c;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  font-size: 17px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ucpnb-bell-btn:disabled {
-  opacity: 0.6;
-}
-
-.ucpnb-toast {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #12395c;
-  color: #ffffff;
-  padding: 10px 18px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  z-index: 9999999;
-  animation: ucpnb-toast-in 0.2s ease-out;
-}
-
-@keyframes ucpnb-toast-in {
-  from {
-    transform: translateX(-50%) translateY(12px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-  }
-}
-
-.ucpnb-checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 4px;
-  font-size: 14px;
-  color: #1f2937;
-  border-bottom: 1px solid #f0f2f5;
-  cursor: pointer;
-}
-
-.ucpnb-checkbox-row input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.ucpnb-like-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid #d6dde5;
-  background: #ffffff;
-  color: #4b5563;
-  border-radius: 999px;
-  padding: 5px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  align-self: flex-start;
-  margin-bottom: 8px;
-}
-
-.ucpnb-like-btn.liked {
-  border-color: #fecdd3;
-  background: #fff1f2;
-  color: #be123c;
-}
-
-/* --- Publishing (Publishers/Admins only): bottom-sheet forms, the
-   floating "New notice" button, and the My notices list. --- */
-.ucpnb-sheet {
-  background: #ffffff;
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-width: 560px;
-  max-height: 92vh;
-  overflow-y: auto;
-  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
-  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
-  animation: ucpnb-sheet-up 0.2s ease-out;
   gap: 14px;
 }
 
-.ucpnb-sheet-compact {
-  max-width: 440px;
+.ucpnb-sponsor-house strong {
+  display: block;
+  font-size: var(--nb-text-md);
+  color: var(--nb-text);
 }
 
-@media (min-width: 900px) {
-  .ucpnb-sheet {
-    border-radius: 20px;
-    margin-bottom: 24px;
-    padding: 24px;
-  }
+.ucpnb-sponsor-house p {
+  margin: 2px 0 0;
+  font-size: var(--nb-text-sm);
+  line-height: 1.45;
+  color: var(--nb-text-2);
 }
 
-.ucpnb-sheet-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-
-.ucpnb-sheet-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #12395c;
-}
-
-.ucpnb-sheet-text {
-  margin: 0;
-  color: #4b5563;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.ucpnb-sheet-footer {
-  margin-top: 16px;
-  text-align: center;
-}
-
-.ucpnb-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.ucpnb-field small {
-  font-weight: 400;
-  color: #6b7280;
-}
-
-.ucpnb-form textarea,
-.ucpnb-form select {
-  width: 100%;
+.ucpnb-sponsor-house > div {
+  flex: 1;
   min-width: 0;
-  border: 1px solid #d6dde5;
-  border-radius: 10px;
-  padding: 11px 14px;
-  font-size: 15px;
-  font-family: inherit;
-  background: #ffffff;
-  color: inherit;
-  font-weight: 400;
 }
 
-.ucpnb-form textarea {
-  resize: vertical;
-}
-
-.ucpnb-form-error {
-  margin: 0;
-  color: #b91c1c;
-  font-size: 14px;
-}
-
-.ucpnb-btn-block {
-  width: 100%;
-  min-height: 46px;
-  font-size: 15px;
-}
-
-.ucpnb-upload-btn {
-  display: flex;
+.ucpnb-sponsor-icon {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-style: dashed;
-  font-weight: 600;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--nb-r-md);
+  background: var(--nb-tone-4-bg);
+  color: var(--nb-tone-4-fg);
 }
 
-.ucpnb-upload-btn.is-busy {
-  opacity: 0.6;
-}
-
-.ucpnb-poster-preview {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.ucpnb-poster-preview img {
-  width: 100%;
-  max-height: 220px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-}
-
+/* ---------- Floating "New notice" ---------- */
 .ucpnb-fab {
   position: fixed;
   right: 16px;
   bottom: calc(20px + env(safe-area-inset-bottom));
-  z-index: 50;
+  z-index: 45;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 54px;
+  padding: 0 22px 0 18px;
   border: none;
-  border-radius: 999px;
-  padding: 14px 20px;
-  background: #1a5da8;
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 700;
-  box-shadow: 0 6px 20px rgba(26, 93, 168, 0.4);
+  border-radius: var(--nb-r-full);
+  background: var(--nb-primary);
+  color: var(--nb-on-primary);
+  font: 700 var(--nb-text-md) / 1 var(--nb-font);
+  box-shadow: 0 10px 28px rgba(36, 87, 214, 0.42);
   cursor: pointer;
+  transition: transform 0.15s var(--nb-ease), box-shadow 0.15s var(--nb-ease);
 }
 
+.ucpnb-fab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(36, 87, 214, 0.5);
+}
+
+.ucpnb-fab:active {
+  transform: scale(0.97);
+}
+
+@media (min-width: 1240px) {
+  .ucpnb-fab {
+    right: calc((100vw - 1240px) / 2 + 16px);
+  }
+}
+
+/* ---------- Sheets: sizes and inner parts used by the PWA ---------- */
+.ucpnb-sheet-compact {
+  max-width: 440px;
+}
+
+.ucpnb-sheet-tall {
+  max-width: 600px;
+}
+
+@media (max-width: 719px) {
+  .ucpnb-sheet-tall {
+    height: 92vh;
+  }
+}
+
+.ucpnb-sheet-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ucpnb-field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 380px) {
+  .ucpnb-field-pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ucpnb-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--nb-border-strong);
+  border-radius: var(--nb-r-md);
+  background: var(--nb-surface-2);
+  color: var(--nb-text-2);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ucpnb-dropzone:hover {
+  border-color: var(--nb-primary);
+  background: var(--nb-primary-soft);
+}
+
+.ucpnb-dropzone strong {
+  margin-top: 4px;
+  font-size: var(--nb-text-sm);
+  color: var(--nb-text);
+}
+
+.ucpnb-dropzone span {
+  font-size: var(--nb-text-xs);
+  color: var(--nb-text-3);
+}
+
+.ucpnb-dropzone.is-busy {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.ucpnb-poster {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-md);
+  background: var(--nb-surface-2);
+}
+
+.ucpnb-poster img {
+  display: block;
+  width: 100%;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+.ucpnb-poster-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-2);
+  color: var(--nb-danger);
+}
+
+.ucpnb-unlock {
+  align-items: center;
+  text-align: center;
+  padding-top: 12px;
+}
+
+.ucpnb-unlock h3 {
+  margin: 0;
+  font-size: var(--nb-text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ucpnb-unlock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-primary-soft);
+  color: var(--nb-primary);
+}
+
+.ucpnb-unlock .ucpnb-btn-ghost {
+  margin-top: -8px;
+}
+
+/* My notices */
 .ucpnb-manage-list {
-  list-style: none;
-  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
   padding: 0;
+  list-style: none;
 }
 
 .ucpnb-manage-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid #eef0f3;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--nb-border);
+}
+
+.ucpnb-manage-row:first-child {
+  padding-top: 0;
 }
 
 .ucpnb-manage-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
   min-width: 0;
 }
 
 .ucpnb-manage-info strong {
-  font-size: 15px;
-  color: #12395c;
+  font-size: var(--nb-text-md);
+  font-weight: 650;
+  color: var(--nb-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ucpnb-manage-info span {
-  font-size: 13px;
-  color: #6b7280;
+.ucpnb-manage-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: var(--nb-text-xs);
+  color: var(--nb-text-3);
 }
 
 .ucpnb-manage-actions {
@@ -1163,21 +694,209 @@ body {
   flex-shrink: 0;
 }
 
-.ucpnb-pill {
-  font-style: normal;
-  font-size: 11px;
+.ucpnb-icon-btn-danger:hover {
+  background: var(--nb-danger-soft);
+  color: var(--nb-danger);
+}
+
+.ucpnb-unlocked-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--nb-success);
+  font-size: var(--nb-text-sm);
+  font-weight: 600;
+}
+
+.ucpnb-unlocked-note span {
+  flex: 1;
+}
+
+/* Account sheet */
+.ucpnb-account {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 4px;
+}
+
+.ucpnb-account .ucpnb-avatar-md {
+  width: 52px;
+  height: 52px;
+  font-size: 18px;
+}
+
+.ucpnb-account strong {
+  display: block;
+  font-size: var(--nb-text-lg);
   font-weight: 700;
-  border-radius: 999px;
-  padding: 2px 8px;
-  background: #e7f6ec;
-  color: #15803d;
 }
 
-.ucpnb-pill-muted {
-  background: #f1f2f4;
-  color: #6b7280;
+.ucpnb-account > div > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--nb-text-sm);
+  color: var(--nb-text-3);
 }
 
-.ucpnb-sheet-header .ucpnb-modal-close {
-  position: static;
+.ucpnb-menu {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-lg);
+}
+
+.ucpnb-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 54px;
+  padding: 0 16px;
+  border: none;
+  border-bottom: 1px solid var(--nb-border);
+  background: var(--nb-surface);
+  color: var(--nb-text);
+  font: 500 var(--nb-text-md) / 1.2 var(--nb-font);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ucpnb-menu-item:last-child {
+  border-bottom: none;
+}
+
+.ucpnb-menu-item:hover {
+  background: var(--nb-surface-2);
+}
+
+.ucpnb-menu-item > .ucpnb-icon:first-child {
+  color: var(--nb-text-2);
+}
+
+.ucpnb-menu-item > span:not(.ucpnb-switch) {
+  flex: 1;
+}
+
+.ucpnb-menu-item > .ucpnb-icon:last-child:not(:first-child) {
+  color: var(--nb-text-3);
+}
+
+.ucpnb-menu-item-danger,
+.ucpnb-menu-item-danger > .ucpnb-icon:first-child {
+  color: var(--nb-danger);
+}
+
+.ucpnb-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-surface-3);
+  transition: background 0.2s var(--nb-ease);
+}
+
+.ucpnb-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s var(--nb-ease);
+}
+
+.ucpnb-switch.is-on {
+  background: var(--nb-success);
+}
+
+.ucpnb-switch.is-on::after {
+  transform: translateX(18px);
+}
+
+.ucpnb-chips-wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+/* ---------- Onboarding ---------- */
+.ucpnb-onboarding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  min-height: 100vh;
+  padding: calc(32px + env(safe-area-inset-top)) 16px 32px;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, color-mix(in srgb, var(--nb-primary) 22%, transparent), transparent 70%),
+    var(--nb-bg);
+}
+
+.ucpnb-onboarding-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 420px;
+  text-align: center;
+}
+
+.ucpnb-onboarding-hero h1 {
+  margin: 20px 0 8px;
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--nb-brand);
+}
+
+.ucpnb-onboarding-hero p {
+  margin: 0;
+  font-size: var(--nb-text-md);
+  line-height: 1.55;
+  color: var(--nb-text-2);
+}
+
+.ucpnb-onboarding-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-xl);
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-2);
+}
+
+.ucpnb-onboarding-card h2 {
+  margin: 0;
+  font-size: var(--nb-text-xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ucpnb-onboarding-card h2 + .ucpnb-sheet-text {
+  margin-top: -10px;
+}
+
+.ucpnb-onboarding-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font-size: var(--nb-text-xs);
+  line-height: 1.5;
+  color: var(--nb-text-3);
+}
+
+.ucpnb-onboarding-note .ucpnb-icon {
+  margin-top: 2px;
 }

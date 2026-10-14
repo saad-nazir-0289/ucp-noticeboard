@@ -2,6 +2,9 @@ import { useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
+import { timeAgo } from "../format";
+import { Icon } from "./Icon";
+import { Avatar, CategoryTag, DeadlineBadge } from "./Tags";
 
 interface Props {
   notice: Notice;
@@ -13,19 +16,18 @@ interface Props {
   imageWidth?: number;
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
+/**
+ * A notice in a feed. With a poster: poster on top. Without: a text card
+ * with a short preview, so posterless notices look intentional rather
+ * than like something failed to load.
+ */
 export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, imageWidth = 600 }: Props) {
   const [shared, setShared] = useState(false);
 
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+
   const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+    stop(e);
     const result = await shareNotice(notice);
     if (result === "copied") {
       setShared(true);
@@ -34,82 +36,99 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, onLike, image
   };
 
   return (
-    <div className="ucpnb-card" onClick={() => onView(notice)} role="button" tabIndex={0}>
-      {onDismiss && (
-        <button
-          className="ucpnb-card-dismiss"
-          aria-label="Hide this notice"
-          title="Hide this notice"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDismiss(notice);
-          }}
-        >
-          ×
-        </button>
+    <article
+      className={notice.imageUrl ? "ucpnb-card has-image" : "ucpnb-card"}
+      onClick={() => onView(notice)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onView(notice);
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      aria-label={notice.title}
+    >
+      {notice.imageUrl && (
+        <div className="ucpnb-card-media">
+          <div
+            className="ucpnb-card-media-bg"
+            style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 40)})` }}
+            aria-hidden="true"
+          />
+          <img src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined} alt="" loading="lazy" />
+        </div>
       )}
 
-      <div className="ucpnb-card-image-wrap">
-        {notice.imageUrl ? (
-          <>
-            <div
-              className="ucpnb-card-image-bg"
-              style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 40)})` }}
-              aria-hidden="true"
-            />
-            <img
-              className="ucpnb-card-image"
-              src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined}
-              alt=""
-              loading="lazy"
-            />
-          </>
-        ) : (
-          <div className="ucpnb-card-image ucpnb-card-image-placeholder" aria-hidden="true">
-            📌
-          </div>
-        )}
-        <button
-          className="ucpnb-card-share"
-          aria-label="Share this notice"
-          title={shared ? "Link copied!" : "Share this notice"}
-          onClick={handleShare}
-        >
-          {shared ? "✓" : "🔗"}
-        </button>
-        {onLike && (
-          <button
-            className={notice.likedByMe ? "ucpnb-card-like liked" : "ucpnb-card-like"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLike(notice);
-            }}
-            aria-label={notice.likedByMe ? "Unlike" : "Like"}
-          >
-            {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
-          </button>
-        )}
-      </div>
       <div className="ucpnb-card-body">
-        {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
-        <h4 className="ucpnb-card-title">{notice.title}</h4>
-        {onRestore && (
-          <div className="ucpnb-card-footer">
-            <button
-              className="ucpnb-btn ucpnb-btn-link"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRestore(notice);
-              }}
-            >
-              Restore
-            </button>
+        {(notice.categoryName || notice.deadline) && (
+          <div className="ucpnb-card-tags">
+            {notice.categoryName && <CategoryTag name={notice.categoryName} />}
+            {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
           </div>
         )}
-        {notice.deadline && (
-          <div className="ucpnb-card-deadline">Deadline: {formatDate(notice.deadline)}</div>
-        )}
+        <h3 className="ucpnb-card-title">{notice.title}</h3>
+        <p className="ucpnb-card-excerpt">{notice.description}</p>
+
+        <div className="ucpnb-card-footer">
+          <div className="ucpnb-card-source" title={notice.createdByName}>
+            <Avatar name={notice.createdByName} />
+            <span className="ucpnb-card-author">{notice.createdByName}</span>
+            <span className="ucpnb-dot" aria-hidden="true" />
+            <time dateTime={notice.createdAt}>{timeAgo(notice.createdAt)}</time>
+          </div>
+
+          <div className="ucpnb-card-actions">
+            {onLike && (
+              <button
+                className={notice.likedByMe ? "ucpnb-like is-liked" : "ucpnb-like"}
+                onClick={(e) => {
+                  stop(e);
+                  onLike(notice);
+                }}
+                aria-label={notice.likedByMe ? "Unlike" : "Like"}
+                aria-pressed={notice.likedByMe}
+              >
+                <Icon name="heart" size={17} filled={notice.likedByMe} />
+                <span>{notice.likeCount}</span>
+              </button>
+            )}
+            <button
+              className="ucpnb-icon-btn ucpnb-icon-btn-sm"
+              onClick={handleShare}
+              aria-label={shared ? "Link copied" : "Share"}
+              title={shared ? "Link copied" : "Share"}
+            >
+              <Icon name={shared ? "check" : "share"} size={17} />
+            </button>
+            {onDismiss && (
+              <button
+                className="ucpnb-icon-btn ucpnb-icon-btn-sm"
+                onClick={(e) => {
+                  stop(e);
+                  onDismiss(notice);
+                }}
+                aria-label="Hide from my feed"
+                title="Hide from my feed"
+              >
+                <Icon name="eyeOff" size={17} />
+              </button>
+            )}
+            {onRestore && (
+              <button
+                className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm"
+                onClick={(e) => {
+                  stop(e);
+                  onRestore(notice);
+                }}
+              >
+                <Icon name="restore" size={15} />
+                Restore
+              </button>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

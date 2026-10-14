@@ -1,5 +1,6 @@
 // Serves the mock UCP portal (dev/portal) with the locally built extension
-// (extension/dist-local) mounted at /extension. Build it first with
+// (extension/dist-local) mounted at /extension, plus demo posters at
+// /posters (used by the seeded demo notices). Build the extension first with
 // `npm run build:local` in extension/, so it talks to the local backend.
 //
 //   node dev/serve-portal.mjs [port]     (default 5174)
@@ -13,7 +14,7 @@ const roots = {
   "/extension/": resolve(here, "../extension/dist-local"),
   "/": resolve(here, "portal"),
 };
-const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png" };
+const types = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".png": "image/png", ".svg": "image/svg+xml" };
 const port = Number(process.argv[2] ?? 5174);
 
 createServer(async (req, res) => {

@@ -3,6 +3,11 @@ import { api } from "@shared/api/client";
 import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { fromDatetimeLocalValue, isExpired, toDatetimeLocalValue } from "@shared/noticeForm";
+import { optimizeImageUrl } from "@shared/imageOptimize";
+import { timeAgo } from "@shared/format";
+import { Icon } from "@shared/components/Icon";
+import { EmptyState } from "@shared/components/EmptyState";
+import { CategoryTag } from "@shared/components/Tags";
 
 interface Props {
   user: AuthUser;
@@ -139,158 +144,141 @@ export function NoticeManager({ user, scope }: Props) {
   };
 
   return (
-    <div className="ucpnb-panel">
-      <div className="ucpnb-panel-header">
-        <h4>{scope === "mine" ? "My Notices" : "All Notices"}</h4>
-        <button className="ucpnb-btn ucpnb-btn-primary" onClick={startCreate}>
-          + New Notice
-        </button>
+    <div className="ucpnb-tab-panel">
+      <div className="ucpnb-section-header">
+        <div>
+          <h4>{scope === "mine" ? "My notices" : "All notices"}</h4>
+          <p>Everything you've posted, including notices students no longer see.</p>
+        </div>
+        {!(creating || editing) && (
+          <button className="ucpnb-btn ucpnb-btn-primary" onClick={startCreate}>
+            <Icon name="plus" size={16} />
+            New notice
+          </button>
+        )}
       </div>
 
       {(creating || editing) && (
-        <form className="ucpnb-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-          />
-          <select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}
-          >
-            <option value="">No category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <div className="ucpnb-upload-row">
-            <input
-              type="text"
-              placeholder="Poster image URL (optional)"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-            <label className="ucpnb-btn ucpnb-upload-btn">
-              {uploading ? "Uploading..." : "Upload Image"}
+        <form className="ucpnb-form-card" onSubmit={handleSubmit}>
+          <div className="ucpnb-form-card-header">
+            <h4>{editing ? "Edit notice" : "New notice"}</h4>
+            <button type="button" className="ucpnb-icon-btn ucpnb-icon-btn-sm" onClick={resetForm} aria-label="Cancel">
+              <Icon name="x" size={18} />
+            </button>
+          </div>
+
+          <div className="ucpnb-form-grid">
+            <label className="ucpnb-field ucpnb-span-2">
+              <span className="ucpnb-field-label">Title</span>
+              <input className="ucpnb-input" type="text" placeholder="e.g. Hackathon registrations open" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </label>
+            <label className="ucpnb-field ucpnb-span-2">
+              <span className="ucpnb-field-label">Details</span>
+              <textarea className="ucpnb-input" placeholder="What students need to know" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
+            </label>
+            <label className="ucpnb-field">
+              <span className="ucpnb-field-label">Category</span>
+              <select className="ucpnb-input" value={categoryId} onChange={(e) => setCategoryId(e.target.value === "" ? "" : Number(e.target.value))}>
+                <option value="">None</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ucpnb-field">
+              <span className="ucpnb-field-label">Deadline</span>
+              <input className="ucpnb-input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+              <span className="ucpnb-field-hint">Leave empty to show it for 7 days.</span>
+            </label>
+            <div className="ucpnb-field ucpnb-span-2">
+              <span className="ucpnb-field-label">Poster</span>
+              <div className="ucpnb-upload-row">
+                <input className="ucpnb-input" type="text" placeholder="Paste an image URL, or upload one" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                <label className="ucpnb-btn ucpnb-btn-secondary">
+                  {uploading ? <span className="ucpnb-spinner" /> : <Icon name="image" size={16} />}
+                  {uploading ? "Uploading" : "Upload"}
+                  <input type="file" accept="image/*" onChange={handleFileSelected} disabled={uploading} hidden />
+                </label>
+              </div>
+              {imageUrl && <img src={optimizeImageUrl(imageUrl, 500) ?? imageUrl} alt="" className="ucpnb-upload-preview" />}
+            </div>
+            <label className="ucpnb-field ucpnb-span-2">
+              <span className="ucpnb-field-label">Link</span>
+              <input className="ucpnb-input" type="text" placeholder="Registration form, event page… (optional)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
+            </label>
+            <label className="ucpnb-field">
+              <span className="ucpnb-field-label">Your PIN</span>
               <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelected}
-                disabled={uploading}
-                hidden
+                className="ucpnb-input"
+                type="password"
+                inputMode="numeric"
+                placeholder="4–6 digits"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                maxLength={6}
               />
+              <span className="ucpnb-field-hint">First time publishing? The PIN you choose now becomes yours.</span>
             </label>
           </div>
-          {imageUrl && (
-            <img src={imageUrl} alt="Preview" className="ucpnb-upload-preview" />
-          )}
-          <input
-            type="text"
-            placeholder="Link URL — e.g. a registration form (optional)"
-            value={linkUrl}
-            onChange={(e) => setLinkUrl(e.target.value)}
-          />
-          <label className="ucpnb-field-label">
-            Deadline (optional — leave blank to auto-expire 7 days after posting)
-          </label>
-          <input
-            type="datetime-local"
-            value={deadline}
-            onChange={(e) => setDeadline(e.target.value)}
-          />
-          <label className="ucpnb-field-label">
-            Your PIN (4-6 digits) — first time publishing? Choose one now, you'll enter the same one every time after this.
-          </label>
-          <input
-            type="password"
-            inputMode="numeric"
-            placeholder="PIN"
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-            maxLength={6}
-          />
-          {error && <p className="ucpnb-error">{error}</p>}
+
+          {error && <p className="ucpnb-form-error">{error}</p>}
           <div className="ucpnb-form-actions">
-            <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
-              Publish
-            </button>
-            <button type="button" className="ucpnb-btn" onClick={resetForm}>
+            <button type="button" className="ucpnb-btn ucpnb-btn-secondary" onClick={resetForm}>
               Cancel
+            </button>
+            <button type="submit" className="ucpnb-btn ucpnb-btn-primary">
+              {editing ? "Save changes" : "Publish notice"}
             </button>
           </div>
         </form>
       )}
 
       {loading ? (
-        <p className="ucpnb-status">Loading...</p>
+        <div className="ucpnb-skeleton" style={{ height: 160, borderRadius: 16 }} />
       ) : notices.length === 0 ? (
-        <p className="ucpnb-status">
-          {scope === "mine" ? "You haven't published any notices yet." : "No notices yet."}
-        </p>
+        <EmptyState icon="megaphone" title={scope === "mine" ? "You haven't posted yet" : "No notices yet"}>
+          Notices you publish will be listed here.
+        </EmptyState>
       ) : (
-        <table className="ucpnb-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Category</th>
-              {scope === "all" && <th>Published By</th>}
-              <th>Posted</th>
-              <th>Views</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {notices.map((n) => {
-              const expired = isExpired(n);
-              return (
-                <tr key={n.id}>
-                  <td>{n.title}</td>
-                  <td>{n.categoryName ?? "—"}</td>
-                  {scope === "all" && <td>{n.createdByName}</td>}
-                  <td>{new Date(n.createdAt).toLocaleDateString()}</td>
-                  <td>{n.viewCount}</td>
-                  <td>
-                    <span className={expired ? "ucpnb-status-expired" : "ucpnb-status-active"}>
-                      {expired ? "Hidden from students" : "Visible"}
+        <ul className="ucpnb-manage-list">
+          {notices.map((n) => {
+            const expired = isExpired(n);
+            return (
+              <li key={n.id} className="ucpnb-manage-row">
+                <div className="ucpnb-manage-info">
+                  <div className="ucpnb-card-tags">
+                    <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
+                      {expired ? "Hidden from students" : "Live"}
                     </span>
-                    {n.deadline && (
-                      <div className="ucpnb-status">
-                        Deadline: {new Date(n.deadline).toLocaleString()}
-                      </div>
-                    )}
-                  </td>
-                  <td className="ucpnb-table-actions">
-                    {canManage(n) ? (
-                      <>
-                        <button className="ucpnb-btn ucpnb-btn-link" onClick={() => startEdit(n)}>
-                          Edit
-                        </button>
-                        <button
-                          className="ucpnb-btn ucpnb-btn-link ucpnb-btn-danger"
-                          onClick={() => handleDelete(n.id)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    ) : (
-                      <span className="ucpnb-status">—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    {n.categoryName && <CategoryTag name={n.categoryName} />}
+                  </div>
+                  <strong>{n.title}</strong>
+                  <span className="ucpnb-manage-meta">
+                    {scope === "all" && <>{n.createdByName} · </>}
+                    Posted {timeAgo(n.createdAt)}
+                    {n.deadline && <> · Deadline {new Date(n.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</>}
+                    {" · "}
+                    <Icon name="eye" size={13} /> {n.viewCount}
+                  </span>
+                </div>
+                {canManage(n) && (
+                  <div className="ucpnb-manage-actions">
+                    <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => startEdit(n)}>
+                      <Icon name="pencil" size={14} />
+                      Edit
+                    </button>
+                    <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-danger ucpnb-btn-sm" onClick={() => handleDelete(n.id)}>
+                      <Icon name="trash" size={14} />
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );

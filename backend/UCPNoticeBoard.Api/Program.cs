@@ -213,7 +213,7 @@ using (var scope = app.Services.CreateScope())
     // users, so it can never add demo rows to real data.
     if (app.Configuration.GetValue<bool>("SeedDemoData"))
     {
-        await DemoDataSeeder.SeedIfEmptyAsync(db);
+        await DemoDataSeeder.SeedIfEmptyAsync(db, posterBaseUrl: app.Configuration["DemoData:PosterBaseUrl"]);
     }
 }
 

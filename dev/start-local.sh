@@ -57,6 +57,7 @@ echo "Starting services..."
 ASPNETCORE_ENVIRONMENT=Development \
 ConnectionStrings__DefaultConnection="Host=$PG_HOST;Port=5432;Database=$PG_DB;Username=$PG_USER;Password=$PG_PASSWORD" \
 SeedDemoData=true \
+DemoData__PosterBaseUrl=http://localhost:5174/posters \
 start backend dotnet run --project "$ROOT/backend/UCPNoticeBoard.Api" --no-launch-profile --urls http://localhost:5000
 
 start pwa npm --prefix "$ROOT/pwa" run dev -- --port 5173 --strictPort

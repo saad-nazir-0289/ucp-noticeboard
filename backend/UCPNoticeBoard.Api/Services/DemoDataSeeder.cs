@@ -30,7 +30,12 @@ public static class DemoDataSeeder
     public const string FirstStudentRollNumber = "L1F23BSCS0004";
 
     /// <returns>true if data was inserted, false if the database already had users.</returns>
-    public static async Task<bool> SeedIfEmptyAsync(AppDbContext db, DateTime? nowOverride = null)
+    /// <param name="posterBaseUrl">
+    /// Optional base URL serving hackathon.svg, internship.svg and football.svg
+    /// (dev/portal/posters, served by the local preview). Without it, demo
+    /// notices have no posters.
+    /// </param>
+    public static async Task<bool> SeedIfEmptyAsync(AppDbContext db, DateTime? nowOverride = null, string? posterBaseUrl = null)
     {
         if (await db.Users.AnyAsync())
         {
@@ -74,8 +79,9 @@ public static class DemoDataSeeder
 
         Notice NewNotice(
             User author, string category, string title, string description,
-            double createdHoursAgo, double? deadlineInHours = null, string? link = null, int views = 0) => new()
+            double createdHoursAgo, double? deadlineInHours = null, string? link = null, int views = 0, string? poster = null) => new()
         {
+            ImageUrl = poster is null || string.IsNullOrWhiteSpace(posterBaseUrl) ? null : $"{posterBaseUrl.TrimEnd('/')}/{poster}",
             CreatedByUser = author,
             Category = categories[category],
             Title = title,
@@ -96,12 +102,12 @@ public static class DemoDataSeeder
             NewNotice(computingSociety, "Events", "Hackathon registrations close tomorrow",
                 "Teams of 2-4 can still register for the 24-hour Spring Hackathon. Prizes for the top three " +
                 "teams, plus internship interviews with our sponsors.",
-                createdHoursAgo: 30, deadlineInHours: 20, link: "https://example.com/hackathon", views: 168),
+                createdHoursAgo: 30, deadlineInHours: 20, link: "https://example.com/hackathon", views: 168, poster: "hackathon.svg"),
             NewNotice(studentAffairs, "Careers", "Internship drive: software engineering roles",
                 "Twelve partner companies are hiring summer interns. Bring a printed CV to the career " +
                 "centre; sessions run every afternoon this week from 2pm to 5pm. Final-year and " +
                 "third-year students are especially encouraged to attend.",
-                createdHoursAgo: 50, deadlineInHours: 24 * 10, views: 95),
+                createdHoursAgo: 50, deadlineInHours: 24 * 10, views: 95, poster: "internship.svg"),
             NewNotice(computingSociety, "Societies", "Computing Society recruitment open",
                 "Join the organizing team for workshops, coding contests and industry talks. No prior " +
                 "experience needed — just enthusiasm.",
@@ -112,7 +118,7 @@ public static class DemoDataSeeder
             NewNotice(studentAffairs, "Sports", "Football trials this Saturday",
                 "Trials for the university football team will be held at the main ground at 9am. " +
                 "Bring your own kit.",
-                createdHoursAgo: 24 * 4, views: 33),
+                createdHoursAgo: 24 * 4, views: 33, poster: "football.svg"),
 
             // Not visible to students — only in the Publisher/Admin
             // management view — so the expiry rules can be seen working.
