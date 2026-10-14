@@ -68,6 +68,7 @@ public class AppDbContext : DbContext
             entity.Property(p => p.Endpoint).IsRequired().HasMaxLength(2000);
             entity.Property(p => p.P256dh).IsRequired().HasMaxLength(500);
             entity.Property(p => p.Auth).IsRequired().HasMaxLength(500);
+            entity.Property(p => p.CategoryFilter).HasMaxLength(200);
             // A given browser subscription (endpoint) should only ever map
             // to one row — re-subscribing with the same endpoint updates
             // it rather than creating a duplicate.
