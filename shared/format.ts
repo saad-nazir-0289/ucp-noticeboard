@@ -62,7 +62,26 @@ export function deadlineStatus(iso: string, now: Date = new Date()): { label: st
 }
 
 /** A stable colour (0-7, see --nb-tone-N in tokens.css) for a category name. */
+/**
+ * A distinct colour for each fixed category, so no two look alike in the
+ * feed or the category menu. Anything else (e.g. a publisher's name for
+ * its avatar) gets one of the first eight by hash.
+ */
+const CATEGORY_TONES: Record<string, number> = {
+  academics: 3, // purple
+  campus: 5, // teal
+  careers: 0, // blue
+  scholarships: 1, // green
+  workshops: 6, // amber
+  competitions: 8, // red
+  events: 4, // pink
+  societies: 2, // orange
+  sports: 7, // sky
+};
+
 export function categoryTone(name: string): number {
+  const fixed = CATEGORY_TONES[name.toLowerCase()];
+  if (fixed !== undefined) return fixed;
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
   return hash % 8;

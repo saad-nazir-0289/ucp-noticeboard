@@ -39,6 +39,7 @@
     --nb-tone-5-bg: rgba(70, 200, 230, 0.13); --nb-tone-5-fg: #6fd6ee;
     --nb-tone-6-bg: rgba(240, 200, 80, 0.13); --nb-tone-6-fg: #f0cd6b;
     --nb-tone-7-bg: rgba(80, 170, 240, 0.13); --nb-tone-7-fg: #7cc3f5;
+    --nb-tone-8-bg: rgba(250, 110, 100, 0.14); --nb-tone-8-fg: #ff9a90;
 
     --nb-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
     --nb-shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);

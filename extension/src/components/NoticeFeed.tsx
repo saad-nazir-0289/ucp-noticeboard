@@ -5,6 +5,7 @@ import { NoticeCard } from "@shared/components/NoticeCard";
 import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
+import { CategoryMenu } from "@shared/components/CategoryMenu";
 import { compareNotices } from "@shared/noticeForm";
 
 // Desktop cards and the modal are narrower than the PWA's, so request smaller posters.
@@ -154,18 +155,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
           onChange={(e) => setSearch(e.target.value)}
         />
       </label>
-      {categories.length > 0 && (
-        <div className="ucpnb-chips" aria-label="Categories">
-          <button className={categoryId === "all" ? "ucpnb-chip is-active" : "ucpnb-chip"} onClick={() => setCategoryId("all")}>
-            All
-          </button>
-          {categories.map((c) => (
-            <button key={c.id} className={categoryId === c.id ? "ucpnb-chip is-active" : "ucpnb-chip"} onClick={() => setCategoryId(c.id)}>
-              {c.name}
-            </button>
-          ))}
-        </div>
-      )}
+      {categories.length > 0 && <CategoryMenu categories={categories} value={categoryId} onChange={setCategoryId} />}
     </div>
   );
 

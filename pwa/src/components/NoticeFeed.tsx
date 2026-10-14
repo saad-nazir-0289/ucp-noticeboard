@@ -7,6 +7,7 @@ import { NoticeDetailModal } from "@shared/components/NoticeDetailModal";
 import { NoticeSkeleton } from "./NoticeSkeleton";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
+import { CategoryMenu } from "@shared/components/CategoryMenu";
 import { compareNotices } from "@shared/noticeForm";
 
 interface Props {
@@ -167,6 +168,12 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
+          {/* Computers get the category menu here; phones get the swipeable row below. */}
+          {categories.length > 0 && (
+            <div className="ucpnb-pointer-only">
+              <CategoryMenu categories={categories} value={categoryId} onChange={setCategoryId} />
+            </div>
+          )}
           <div className="ucpnb-segmented" role="group" aria-label="Layout">
             <button
               className={viewMode === "card" ? "is-active" : ""}
@@ -193,7 +200,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
         </div>
 
         {categories.length > 0 && (
-          <div className="ucpnb-chips" role="tablist" aria-label="Categories">
+          <div className="ucpnb-chips ucpnb-touch-only" role="tablist" aria-label="Categories">
             <button
               className={categoryId === "all" ? "ucpnb-chip is-active" : "ucpnb-chip"}
               onClick={() => setCategoryId("all")}

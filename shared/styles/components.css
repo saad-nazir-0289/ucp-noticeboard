@@ -256,20 +256,152 @@ select.ucpnb-input {
   display: none;
 }
 
-/* Mouse users can't swipe a hidden-scrollbar row, so on computers the
-   categories wrap onto a second line; on touch screens they scroll, with
-   a fade at the edge hinting there's more. */
-@media (hover: hover) and (pointer: fine) {
-  .ucpnb-chips {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-}
-
+/* On touch screens the category row scrolls sideways, with a fade at
+   the edge hinting there's more. (Computers use CategoryMenu instead.) */
 @media (pointer: coarse) {
   .ucpnb-chips:not(.ucpnb-chips-wrap) {
     -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
     mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+}
+
+/* Controls meant for a mouse (the category menu) vs. for touch (the
+   swipeable category row): each screen shows only its kind. */
+.ucpnb-pointer-only {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ucpnb-pointer-only {
+    display: contents;
+  }
+
+  .ucpnb-touch-only {
+    display: none !important;
+  }
+}
+
+/* ---------- Category menu ("All categories ▾") ---------- */
+.ucpnb-catmenu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.ucpnb-catmenu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  min-width: 210px;
+  padding: 0 12px 0 14px;
+  border: 1px solid var(--nb-border-strong, var(--nb-border));
+  border-radius: var(--nb-r-md);
+  background: var(--nb-surface);
+  color: var(--nb-text);
+  font: 600 var(--nb-text-sm) / 1 var(--nb-font);
+  cursor: pointer;
+  transition: border-color 0.15s var(--nb-ease), box-shadow 0.15s var(--nb-ease);
+}
+
+.ucpnb-catmenu-button:hover {
+  border-color: var(--nb-text-3);
+}
+
+.ucpnb-catmenu-button:focus-visible {
+  outline: none;
+  box-shadow: var(--nb-focus);
+}
+
+.ucpnb-catmenu-button.is-active {
+  border-color: var(--nb-primary);
+}
+
+.ucpnb-catmenu-button .ucpnb-catmenu-label {
+  flex: 1;
+  text-align: left;
+}
+
+.ucpnb-catmenu-button .ucpnb-icon {
+  color: var(--nb-text-3);
+  transition: transform 0.15s var(--nb-ease);
+}
+
+.ucpnb-catmenu-button[aria-expanded="true"] .ucpnb-icon {
+  transform: rotate(180deg);
+}
+
+.ucpnb-catmenu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 60;
+  min-width: 100%;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-lg);
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-3);
+  animation: ucpnb-catmenu-in 0.14s var(--nb-ease);
+}
+
+@keyframes ucpnb-catmenu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+.ucpnb-catmenu-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--nb-r-sm, 8px);
+  color: var(--nb-text);
+  font: 500 var(--nb-text-sm) / 1.2 var(--nb-font);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ucpnb-catmenu-option .ucpnb-catmenu-label {
+  flex: 1;
+}
+
+.ucpnb-catmenu-option:hover,
+.ucpnb-catmenu-option:focus {
+  outline: none;
+  background: var(--nb-surface-2);
+}
+
+.ucpnb-catmenu-option.is-selected {
+  background: var(--nb-primary-soft);
+  color: var(--nb-primary);
+  font-weight: 600;
+}
+
+.ucpnb-catmenu-dot {
+  flex-shrink: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+.ucpnb-catmenu-dot.is-all {
+  background: var(--nb-text-3);
+}
+
+.ucpnb-dot-tone-0 { background: var(--nb-tone-0-fg); }
+.ucpnb-dot-tone-1 { background: var(--nb-tone-1-fg); }
+.ucpnb-dot-tone-2 { background: var(--nb-tone-2-fg); }
+.ucpnb-dot-tone-3 { background: var(--nb-tone-3-fg); }
+.ucpnb-dot-tone-4 { background: var(--nb-tone-4-fg); }
+.ucpnb-dot-tone-5 { background: var(--nb-tone-5-fg); }
+.ucpnb-dot-tone-6 { background: var(--nb-tone-6-fg); }
+.ucpnb-dot-tone-7 { background: var(--nb-tone-7-fg); }
+.ucpnb-dot-tone-8 { background: var(--nb-tone-8-fg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ucpnb-catmenu-list {
+    animation: none;
   }
 }
 
@@ -354,6 +486,7 @@ select.ucpnb-input {
 .ucpnb-tone-5 { background: var(--nb-tone-5-bg); color: var(--nb-tone-5-fg); }
 .ucpnb-tone-6 { background: var(--nb-tone-6-bg); color: var(--nb-tone-6-fg); }
 .ucpnb-tone-7 { background: var(--nb-tone-7-bg); color: var(--nb-tone-7-fg); }
+.ucpnb-tone-8 { background: var(--nb-tone-8-bg); color: var(--nb-tone-8-fg); }
 
 .ucpnb-badge-normal { background: var(--nb-surface-2); color: var(--nb-text-2); }
 .ucpnb-badge-soon { background: var(--nb-warning-soft); color: var(--nb-warning); }
@@ -920,3 +1053,4 @@ select.ucpnb-input {
 .ucpnb-tone-text-5 { color: var(--nb-tone-5-fg); }
 .ucpnb-tone-text-6 { color: var(--nb-tone-6-fg); }
 .ucpnb-tone-text-7 { color: var(--nb-tone-7-fg); }
+.ucpnb-tone-text-8 { color: var(--nb-tone-8-fg); }
