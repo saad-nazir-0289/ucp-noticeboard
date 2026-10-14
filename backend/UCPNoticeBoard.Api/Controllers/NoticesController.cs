@@ -1,6 +1,4 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,9 +36,6 @@ public class NoticesController : ControllerBase
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
         n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.LikeCount, likedByMe);
 
-    private static string HashPin(string pin) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
-
     /// <summary>
     /// The actual security boundary for anything that changes public
     /// content. If this account has never set a PIN, whatever's supplied
@@ -56,7 +51,7 @@ public class NoticesController : ControllerBase
             return "A 4-6 digit PIN is required.";
         }
 
-        var hash = HashPin(pin);
+        var hash = PinHasher.Hash(pin);
 
         if (user.PinHash is null)
         {

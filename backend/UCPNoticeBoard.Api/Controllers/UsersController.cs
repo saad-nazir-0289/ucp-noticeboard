@@ -1,12 +1,11 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
+using UCPNoticeBoard.Api.Services;
 
 namespace UCPNoticeBoard.Api.Controllers;
 
@@ -27,9 +26,6 @@ public class UsersController : ControllerBase
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
-    private static string HashPin(string pin) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
-
     /// <summary>
     /// Every action here that grants or changes privilege now requires
     /// the ACTING ADMIN's own PIN — not the target user's. Without this,
@@ -48,7 +44,7 @@ public class UsersController : ControllerBase
             return "Your 4-6 digit PIN is required for this action.";
         }
 
-        var hash = HashPin(pin);
+        var hash = PinHasher.Hash(pin);
 
         if (admin.PinHash is null)
         {

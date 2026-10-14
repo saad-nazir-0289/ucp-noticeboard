@@ -201,6 +201,14 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // Sample content for local runs and staging only. Off unless
+    // SeedDemoData=true, and a no-op on any database that already has
+    // users, so it can never add demo rows to real data.
+    if (app.Configuration.GetValue<bool>("SeedDemoData"))
+    {
+        await DemoDataSeeder.SeedIfEmptyAsync(db);
+    }
 }
 
 // --- Forwarded headers, so rate limiting and logging see the real client
