@@ -982,3 +982,202 @@ body {
   background: #fff1f2;
   color: #be123c;
 }
+
+/* --- Publishing (Publishers/Admins only): bottom-sheet forms, the
+   floating "New notice" button, and the My notices list. --- */
+.ucpnb-sheet {
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+  animation: ucpnb-sheet-up 0.2s ease-out;
+  gap: 14px;
+}
+
+.ucpnb-sheet-compact {
+  max-width: 440px;
+}
+
+@media (min-width: 900px) {
+  .ucpnb-sheet {
+    border-radius: 20px;
+    margin-bottom: 24px;
+    padding: 24px;
+  }
+}
+
+.ucpnb-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.ucpnb-sheet-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #12395c;
+}
+
+.ucpnb-sheet-text {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ucpnb-sheet-footer {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.ucpnb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ucpnb-field small {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.ucpnb-form textarea,
+.ucpnb-form select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d6dde5;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #ffffff;
+  color: inherit;
+  font-weight: 400;
+}
+
+.ucpnb-form textarea {
+  resize: vertical;
+}
+
+.ucpnb-form-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.ucpnb-btn-block {
+  width: 100%;
+  min-height: 46px;
+  font-size: 15px;
+}
+
+.ucpnb-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  font-weight: 600;
+}
+
+.ucpnb-upload-btn.is-busy {
+  opacity: 0.6;
+}
+
+.ucpnb-poster-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ucpnb-poster-preview img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.ucpnb-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  z-index: 50;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 20px;
+  background: #1a5da8;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(26, 93, 168, 0.4);
+  cursor: pointer;
+}
+
+.ucpnb-manage-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.ucpnb-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.ucpnb-manage-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ucpnb-manage-info strong {
+  font-size: 15px;
+  color: #12395c;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ucpnb-manage-info span {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.ucpnb-manage-actions {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ucpnb-pill {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: #e7f6ec;
+  color: #15803d;
+}
+
+.ucpnb-pill-muted {
+  background: #f1f2f4;
+  color: #6b7280;
+}
+
+.ucpnb-sheet-header .ucpnb-modal-close {
+  position: static;
+}

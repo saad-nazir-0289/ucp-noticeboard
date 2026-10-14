@@ -11,6 +11,27 @@ class ApiError extends Error {
   }
 }
 
+// "This device is unlocked" (see backend PinService): once set, every
+// request carries it, and the server accepts it in place of the PIN for
+// privileged actions. Only the PWA uses this for now.
+const DEVICE_TOKEN_HEADER = "X-Device-Token";
+let deviceToken: string | null = null;
+let onDeviceTokenInvalid: (() => void) | null = null;
+
+/**
+ * Sets (or clears) this device's unlock token. `onInvalid` runs if the
+ * server reports the token is no longer valid (expired, logged out, role
+ * changed) — the token is dropped and the app should ask for the PIN again.
+ */
+export function setDeviceToken(token: string | null, onInvalid?: () => void): void {
+  deviceToken = token;
+  onDeviceTokenInvalid = onInvalid ?? null;
+}
+
+export function hasDeviceToken(): boolean {
+  return deviceToken !== null;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -23,11 +44,19 @@ async function request<T>(
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
+  if (deviceToken) {
+    headers[DEVICE_TOKEN_HEADER] = deviceToken;
+  }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers,
   });
+
+  if (deviceToken && response.headers.get("X-Device-Token-Status") === "invalid") {
+    deviceToken = null;
+    onDeviceTokenInvalid?.();
+  }
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
@@ -73,7 +102,8 @@ export const api = {
       linkUrl: string;
       categoryId: number | null;
       deadline: string | null;
-      pin: string;
+      /** Not needed when this device is unlocked. */
+      pin?: string;
     },
     token: string
   ) =>
@@ -92,7 +122,8 @@ export const api = {
       linkUrl: string;
       categoryId: number | null;
       deadline: string | null;
-      pin: string;
+      /** Not needed when this device is unlocked. */
+      pin?: string;
     },
     token: string
   ) =>
@@ -102,8 +133,9 @@ export const api = {
       token
     ),
 
-  deleteNotice: (id: number, pin: string, token: string) =>
-    request<void>(`/notices/${id}?pin=${encodeURIComponent(pin)}`, { method: "DELETE" }, token),
+  /** `pin` isn't needed when this device is unlocked. */
+  deleteNotice: (id: number, pin: string | null, token: string) =>
+    request<void>(pin ? `/notices/${id}?pin=${encodeURIComponent(pin)}` : `/notices/${id}`, { method: "DELETE" }, token),
 
   dismissNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),

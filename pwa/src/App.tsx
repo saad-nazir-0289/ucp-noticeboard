@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { AuthUser, Category, Notice } from "@shared/types";
-import { api } from "@shared/api/client";
+import { api, setDeviceToken } from "@shared/api/client";
 import { getSavedIdentity, saveIdentity, clearIdentity } from "./storage";
+import { clearDeviceToken, getSavedDeviceToken, saveDeviceToken } from "./deviceUnlock";
 import {
   registerServiceWorker,
   getPushSubscriptionState,
@@ -12,6 +13,9 @@ import {
 import { RollNumberEntry } from "./RollNumberEntry";
 import { NoticeFeed, getSavedViewMode } from "./components/NoticeFeed";
 import { NoticeSkeleton } from "./components/NoticeSkeleton";
+import { NoticeEditor } from "./components/NoticeEditor";
+import { ManageNotices } from "./components/ManageNotices";
+import { UnlockPrompt } from "./components/UnlockPrompt";
 
 type Status = "loading" | "needs-identity" | "ready" | "error";
 type PushState = "unsupported" | "subscribed" | "not-subscribed" | "working";
@@ -29,6 +33,15 @@ export function App() {
   const [showCategoryPrefs, setShowCategoryPrefs] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
   const [prefsLoading, setPrefsLoading] = useState(false);
+
+  // Publishing (Publishers/Admins only). `editor` is open when non-null;
+  // `notice` set means editing rather than creating.
+  const [unlocked, setUnlocked] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [editor, setEditor] = useState<{ notice?: Notice } | null>(null);
+  const [showManage, setShowManage] = useState(false);
+  // Bumped after a publish/edit/delete so the feed and list reload.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -78,6 +91,13 @@ export function App() {
     window.history.replaceState({}, "", cleanUrl);
   }, []);
 
+  // The server no longer accepts this phone's unlock (expired after 30
+  // days unused, logged out by the Admin, or the role changed).
+  const handleDeviceTokenInvalid = () => {
+    clearDeviceToken();
+    setUnlocked(false);
+  };
+
   const login = async (rollNumber: string) => {
     setStatus("loading");
     try {
@@ -94,6 +114,9 @@ export function App() {
       // correctly on any device with zero extra steps.
       const activationCode = urlActivationCode;
       const result = await api.login(rollNumber, "", activationCode);
+      const deviceToken = result.role === "Student" ? null : getSavedDeviceToken(rollNumber);
+      setDeviceToken(deviceToken, handleDeviceTokenInvalid);
+      setUnlocked(deviceToken !== null);
       setUser(result);
       setBootstrapNotices(result.notices);
       setBootstrapCategories(result.categories);
@@ -128,8 +151,44 @@ export function App() {
 
   const handleChangeIdentity = () => {
     clearIdentity();
+    clearDeviceToken();
+    setDeviceToken(null);
+    setUnlocked(false);
     setUser(null);
     setStatus("needs-identity");
+  };
+
+  const openEditor = (notice?: Notice) => {
+    setEditor({ notice });
+    if (!unlocked) setShowUnlock(true);
+  };
+
+  const handleUnlocked = (deviceToken: string) => {
+    if (!user) return;
+    saveDeviceToken(user.rollNumber, deviceToken);
+    setDeviceToken(deviceToken, handleDeviceTokenInvalid);
+    setUnlocked(true);
+    setShowUnlock(false);
+  };
+
+  const handleSaved = (wasEdit: boolean) => {
+    setEditor(null);
+    setRefreshKey((k) => k + 1);
+    showToast(wasEdit ? "Notice updated" : "Published — students are being notified");
+  };
+
+  const lockThisPhone = async () => {
+    if (!user) return;
+    try {
+      const current = (await api.getMyDevices(user.token)).find((d) => d.isCurrent);
+      if (current) await api.revokeMyDevice(current.id, user.token);
+    } catch {
+      /* logging out locally below is what matters on this device */
+    }
+    clearDeviceToken();
+    setDeviceToken(null);
+    setUnlocked(false);
+    showToast("This phone is locked. Your PIN will be asked next time.");
   };
 
   const enableNotifications = async () => {
@@ -254,6 +313,11 @@ export function App() {
         <div className="ucpnb-header">
           <h3>Latest Updates</h3>
           <div className="ucpnb-header-actions">
+            {user.role !== "Student" && (
+              <button className="ucpnb-btn" onClick={() => setShowManage(true)}>
+                {user.role === "Admin" ? "All notices" : "My notices"}
+              </button>
+            )}
             {pushState !== "unsupported" && (
               <button
                 className="ucpnb-bell-btn"
@@ -312,11 +376,51 @@ export function App() {
         )}
 
         <NoticeFeed
+          key={refreshKey}
           token={user.token}
-          initialNotices={bootstrapNotices}
+          // After a publish/edit the feed refetches instead of reusing the
+          // notices bundled with login.
+          initialNotices={refreshKey === 0 ? bootstrapNotices : undefined}
           initialCategories={bootstrapCategories}
-          deepLinkNoticeId={deepLinkNoticeId}
+          deepLinkNoticeId={refreshKey === 0 ? deepLinkNoticeId : undefined}
         />
+
+        {user.role !== "Student" && (
+          <button className="ucpnb-fab" onClick={() => openEditor()} aria-label="New notice">
+            + New notice
+          </button>
+        )}
+
+        {showManage && (
+          <ManageNotices
+            user={user}
+            refreshKey={refreshKey}
+            onNew={() => openEditor()}
+            onEdit={(n) => openEditor(n)}
+            onDeleted={() => {
+              setRefreshKey((k) => k + 1);
+              showToast("Notice deleted");
+            }}
+            onNeedsUnlock={() => setShowUnlock(true)}
+            onLockPhone={lockThisPhone}
+            onClose={() => setShowManage(false)}
+          />
+        )}
+
+        {editor && (
+          <NoticeEditor
+            user={user}
+            categories={bootstrapCategories}
+            notice={editor.notice}
+            onSaved={() => handleSaved(Boolean(editor.notice))}
+            onClose={() => setEditor(null)}
+            onNeedsUnlock={() => setShowUnlock(true)}
+          />
+        )}
+
+        {showUnlock && (
+          <UnlockPrompt token={user.token} onUnlocked={handleUnlocked} onClose={() => setShowUnlock(false)} />
+        )}
 
         <div className="ucpnb-footer">
           <a

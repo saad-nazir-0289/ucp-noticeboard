@@ -2,34 +2,11 @@ import { useEffect, useState } from "react";
 import { api } from "@shared/api/client";
 import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
 import type { AuthUser, Category, Notice } from "@shared/types";
+import { fromDatetimeLocalValue, isExpired, toDatetimeLocalValue } from "@shared/noticeForm";
 
 interface Props {
   user: AuthUser;
   scope: "mine" | "all";
-}
-
-function isExpired(notice: Notice): boolean {
-  const now = new Date();
-  if (notice.deadline) {
-    return new Date(notice.deadline) <= now;
-  }
-  const sevenDaysAfterCreated = new Date(notice.createdAt);
-  sevenDaysAfterCreated.setDate(sevenDaysAfterCreated.getDate() + 7);
-  return sevenDaysAfterCreated <= now;
-}
-
-// datetime-local inputs need "YYYY-MM-DDTHH:mm" in LOCAL time, not the ISO
-// UTC string the API returns/expects — these two convert between them.
-function toDatetimeLocalValue(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function fromDatetimeLocalValue(value: string): string | null {
-  if (!value) return null;
-  return new Date(value).toISOString();
 }
 
 export function NoticeManager({ user, scope }: Props) {
