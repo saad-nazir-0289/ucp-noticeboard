@@ -1096,3 +1096,14 @@ select.ucpnb-input {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Under the Share button after sharing a poster: the caption was copied. */
+.ucpnb-share-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--nb-r-md);
+  background: var(--nb-success-soft);
+  color: var(--nb-text);
+  font: 500 var(--nb-text-sm) / 1.45 var(--nb-font);
+  text-align: center;
+}

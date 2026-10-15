@@ -29,11 +29,17 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const [captionNote, setCaptionNote] = useState(false);
+
   const handleShare = async () => {
     const result = await shareNotice(notice);
     if (result === "copied") {
       setShared(true);
       setTimeout(() => setShared(false), 2000);
+    }
+    if (result === "photo") {
+      setCaptionNote(true);
+      setTimeout(() => setCaptionNote(false), 8000);
     }
   };
 
@@ -140,6 +146,11 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
               {shared ? "Link copied" : "Share"}
             </button>
           </div>
+          {captionNote && (
+            <p className="ucpnb-share-note" role="status">
+              The text is copied too: in WhatsApp, tap <b>Add a caption</b> and paste it.
+            </p>
+          )}
         </div>
       </div>
     </div>

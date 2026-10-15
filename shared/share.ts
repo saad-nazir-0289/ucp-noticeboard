@@ -71,9 +71,22 @@ export function preparePoster(notice: Notice): Promise<File | null> {
 const within = <T,>(promise: Promise<T>, ms: number, fallback: T) =>
   Promise.race([promise, new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
 
-export async function shareNotice(notice: Notice): Promise<"shared" | "copied" | "failed"> {
+/**
+ * "photo": shared as the poster image, with the caption also copied, since
+ * WhatsApp keeps only the photo when an app hands it a photo and text
+ * together; the person pastes the caption under the photo.
+ */
+export type ShareResult = "photo" | "shared" | "copied" | "failed";
+
+export async function shareNotice(notice: Notice): Promise<ShareResult> {
   const url = shareLink(notice);
   const caption = shareCaption(notice, url);
+  // Copied straight away, while the tap still counts as the person's action.
+  const canShare = typeof navigator.share === "function";
+  const captionCopied =
+    notice.imageUrl && canShare && navigator.clipboard
+      ? navigator.clipboard.writeText(caption).then(() => true, () => false)
+      : Promise.resolve(false);
 
   if (navigator.share) {
     // With a poster: the photo itself, the text as its caption, the link at the end.
@@ -81,7 +94,7 @@ export async function shareNotice(notice: Notice): Promise<"shared" | "copied" |
     if (poster && navigator.canShare?.({ files: [poster] })) {
       try {
         await navigator.share({ files: [poster], text: caption });
-        return "shared";
+        return (await captionCopied) ? "photo" : "shared";
       } catch (err) {
         // Closing the share sheet without picking anything isn't a failure.
         if (err instanceof Error && err.name === "AbortError") return "shared";
