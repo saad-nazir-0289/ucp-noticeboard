@@ -43,12 +43,22 @@ public class SharePreviewTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task DeadlineLeadsTheDescription_InPakistanTime()
+    public async Task PreviewSaysWhenItsDueAndWhoPostedIt_InPakistanTime()
     {
+        // The details themselves travel in the shared message, not the card.
         var html = await PreviewOf(new CreateNoticeRequest("Fee deadline", "Pay at the bank.", null, null, null,
             new DateTime(2026, 11, 20, 13, 0, 0, DateTimeKind.Utc), "1111"));
 
-        Assert.Contains("og:description\" content=\"Deadline: Fri, 20 Nov 2026, 6:00 PM. Pay at the bank.\"", html);
+        // (The page writes "·" as an HTML entity; the apps show it as "·".)
+        Assert.Contains("og:description\" content=\"Deadline: Fri, 20 Nov 2026, 6:00 PM · Test Publisher\"", System.Net.WebUtility.HtmlDecode(html));
+    }
+
+    [Fact]
+    public async Task WithoutADeadline_PreviewNamesWhoPostedIt()
+    {
+        var html = await PreviewOf(new CreateNoticeRequest("Library hours", "Open late.", null, null, null, null, "1111"));
+
+        Assert.Contains("og:description\" content=\"Test Publisher\"", html);
     }
 
     [Fact]

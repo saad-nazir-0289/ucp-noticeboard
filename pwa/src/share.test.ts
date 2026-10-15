@@ -35,9 +35,9 @@ describe("shareCaption", () => {
     expect(caption).not.toContain("·");
   });
 
-  it("shortens long details so it fits a photo caption, keeping the link", () => {
-    const caption = shareCaption(notice(null, "word ".repeat(400)), URL);
-    expect(caption.length).toBeLessThanOrEqual(1000);
+  it("shortens very long details, keeping the link at the end", () => {
+    const caption = shareCaption(notice(null, "word ".repeat(1000)), URL);
+    expect(caption.length).toBeLessThanOrEqual(2500);
     expect(caption.endsWith("\n\n" + URL)).toBe(true);
     expect(caption).toContain("…");
   });

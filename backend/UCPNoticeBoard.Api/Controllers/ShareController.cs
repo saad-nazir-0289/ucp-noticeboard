@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using UCPNoticeBoard.Api.Data;
@@ -40,21 +41,20 @@ public class ShareController : ControllerBase
     public async Task<ContentResult> SharePreview(int id)
     {
         var destinationUrl = $"{_pwaBaseUrl}/?notice={id}";
-        var notice = await _db.Notices.FindAsync(id);
+        var notice = await _db.Notices.Include(n => n.CreatedByUser).FirstOrDefaultAsync(n => n.Id == id);
 
         if (notice is null)
         {
             return BuildHtml("UCP NoticeBoard", "This notice is no longer available.", null, destinationUrl);
         }
 
-        var description = notice.Description.Length > 180
-            ? notice.Description[..180].TrimEnd() + "…"
-            : notice.Description;
-        // The deadline first: it's what someone glancing at the preview needs.
-        if (notice.Deadline is DateTime deadline)
-        {
-            description = $"Deadline: {PakistanTime(deadline):ddd, d MMM yyyy, h:mm tt}. {description}";
-        }
+        // Short: the shared message itself carries the full details (the
+        // apps put them in the text), so the card under the poster says only
+        // when it's due and who posted it, instead of repeating them.
+        var postedBy = notice.CreatedByUser?.Name;
+        var description = notice.Deadline is DateTime deadline
+            ? $"Deadline: {PakistanTime(deadline):ddd, d MMM yyyy, h:mm tt}" + (postedBy is null ? "" : $" · {postedBy}")
+            : postedBy ?? "UCP NoticeBoard";
 
         return BuildHtml(notice.Title, description, PreviewImage(notice.ImageUrl), destinationUrl);
     }

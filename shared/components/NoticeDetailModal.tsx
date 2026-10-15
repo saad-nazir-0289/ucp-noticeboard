@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import type { Notice } from "../types";
-import { preparePoster, shareNotice } from "../share";
+import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
 import { formatDateTime, toParagraphs } from "../format";
 import { downloadIcs, googleCalendarUrl } from "../calendar";
@@ -18,28 +18,17 @@ interface Props {
 export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) {
   const [shared, setShared] = useState(false);
 
-  // Ready before Share is tapped, so the share sheet opens straight away.
-  useEffect(() => {
-    void preparePoster(notice);
-  }, [notice]);
-
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const [captionNote, setCaptionNote] = useState(false);
-
   const handleShare = async () => {
     const result = await shareNotice(notice);
     if (result === "copied") {
       setShared(true);
       setTimeout(() => setShared(false), 2000);
-    }
-    if (result === "photo") {
-      setCaptionNote(true);
-      setTimeout(() => setCaptionNote(false), 8000);
     }
   };
 
@@ -143,14 +132,9 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
           <div className="ucpnb-detail-secondary">
             <button className="ucpnb-btn ucpnb-btn-secondary" onClick={handleShare}>
               <Icon name={shared ? "check" : "share"} size={18} />
-              {shared ? "Link copied" : "Share"}
+              {shared ? "Copied" : "Share"}
             </button>
           </div>
-          {captionNote && (
-            <p className="ucpnb-share-note" role="status">
-              The text is copied too: in WhatsApp, tap <b>Add a caption</b> and paste it.
-            </p>
-          )}
         </div>
       </div>
     </div>

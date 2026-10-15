@@ -28,9 +28,9 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 
   const handleShare = async (e: React.MouseEvent) => {
     stop(e);
     const result = await shareNotice(notice);
-    if (result === "copied" || result === "photo") {
+    if (result === "copied") {
       setShared(true);
-      setTimeout(() => setShared(false), result === "photo" ? 4000 : 2000);
+      setTimeout(() => setShared(false), 2000);
     }
   };
 
@@ -85,8 +85,8 @@ export function NoticeCard({ notice, onView, onDismiss, onRestore, imageWidth = 
             <button
               className="ucpnb-icon-btn ucpnb-icon-btn-sm"
               onClick={handleShare}
-              aria-label={shared ? "Copied: paste it as the caption" : "Share"}
-              title={shared ? "Copied: paste it as the caption" : "Share"}
+              aria-label={shared ? "Copied" : "Share"}
+              title={shared ? "Copied" : "Share"}
             >
               <Icon name={shared ? "check" : "share"} size={17} />
             </button>
