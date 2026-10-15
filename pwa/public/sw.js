@@ -2,10 +2,10 @@
 // notification arrive and be tapped even when the PWA isn't running.
 
 // A repeat visit shouldn't have to re-download the app's own JS/CSS every
-// time — those files only change when you actually ship a new version.
-// Cache-first here means: if we already have it, serve it instantly and
-// skip the network entirely; only fetch if it's genuinely new.
-const APP_SHELL_CACHE = "ucpnb-shell-v2";
+// time: those are served from the saved copy (their names change with
+// their contents). The page itself is fetched fresh first (see fetch below),
+// so a new version appears on the next open.
+const APP_SHELL_CACHE = "ucpnb-shell-v3";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -63,6 +63,24 @@ self.addEventListener("fetch", (event) => {
   // API calls (those need to always be fresh) and never cross-origin
   // requests (Cloudinary images, the backend API).
   if (event.request.method !== "GET" || url.origin !== self.location.origin) {
+    return;
+  }
+
+  // The page itself (and the manifest): the network first, so a new version
+  // shows up the moment the app is opened, not one visit later; the saved
+  // copy only when offline. The JS/CSS files it points to have their
+  // contents' hash in the name, so a saved one is always still correct.
+  if (event.request.mode === "navigate" || url.pathname === "/manifest.json") {
+    event.respondWith(
+      caches.open(APP_SHELL_CACHE).then((cache) =>
+        fetch(event.request)
+          .then((response) => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() => cache.match(event.request).then((cached) => cached || cache.match("/")))
+      )
+    );
     return;
   }
 
