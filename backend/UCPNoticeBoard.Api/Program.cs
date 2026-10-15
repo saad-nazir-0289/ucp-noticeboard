@@ -124,9 +124,11 @@ builder.Services.AddResponseCompression(options =>
 
 // Limits are per IP address, and a whole campus Wi-Fi (or a mobile
 // network's carrier-grade NAT) can reach the server from one address:
-// they're sized for hundreds of students behind one address, not one
-// person. Guessing a PIN is stopped by the per-account lockout in
-// PinService, not by these.
+// a notification tapped by a thousand students on campus within a minute
+// is a thousand sign-ins from one address. So these only stop a single
+// runaway client, not people. Guessing a PIN is stopped by the
+// per-account lockout in PinService (and the pin-check limit below);
+// activation codes are long random secrets, too long to guess.
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -134,7 +136,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 1200,
+                PermitLimit = 6000,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -149,7 +151,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 300,
+                PermitLimit = 3000,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
