@@ -70,7 +70,12 @@ main() {
 
   step "The code"
   mkdir -p "$root"/{config/caddy,backups,src}
-  [ -d "$root/repo/.git" ] || git clone --quiet --branch "$BRANCH" "$REPO_URL" "$root/repo"
+  if [ ! -d "$root/repo/.git" ]; then
+    # Into a temporary folder first, so an interrupted run never leaves half a clone.
+    rm -rf "$root/repo" "$root/repo.partial"
+    git clone --quiet --branch "$BRANCH" "$REPO_URL" "$root/repo.partial"
+    mv "$root/repo.partial" "$root/repo"
+  fi
   chown -R "$OWNER": "$root"
   # So git still works if a script is ever started with sudo.
   for dir in "$root/repo" "$root/src/production" "$root/src/staging"; do
