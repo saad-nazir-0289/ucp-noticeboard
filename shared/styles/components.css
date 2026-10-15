@@ -848,6 +848,80 @@ select.ucpnb-input {
   background: var(--nb-surface-2);
 }
 
+.ucpnb-detail-media.is-zoomable {
+  cursor: zoom-in;
+}
+
+.ucpnb-detail-media-zoom {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  pointer-events: none;
+}
+
+/* The poster on its own, full screen, for reading the small print. */
+.ucpnb-poster-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483500;
+  background: rgba(0, 0, 0, 0.94);
+  animation: ucpnb-fade 0.18s ease;
+}
+
+.ucpnb-poster-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ucpnb-poster-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  -webkit-user-drag: none;
+}
+
+.ucpnb-poster-viewer-close {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.ucpnb-poster-viewer-close:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.ucpnb-poster-viewer-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  font: 500 var(--nb-text-sm) / 1.3 var(--nb-font);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .ucpnb-detail-body {
   display: flex;
   flex-direction: column;

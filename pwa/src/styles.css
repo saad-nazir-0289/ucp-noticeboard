@@ -62,6 +62,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* No zooming on a double tap (pinch still works); posters have their own viewer. */
+  touch-action: manipulation;
 }
 
 body {

@@ -69,6 +69,9 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   const feedRef = useRef<HTMLDivElement>(null);
   // Back gesture closes these instead of leaving the app.
   useBackToClose(selected !== null, () => setSelected(null));
+  const [posterOpen, setPosterOpen] = useState(false);
+  useBackToClose(posterOpen, () => setPosterOpen(false));
+  useEffect(() => setPosterOpen(false), [selected]);
   useBackToClose(showArchive, () => setShowArchive(false));
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
@@ -305,7 +308,14 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
         </div>
       )}
 
-      {selected && <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <NoticeDetailModal
+          notice={selected}
+          onClose={() => setSelected(null)}
+          posterOpen={posterOpen}
+          onPosterOpenChange={setPosterOpen}
+        />
+      )}
     </>
   );
 }

@@ -5,6 +5,7 @@ import { optimizeImageUrl } from "../imageOptimize";
 import { formatDateTime, toParagraphs } from "../format";
 import { downloadIcs, googleCalendarUrl } from "../calendar";
 import { Icon } from "./Icon";
+import { PosterViewer } from "./PosterViewer";
 import { Avatar, CategoryTag, DeadlineBadge, PinnedBadge } from "./Tags";
 
 interface Props {
@@ -12,17 +13,25 @@ interface Props {
   onClose: () => void;
   /** Poster width to request from Cloudinary, sized to how wide this app shows the modal. */
   imageWidth?: number;
+  /** Lets the app own whether the full-screen poster is open (the PWA closes it on Back). */
+  posterOpen?: boolean;
+  onPosterOpenChange?: (open: boolean) => void;
 }
 
 /** Full notice: a bottom sheet on phones, a centred dialog on wider screens. */
-export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) {
+export function NoticeDetailModal({ notice, onClose, imageWidth = 900, posterOpen, onPosterOpenChange }: Props) {
   const [shared, setShared] = useState(false);
+  const [ownPosterOpen, setOwnPosterOpen] = useState(false);
+  const viewingPoster = posterOpen ?? ownPosterOpen;
+  const setViewingPoster = onPosterOpenChange ?? setOwnPosterOpen;
 
   useEffect(() => {
+    // While the poster is full screen, Escape closes only that.
+    if (viewingPoster) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, viewingPoster]);
 
   const handleShare = async () => {
     const result = await shareNotice(notice);
@@ -47,13 +56,23 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
         </button>
 
         {notice.imageUrl && (
-          <div className="ucpnb-detail-media">
+          <div
+            className="ucpnb-detail-media is-zoomable"
+            role="button"
+            tabIndex={0}
+            aria-label="View the poster full screen"
+            onClick={() => setViewingPoster(true)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setViewingPoster(true))}
+          >
             <div
               className="ucpnb-card-media-bg"
               style={{ backgroundImage: `url(${optimizeImageUrl(notice.imageUrl, 60)})` }}
               aria-hidden="true"
             />
             <img src={optimizeImageUrl(notice.imageUrl, imageWidth) ?? undefined} alt="" />
+            <span className="ucpnb-detail-media-zoom" aria-hidden="true">
+              <Icon name="search" size={16} />
+            </span>
           </div>
         )}
 
@@ -137,6 +156,16 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
           </div>
         </div>
       </div>
+
+      {viewingPoster && notice.imageUrl && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <PosterViewer
+            src={optimizeImageUrl(notice.imageUrl, 1600) ?? notice.imageUrl}
+            alt={notice.title}
+            onClose={() => setViewingPoster(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
