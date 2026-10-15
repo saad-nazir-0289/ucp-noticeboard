@@ -12,9 +12,11 @@ import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
 interface Props {
   user: AuthUser;
   scope: "mine" | "all";
+  /** Asks for the PIN once if this Chrome isn't unlocked yet; false if cancelled. */
+  ensureUnlocked: () => Promise<boolean>;
 }
 
-export function NoticeManager({ user, scope }: Props) {
+export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +29,6 @@ export function NoticeManager({ user, scope }: Props) {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [deadline, setDeadline] = useState("");
   const [isPinned, setIsPinned] = useState(false);
-  const [pin, setPin] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +60,6 @@ export function NoticeManager({ user, scope }: Props) {
     setCategoryId("");
     setDeadline("");
     setIsPinned(false);
-    setPin("");
     setError(null);
   };
 
@@ -105,10 +105,7 @@ export function NoticeManager({ user, scope }: Props) {
       setError("Title and description are required.");
       return;
     }
-    if (!/^\d{4,6}$/.test(pin)) {
-      setError("Enter your PIN (4–6 digits) to publish. Publishing for the first time? Choose a PIN now and use it from then on.");
-      return;
-    }
+    if (!(await ensureUnlocked())) return;
     const payload = {
       title,
       description,
@@ -116,7 +113,6 @@ export function NoticeManager({ user, scope }: Props) {
       linkUrl,
       categoryId: categoryId === "" ? null : categoryId,
       deadline: fromDatetimeLocalValue(deadline),
-      pin,
       ...(user.role === "Admin" ? { isPinned } : {}),
     };
     try {
@@ -128,19 +124,16 @@ export function NoticeManager({ user, scope }: Props) {
       resetForm();
       load();
     } catch (err) {
-      // Surfaces the backend's actual message ("Incorrect PIN.") rather
-      // than a generic failure — that distinction matters here.
+      // The backend's own message, e.g. when this Chrome's unlock has expired.
       setError(err instanceof Error ? err.message : "Could not save the notice.");
-      setPin("");
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Permanently delete this notice? This cannot be undone.")) return;
-    const deletePin = window.prompt("Enter your PIN to confirm deletion:");
-    if (!deletePin) return;
+    if (!(await ensureUnlocked())) return;
     try {
-      await api.deleteNotice(id, deletePin, user.token);
+      await api.deleteNotice(id, null, user.token);
       load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete the notice.");
@@ -216,19 +209,6 @@ export function NoticeManager({ user, scope }: Props) {
             <label className="ucpnb-field ucpnb-span-2">
               <span className="ucpnb-field-label">Link</span>
               <input className="ucpnb-input" type="text" placeholder="Registration form, event page… (optional)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
-            </label>
-            <label className="ucpnb-field">
-              <span className="ucpnb-field-label">Your PIN</span>
-              <input
-                className="ucpnb-input"
-                type="password"
-                inputMode="numeric"
-                placeholder="4–6 digits"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                maxLength={6}
-              />
-              <span className="ucpnb-field-hint">First time publishing? The PIN you choose now becomes yours.</span>
             </label>
           </div>
 

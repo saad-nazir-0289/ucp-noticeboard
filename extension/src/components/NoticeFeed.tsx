@@ -174,11 +174,10 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       <div className="ucpnb-feed-toolbar">
         {filters}
         <div className="ucpnb-feed-toolbar-actions">
-          <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => setShowGrid(true)}>
-            <Icon name="grid" size={15} />
+          <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" onClick={() => setShowGrid(true)}>
             View all
           </button>
-          <button className="ucpnb-icon-btn ucpnb-icon-btn-sm ucpnb-icon-btn-outlined" onClick={openArchive} aria-label="Archived notices" title="Archived notices">
+          <button className="ucpnb-icon-btn ucpnb-icon-btn-sm" onClick={openArchive} aria-label="Archived notices" title="Archived notices">
             <Icon name="archive" size={16} />
           </button>
         </div>

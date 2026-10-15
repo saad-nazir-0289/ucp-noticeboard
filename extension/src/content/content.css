@@ -601,3 +601,138 @@ select.ucpnb-input-sm {
 .ucpnb-pin-card .ucpnb-field-hint {
   margin-top: -10px;
 }
+
+/* ---------- Minimal look ----------
+ * The portal page around the panel is busy, so the panel itself stays
+ * quiet: plain text sections, a light toolbar, and cards that show the
+ * poster and title, with their actions appearing on hover. */
+.ucpnb-panel-root {
+  gap: 14px;
+  padding: 18px 20px 20px;
+  box-shadow: none;
+}
+
+.ucpnb-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.ucpnb-brand-text strong {
+  font-size: var(--nb-text-md);
+}
+
+.ucpnb-panel-root .ucpnb-tabs {
+  padding: 0;
+  background: none;
+}
+
+.ucpnb-panel-root .ucpnb-tabs button {
+  height: 30px;
+  color: var(--nb-text-3);
+  font-weight: 500;
+}
+
+.ucpnb-panel-root .ucpnb-tabs button.is-active {
+  background: var(--nb-surface-2);
+  box-shadow: none;
+  color: var(--nb-text);
+  font-weight: 600;
+}
+
+.ucpnb-panel-root .ucpnb-feed-toolbar .ucpnb-input,
+.ucpnb-panel-root .ucpnb-catmenu-button {
+  border-color: transparent;
+  background: var(--nb-surface-2);
+  box-shadow: none;
+}
+
+.ucpnb-panel-root .ucpnb-carousel .ucpnb-card,
+.ucpnb-panel-root .ucpnb-grid .ucpnb-card {
+  box-shadow: none;
+}
+
+.ucpnb-panel-root .ucpnb-card-excerpt {
+  display: none;
+}
+
+.ucpnb-panel-root .ucpnb-card-footer {
+  padding-top: 2px;
+  border-top: none;
+}
+
+/* Initials add noise; a publisher's real logo stays. */
+.ucpnb-panel-root .ucpnb-card .ucpnb-avatar:not(.ucpnb-avatar-image) {
+  display: none;
+}
+
+@media (hover: hover) {
+  .ucpnb-panel-root .ucpnb-card-actions {
+    opacity: 0;
+    transition: opacity 0.15s var(--nb-ease);
+  }
+
+  .ucpnb-panel-root .ucpnb-card:hover .ucpnb-card-actions,
+  .ucpnb-panel-root .ucpnb-card:focus-within .ucpnb-card-actions {
+    opacity: 1;
+  }
+}
+
+/* ---------- "More" menu and the PIN dialog ---------- */
+.ucpnb-more {
+  position: relative;
+}
+
+.ucpnb-more-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 250px;
+  padding: 6px;
+  border: 1px solid var(--nb-border);
+  border-radius: var(--nb-r-md);
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-2);
+}
+
+.ucpnb-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--nb-text);
+  font: 500 var(--nb-text-sm) / 1.2 var(--nb-font);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ucpnb-more-item:hover {
+  background: var(--nb-surface-2);
+}
+
+.ucpnb-more-item .ucpnb-icon {
+  color: var(--nb-text-3);
+}
+
+.ucpnb-sheet-pin {
+  align-self: center;
+  max-width: 400px;
+  border-radius: var(--nb-r-lg);
+}
+
+.ucpnb-sheet-pin .ucpnb-tab-panel {
+  padding: 0;
+}
+
+.ucpnb-sheet-pin .ucpnb-form-card {
+  border: none;
+  box-shadow: none;
+}

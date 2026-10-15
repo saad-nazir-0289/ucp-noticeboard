@@ -3,7 +3,7 @@
   "name": "UCP NoticeBoard",
   "version": "1.11.1",
   "description": "Injects a live NoticeBoard into the UCP Student Portal dashboard.",
-  "permissions": [],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://horizon.ucp.edu.pk/*"
   ],

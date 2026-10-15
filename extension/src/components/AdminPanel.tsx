@@ -8,15 +8,17 @@ import { Avatar, CategoryTag } from "@shared/components/Tags";
 
 interface Props {
   user: AuthUser;
-  /** Unlocked Admin PIN (see AdminPinPrompt), or null until entered. */
-  adminPin: string | null;
-  onAdminPinChange: (pin: string | null) => void;
+  /** Whether this Chrome is unlocked (the device token replaces the PIN). */
+  unlocked: boolean;
+  onUnlock: (pin: string) => Promise<void>;
 }
 
 const ROLES: UserRole[] = ["Student", "Publisher", "Admin"];
 const PAGE_SIZE = 20;
 
-export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
+export function AdminPanel({ user, unlocked, onUnlock }: Props) {
+  // Sent as the PIN header; empty because the device token stands in for it.
+  const adminPin = unlocked ? "" : null;
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -53,15 +55,11 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
 
   /** Reloads the page of users currently shown (after adding someone, etc.). */
   const load = () => {
-    if (!adminPin) return;
+    if (adminPin === null) return;
     setListLoading(true);
     fetchUsers(adminPin, query, page)
       .then(() => setError(null))
-      .catch(() => {
-        // Most likely the PIN changed since it was unlocked — ask again.
-        onAdminPinChange(null);
-        setError("Could not load users.");
-      })
+      .catch(() => setError("Could not load users."))
       .finally(() => {
         setListLoading(false);
         setLoading(false);
@@ -69,13 +67,10 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
   };
 
   useEffect(() => {
-    if (!adminPin) return;
+    if (adminPin === null) return;
     if (loading) {
       fetchAll(adminPin)
-        .catch(() => {
-          onAdminPinChange(null);
-          setError("Could not load users.");
-        })
+        .catch(() => setError("Could not load users."))
         .finally(() => setLoading(false));
     } else {
       load();
@@ -92,14 +87,14 @@ export function AdminPanel({ user, adminPin, onAdminPinChange }: Props) {
     return () => clearTimeout(timer);
   }, [search]);
 
-  if (!adminPin) {
+  if (adminPin === null) {
     return (
       <AdminPinPrompt
-        section="Manage Users"
+        title="Enter your PIN to open Users"
         onUnlock={async (pin) => {
-          await fetchAll(pin);
+          await onUnlock(pin);
+          await fetchAll("");
           setLoading(false);
-          onAdminPinChange(pin);
         }}
       />
     );

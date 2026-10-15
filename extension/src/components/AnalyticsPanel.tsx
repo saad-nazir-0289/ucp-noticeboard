@@ -8,37 +8,28 @@ import { timeAgo } from "@shared/format";
 
 interface Props {
   user: AuthUser;
-  adminPin: string | null;
-  onAdminPinChange: (pin: string | null) => void;
+  /** Whether this Chrome is unlocked (the device token replaces the PIN). */
+  unlocked: boolean;
+  onUnlock: (pin: string) => Promise<void>;
 }
 
-export function AnalyticsPanel({ user, adminPin, onAdminPinChange }: Props) {
+export function AnalyticsPanel({ user, unlocked, onUnlock }: Props) {
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!adminPin || summary) return;
+    if (!unlocked || summary) return;
     api
-      .getAnalyticsSummary(adminPin, user.token)
-      .then(setSummary)
-      .catch(() => {
-        // Most likely the PIN changed since it was unlocked — ask again.
-        onAdminPinChange(null);
-        setError("Could not load analytics.");
-      });
-  }, [user, adminPin]);
+      .getAnalyticsSummary("", user.token)
+      .then((s) => {
+        setSummary(s);
+        setError(null);
+      })
+      .catch(() => setError("Could not load analytics."));
+  }, [user, unlocked]);
 
-  if (!adminPin) {
-    return (
-      <AdminPinPrompt
-        section="Analytics"
-        onUnlock={async (pin) => {
-          setSummary(await api.getAnalyticsSummary(pin, user.token));
-          setError(null);
-          onAdminPinChange(pin);
-        }}
-      />
-    );
+  if (!unlocked) {
+    return <AdminPinPrompt title="Enter your PIN to open Analytics" onUnlock={onUnlock} />;
   }
   if (error) return <p className="ucpnb-form-error">{error}</p>;
   if (!summary) return <div className="ucpnb-skeleton" style={{ height: 160, borderRadius: 16 }} />;

@@ -2,19 +2,21 @@ import { useState } from "react";
 import { Icon } from "@shared/components/Icon";
 
 interface Props {
-  /** What the PIN unlocks, e.g. "Manage Users". */
-  section: string;
+  /** e.g. "Enter your PIN to open Users". */
+  title: string;
   /** Tries the PIN against the server; resolves on success, rejects with the server's message. */
   onUnlock: (pin: string) => Promise<void>;
+  /** Shown as a Cancel button (the dialog form); omitted inline. */
+  onCancel?: () => void;
 }
 
 /**
- * Admin sections need the Admin's PIN — an Admin token alone is not
- * enough, since anyone who knows the Admin's Roll Number gets one. Asked
- * once per page visit and then shared by every Admin section (the PIN is
- * held in memory only, never stored).
+ * Asks for the PIN once to unlock this Chrome (see content/deviceUnlock.ts):
+ * an Admin or Publisher token alone is not enough, since anyone who knows
+ * the Roll Number gets one. After that, posting, deleting and the Admin
+ * sections work without the PIN until "Lock" is used or 30 days unused.
  */
-export function AdminPinPrompt({ section, onUnlock }: Props) {
+export function AdminPinPrompt({ title, onUnlock, onCancel }: Props) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
@@ -43,8 +45,8 @@ export function AdminPinPrompt({ section, onUnlock }: Props) {
         <span className="ucpnb-unlock-icon">
           <Icon name="lock" size={24} />
         </span>
-        <h4>Enter your PIN to open {section}</h4>
-        <p className="ucpnb-field-hint">You won't be asked again until you reload the page.</p>
+        <h4>{title}</h4>
+        <p className="ucpnb-field-hint">Once per computer. First time? The PIN you choose now becomes yours.</p>
         <input
           className="ucpnb-input ucpnb-input-pin"
           type="password"
@@ -60,6 +62,11 @@ export function AdminPinPrompt({ section, onUnlock }: Props) {
         <button type="submit" className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-block" disabled={checking}>
           {checking ? <span className="ucpnb-spinner" /> : "Unlock"}
         </button>
+        {onCancel && (
+          <button type="button" className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-block" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
       </form>
     </div>
   );
