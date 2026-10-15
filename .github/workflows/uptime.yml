@@ -2,7 +2,7 @@
 # a check fails, GitHub emails you (the failed-run notification), so you
 # hear about an outage before students do. Off until the repository
 # variable HEALTH_URL is set (Settings → Secrets and variables → Actions
-# → Variables), e.g. https://ucp-noticeboard-api-production.up.railway.app/health
+# → Variables), e.g. https://ucpnb-api.duckdns.org/health
 name: Uptime
 
 on:

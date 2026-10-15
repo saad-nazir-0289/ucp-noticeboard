@@ -12,11 +12,11 @@ const sharedConfig = {
   },
 };
 
-const PRODUCTION_API_URL = "https://ucp-noticeboard-api-production.up.railway.app";
+const PRODUCTION_API_URL = "https://ucpnb-api.duckdns.org";
 const LOCAL_API_URL = "http://localhost:5000";
 
 // Which backend this build talks to, decided by Vite's --mode:
-//   production (npm run build)          → the live Railway API
+//   production (npm run build)          → the live API (Oracle server)
 //   development (npm run dev)           → a backend on this machine
 //   staging (npm run build:staging)     → VITE_API_BASE_URL, which must be
 //                                         set (env var or .env.staging.local)

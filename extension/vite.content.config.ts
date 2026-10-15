@@ -14,7 +14,7 @@ const sharedConfig = {
 };
 
 const PRODUCTION = {
-  VITE_API_BASE_URL: "https://ucp-noticeboard-api-production.up.railway.app",
+  VITE_API_BASE_URL: "https://ucpnb-api.duckdns.org",
   VITE_PWA_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev",
 };
 const LOCAL = {

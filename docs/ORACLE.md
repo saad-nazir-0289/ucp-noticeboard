@@ -187,6 +187,10 @@ anything else is refused. A version that doesn't start is replaced by the
 previous one automatically. (Add these only after release, or a push to
 `main` would replace the code you're testing.)
 
+Uptime: also add the repository **variable** (same page, Variables tab)
+`HEALTH_URL` = `https://ucpnb-api.duckdns.org/health`; GitHub then checks
+the API every hour and emails you if it's down.
+
 Backups: the server keeps 14 nightly copies in `/opt/ucpnb/backups`, and
 GitHub keeps 30 days of encrypted copies (Actions → Database backup).
 
