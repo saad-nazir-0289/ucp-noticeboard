@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
+import { cleanOcrText, parseSharedContent, screenshotText } from "@shared/shareParser";
 import type { Category } from "@shared/types";
 import { CATALOG_FOR_TESTS } from "@shared/categories";
 import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, INOVATIVEX_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, LIC_FINANCE_SESSION_OUTLOOK, MEDIA_CLUB_OCR, ORIC_NEWSLETTER_OUTLOOK } from "./shareSamples";
-import { IGNITE_SPARK_WORDS, SYMUFOLK_JOBS_WORDS } from "./ocrSamples";
-import { confidentText } from "./ocrText";
+import { HEC_PCC, IGNITE_SPARK, LIC_FINANCE, PASHA_INTERNSHIP, SYMUFOLK_JOBS, type OcrSample } from "./ocrSamples";
+import { bigLettering, confidentText } from "./ocrText";
 
 const categories: Category[] = CATALOG_FOR_TESTS;
 /** A category's id by name. */
@@ -82,23 +82,28 @@ describe("real Instagram screenshots", () => {
 });
 
 describe("real Instagram screenshots, read word by word", () => {
-  // Shared on 15 October 2026, evening.
-  const read = (words: Parameters<typeof confidentText>[0]) =>
-    parseSharedContent({ text: cleanOcrText(confidentText(words)), fromScreenshot: true }, categories, new Date(2026, 9, 15, 19, 45));
+  // As the app reads them (src/ocr.ts): the full-size pass, plus big
+  // lettering from a small copy of the poster. Shared 15 October 2026, 8 PM.
+  const read = (sample: OcrSample) => {
+    const text = confidentText(sample.full);
+    return parseSharedContent({ text: screenshotText(text, bigLettering(sample.small, text)), fromScreenshot: true }, categories, new Date(2026, 9, 15, 20, 0));
+  };
 
   it("drops the words the reader only guessed at from the artwork", () => {
-    const ignite = confidentText(IGNITE_SPARK_WORDS);
+    const ignite = confidentText(IGNITE_SPARK.full);
     expect(ignite).not.toMatch(/mene|Ignites|Rise|ERs|fare a/);
     expect(ignite).toContain("ignite.ntf The countdown is on");
-    const symufolk = confidentText(SYMUFOLK_JOBS_WORDS);
+    const symufolk = confidentText(SYMUFOLK_JOBS.full);
     // The QR code panel beside the text.
     expect(symufolk).not.toMatch(/Canto|Rao\)|Oreg|rE a|Diya|To I\b|R024/);
     expect(symufolk).toContain("Bachelor's degree I a relevant field\n");
-    expect(symufolk).toContain("Salary Bracket: PKR 50,000-70,000/month\n");
+    expect(symufolk).toContain("Business Executive Coordinator\n");
+    // Two columns run together: "R2U0 MES UBM Take charge of your finances".
+    expect(confidentText(LIC_FINANCE.full)).toContain("\nTake charge of your finances\n");
   });
 
   it("Ignite SPARK: the programme's name as the title, caption only, address without https", () => {
-    const parsed = read(IGNITE_SPARK_WORDS);
+    const parsed = read(IGNITE_SPARK);
     expect(parsed.title).toBe("Prime Minister's SPARK AND ELEVATE Program");
     expect(parsed.description).toBe(
       "The countdown is on for innovators ready to take their ideas further. Submit your application for the Prime Minister's SPARK AND ELEVATE Program before the window closes on 26 October 2026.\nApply now: segms.ignite.org.pk"
@@ -108,7 +113,7 @@ describe("real Instagram screenshots, read word by word", () => {
   });
 
   it("Symufolk jobs: caption, then the poster's details; Markdown link unwrapped", () => {
-    const parsed = read(SYMUFOLK_JOBS_WORDS);
+    const parsed = read(SYMUFOLK_JOBS);
     expect(parsed.title).toBe("SYMUFOLK is Hiring");
     expect(parsed.linkUrl).toBe("https://forms.cloud.microsoft/r/DZx9bz8BaR");
     expect(parsed.description).toContain("Apply Now: https://forms.cloud.microsoft/r/DZx9bz8BaR\n\nJOB OPPORTUNITIES");
@@ -116,6 +121,31 @@ describe("real Instagram screenshots, read word by word", () => {
     expect(parsed.description).not.toMatch(/Canto|Diya|R024|\]\(/);
     expect(local(parsed.deadline)).toEqual([2026, 10, 16, 23, 59]);
     expect(parsed.categoryId).toBe(cat("Careers"));
+  });
+
+  it("HEC PCC: the challenge's name, not the long opening, as the title; no Follow us footer", () => {
+    const parsed = read(HEC_PCC);
+    expect(parsed.title).toBe("Pakistan Cybersecurity Challenge (PCC) 2026");
+    expect(parsed.description.startsWith("Registrations are now open for Pakistan Cybersecurity Challenge")).toBe(true);
+    expect(parsed.description).toContain("Last date to register: 22nd October 2026");
+    expect(parsed.description).not.toMatch(/follow/i);
+    expect(local(parsed.deadline)).toEqual([2026, 10, 22, 23, 59]);
+  });
+
+  it("P@SHA: caption found past an emoji, its first line the title, the deadline from giant type", () => {
+    const parsed = read(PASHA_INTERNSHIP);
+    expect(parsed.title).toBe("P@SHA Fall Internship: Policy & Government Affairs");
+    expect(parsed.description.split("\n")[1]).toMatch(/^Ever wondered how the IT industry's voice reaches policymakers\?/);
+    expect(parsed.linkUrl).toBeUndefined(); // not the account's own name, pasha.org.pk
+    expect(local(parsed.deadline)).toEqual([2026, 10, 23, 23, 59]);
+  });
+
+  it("LIC session: the session's quoted name as the title; poster details without column noise", () => {
+    const parsed = read(LIC_FINANCE);
+    expect(parsed.title).toBe("Session: Become a Millionaire — Grow Your Savings");
+    expect(parsed.description).toContain("Mr. Monis Usman\nChief Digital & Marketing Officer");
+    expect(parsed.description).not.toMatch(/R2U0|TU\)|bo\)|459/);
+    expect(local(parsed.deadline)?.slice(0, 3)).toEqual([2026, 10, 27]);
   });
 });
 

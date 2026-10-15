@@ -84,8 +84,10 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
     // "The countdown is on for innovators…" says nothing about what it is;
     // "…the Prime Minister's SPARK AND ELEVATE Program…" later on does.
     const opening = firstSentence(caption.text);
-    const name = programmeName(caption.text);
-    title = name && !opening.includes(name) ? name : opening;
+    const name = namedTitle(caption.text) ?? programmeName(caption.text);
+    // The same when the name is buried in a long opening ("Registrations
+    // are now open for Pakistan Cybersecurity Challenge (PCC) 2026, …").
+    title = name && (!opening.includes(name) || opening.length > name.length + 30) ? name : opening;
     bodyLines = [caption.text, ...lines.slice(caption.index + 1)];
     // A short (or cut-off) caption leaves the details on the poster itself:
     // keep the poster's text too, after the caption.
@@ -165,7 +167,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
 export function cleanOcrText(value: string): string {
   value = unwrapMarkdownLinks(value);
   const uiLine =
-    /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago|threads|.{0,40}\band \d+ others? (joined|liked|follow).*|\W*in?s?t?ag[a-z]{3,5}\W*)$/i;
+    /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|(\S{1,2}\s)?follow(ing)?(\s\W{1,2})?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago|threads|.{0,40}\band \d+ others? (joined|liked|follow).*|\W*in?s?t?ag[a-z]{3,5}\W*)$/i;
   let lines = value
     .split(/\r?\n/)
     .map((line) =>
@@ -183,6 +185,10 @@ export function cleanOcrText(value: string): string {
         .replace(/^[«»*]\s+/, "")
         .replace(/\s+[.,]$/, "")
         .replace(/\s+less$/i, "")
+        // An emoji read as a symbol after the account name: "pasha.org.pk ®) P@SHA…".
+        .replace(/^(@?[a-z][a-z0-9._]{4,29}) [^\p{L}\p{N}\s]{1,3} (?=\p{Lu})/u, "$1 ")
+        // A poster's social footer: "… Follow us! 0 [x] [in".
+        .replace(/\s*\bfollow us\b.*$/i, "")
         // A superscript "th" read as a quote: "October 16\", 2026".
         .replace(/(\b\d{1,2})["”](?=,?\s+\d{4})/g, "$1")
     )
@@ -193,7 +199,8 @@ export function cleanOcrText(value: string): string {
   // so everything scrolled past above it can be cut.
   const handle = lines.map(captionStart).find(Boolean)?.handle;
   const isHeaderLine = (line: string) => handle !== undefined && line.length <= handle.length + 12 && line.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === handle);
-  lines = lines.filter((line) => isHeaderLine(line) || (line.replace(/[^\p{L}]/gu, "").length >= 3 && !uiLine.test(line) && !isOcrNoise(line)));
+  // (Blank lines stay: they end a paragraph, so nothing is joined across them.)
+  lines = lines.filter((line) => line === "" || isHeaderLine(line) || (line.replace(/[^\p{L}]/gu, "").length >= 3 && !uiLine.test(line) && !isOcrNoise(line)));
 
   // Everything above the post's header line (its account name) belongs to
   // whatever was scrolled past.
@@ -220,6 +227,17 @@ export function cleanOcrText(value: string): string {
   const fullWidth = Math.max(0, ...lines.slice(captionAt).map((l) => l.length)) * 0.7;
   return lines
     .reduce<{ out: string[]; index: number }>(({ out: joined, index }, line) => {
+      if (line === "") {
+        if (joined.length > 0 && joined[joined.length - 1] !== "") joined.push("");
+        return { out: joined, index: index + 1 };
+      }
+      // Across a blank line only when the sentence plainly carries on:
+      // "YOUR CREATIVE" ⏎⏎ "JOURNEY.", or a next line in lower case.
+      const beforeBlank = joined[joined.length - 2];
+      const caps = (l: string) => /\p{L}{3}/u.test(l) && l === l.toUpperCase();
+      if (joined[joined.length - 1] === "" && beforeBlank && !/[.!?:…]$/.test(beforeBlank) && !isHandle(beforeBlank) && (/^\p{Ll}/u.test(line) || (caps(captionStart(beforeBlank)?.text ?? beforeBlank) && caps(line)))) {
+        joined.pop();
+      }
       const previous = joined[joined.length - 1];
       const startsWithHandle = isHandle(line.split(" ")[0]) || captionStart(line) !== undefined;
       // A "Label: …" line ("Friday: 10 AM – 1 PM", "Apply: https://…") is
@@ -236,7 +254,22 @@ export function cleanOcrText(value: string): string {
       }
       return { out: joined, index: index + 1 };
     }, { out: [], index: 0 })
-    .out.join("\n");
+    .out.join("\n")
+    .trim();
+}
+
+/**
+ * A screenshot's text ready for parseSharedContent: cleaned (cleanOcrText),
+ * with the poster's giant lettering (read separately, see the PWA's
+ * ocr.ts) put with the rest of the poster's text, above the caption.
+ */
+export function screenshotText(text: string, lettering: string[] = []): string {
+  const cleaned = cleanOcrText(text);
+  if (lettering.length === 0) return cleaned;
+  const lines = cleaned.split("\n");
+  const caption = findCaption(lines.filter(Boolean), true);
+  const at = caption ? lines.indexOf(lines.filter(Boolean)[caption.index]) : lines.length;
+  return [...lines.slice(0, at), ...lettering, ...lines.slice(at)].join("\n").trim();
 }
 
 /** Small words that count as real text even though they're short. */
@@ -288,7 +321,7 @@ export function cleanFormatting(value: string): string {
 
 /** "Apply now: segms.ignite.org.pk": a web address written without https://. */
 function bareAddress(text: string): string | undefined {
-  const m = text.match(/(?<![@\w.\/-])((?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|pk|io|gle|me|info|co|ly|tech)(?:\/[^\s,)]*)?)(?![\w@-])/i);
+  const m = text.match(/(?<=[ \t:(])((?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|pk|io|gle|me|info|co|ly|tech)(?:\/[^\s,)]*)?)(?![\w@-])/i);
   return m ? `https://${m[1].replace(/[.,;:!?]+$/, "")}` : undefined;
 }
 
@@ -365,7 +398,7 @@ function namedTitle(text: string): string | undefined {
 function programmeName(text: string): string | undefined {
   const kinds = "Program|Programme|Fellowship|Scholarships?|Competition|Hackathon|Festival|Summit|Conference|Challenge|Awards?|Bootcamp|Olympiad|Expo|Fair|Championship|Cup|League";
   const word = "\\p{Lu}[\\p{L}\\p{N}'’.-]*";
-  const m = text.match(new RegExp(`(?:${word}\\s+(?:(?:and|AND|of|for|&)\\s+)?)+(?:${kinds})\\b(?:\\s+20\\d\\d)?`, "u"));
+  const m = text.match(new RegExp(`(?:${word}\\s+(?:(?:and|AND|of|for|&)\\s+)?)+(?:${kinds})\\b(?:\\s+\\([\\p{Lu}\\p{N} ]{2,12}\\))?(?:\\s+20\\d\\d)?`, "u"));
   return m && m[0].split(/\s+/).length >= 3 && m[0].length <= TITLE_MAX ? m[0] : undefined;
 }
 

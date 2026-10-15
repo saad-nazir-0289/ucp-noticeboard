@@ -47,28 +47,29 @@ function findPosterBox(bitmap: ImageBitmap): Box | null {
     const i = (y * w + x) * 4;
     return [px[i], px[i + 1], px[i + 2]];
   };
-  const differs = (a: number[], b: number[]) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) > 48;
+  const distance = (a: number[], b: number[]) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+  const close = (a: number[], b: number[]) => distance(a, b) <= 14;
 
-  // The app's background: the colour down the screen's left edge, most of the time.
-  const counts = new Map<string, { n: number; c: number[] }>();
-  for (let y = 0; y < h; y++) {
-    const c = at(1, y);
-    const key = c.map((v) => v >> 4).join(",");
-    const entry = counts.get(key) ?? { n: 0, c };
-    entry.n++;
-    counts.set(key, entry);
-  }
-  const background = [...counts.values()].sort((a, b) => b.n - a.n)[0];
+  // The app's background: its bar along the bottom of the screen (Instagram,
+  // WhatsApp, a browser all end in one), which runs down the left edge
+  // wherever the app shows its own content. Not simply the commonest edge
+  // colour: a poster can fill more of the screen than the app does.
+  const near = (c: number[]) => {
+    let n = 0;
+    for (let y = 0; y < h; y++) if (distance(at(1, y), c) <= 14) n++;
+    return n;
+  };
+  const candidates = [at(1, h - 3), at(1, h - 8), at(1, 2)].map((c) => ({ c, n: near(c) }));
+  const background = candidates.sort((a, b) => b.n - a.n)[0];
   // No clear app background (a tall poster, a photo): leave it alone.
-  if (!background || background.n < h * 0.3) return null;
+  if (!background || background.n < h * 0.15) return null;
   const bg = background.c;
 
-  // A picture row: busy across the width, edge to edge.
-  const isPictureRow = (y: number) => {
-    let busy = 0;
-    for (let x = 0; x < w; x += 2) if (differs(at(x, y), bg)) busy++;
-    return busy / (w / 2) > 0.55 && (differs(at(1, y), bg) || differs(at(w - 2, y), bg));
-  };
+  // The app's own rows are exactly its background colour at the screen's
+  // edges (text and buttons keep a margin); a picture runs edge to edge, and
+  // even a dark poster is rarely the very same shade as a dark app.
+  const offEdge = (y: number) => [1, 2, w - 3, w - 2].filter((x) => !close(at(x, y), bg)).length >= 2;
+  const isPictureRow = offEdge;
 
   // The longest run of picture rows, allowing small gaps (white space in the poster).
   const gap = Math.max(2, Math.round(h * 0.012));

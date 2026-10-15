@@ -6,7 +6,7 @@ import { optimizeImageUrl } from "@shared/imageOptimize";
 import { posterFrom } from "@shared/posterCrop";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { Icon } from "@shared/components/Icon";
-import { cleanOcrText, isShareBoilerplate, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
+import { isShareBoilerplate, screenshotText, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
 import { readTextFromImage } from "../ocr";
 import { PinToggle } from "@shared/components/Tags";
 
@@ -105,7 +105,8 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
     setReading(0);
     setError(null);
     try {
-      const text = cleanOcrText(await readTextFromImage(file, setReading));
+      const read = await readTextFromImage(file, setReading);
+      const text = screenshotText(read.text, read.lettering);
       if (!text) {
         setHints(["Couldn't find any text in that image. Fill in the details by hand."]);
         return;
