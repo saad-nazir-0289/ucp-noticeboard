@@ -1137,3 +1137,39 @@ textarea {
 .ucpnb-row-source {
   font-size: 12px;
 }
+
+/* ---------- No scrollbars on phones ----------
+ * Everything still scrolls (the page, the category row, sheets); only the
+ * bar itself is hidden, as phone apps do. */
+@media (pointer: coarse) {
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.ucpnb-phone-zoom,
+.ucpnb-phone-zoom * {
+  scrollbar-width: none;
+}
+
+.ucpnb-phone-zoom *::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Notices ease into view while scrolling (reveal.ts) ---------- */
+.ucpnb-reveal {
+  opacity: 0;
+  translate: 0 16px;
+  transition: opacity 0.38s ease, translate 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ucpnb-reveal.is-in {
+  opacity: 1;
+  translate: 0 0;
+}

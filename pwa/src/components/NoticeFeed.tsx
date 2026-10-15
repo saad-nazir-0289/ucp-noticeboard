@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useBackToClose } from "../backLayers";
+import { useReveal } from "../reveal";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
 import { NoticeCard } from "@shared/components/NoticeCard";
@@ -65,6 +66,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   };
 
   const [showArchive, setShowArchive] = useState(false);
+  const feedRef = useRef<HTMLDivElement>(null);
   // Back gesture closes these instead of leaving the app.
   useBackToClose(selected !== null, () => setSelected(null));
   useBackToClose(showArchive, () => setShowArchive(false));
@@ -116,6 +118,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
       return matchesSearch && matchesCategory;
     });
   }, [notices, search, categoryId]);
+  useReveal(feedRef, [filtered, viewMode, loading]);
 
   const handleView = (notice: Notice) => {
     setSelected(notice);
@@ -251,7 +254,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
           </EmptyState>
         )
       ) : viewMode === "list" ? (
-        <div className="ucpnb-list">
+        <div className="ucpnb-list" ref={feedRef}>
           {filtered.map((notice, i) => (
             <NoticeListItem
               key={notice.id}
@@ -266,7 +269,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
           ))}
         </div>
       ) : (
-        <div className="ucpnb-feed">
+        <div className="ucpnb-feed" ref={feedRef}>
           {filtered.map((notice) => (
             <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} />
           ))}
