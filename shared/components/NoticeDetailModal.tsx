@@ -87,23 +87,28 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
               <div>
                 <span>Deadline</span>
                 <strong>{formatDateTime(notice.deadline)}</strong>
-                {new Date(notice.deadline) > new Date() && (
-                  <div className="ucpnb-calendar-actions">
-                    <a className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" href={googleCalendarUrl(notice)} target="_blank" rel="noopener noreferrer">
-                      <Icon name="plus" size={14} />
-                      Google Calendar
-                    </a>
-                    <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => downloadIcs(notice)} title="For Apple Calendar, Outlook and others">
-                      <Icon name="calendar" size={14} />
-                      Other calendars
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           )}
 
           <p className="ucpnb-detail-text">{notice.description}</p>
+
+          {/* The last thing in the notice, once it's been read. */}
+          {notice.deadline && new Date(notice.deadline) > new Date() && (
+            <div className="ucpnb-detail-calendar">
+              <span>Add the deadline to your calendar</span>
+              <div className="ucpnb-calendar-actions">
+                <a className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" href={googleCalendarUrl(notice)} target="_blank" rel="noopener noreferrer">
+                  <Icon name="plus" size={14} />
+                  Google Calendar
+                </a>
+                <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => downloadIcs(notice)} title="For Apple Calendar, Outlook and others">
+                  <Icon name="calendar" size={14} />
+                  Other calendars
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="ucpnb-detail-actions">

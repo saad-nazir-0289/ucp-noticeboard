@@ -202,9 +202,44 @@
   mask-image: linear-gradient(to right, transparent, #000 64px, #000 calc(100% - 64px), transparent);
 }
 
+/* Cards sized to the panel: more, narrower cards on a small laptop rather
+ * than two or three big ones; always a sliver of the next card showing. */
+.ucpnb-carousel-wrap {
+  container-type: inline-size;
+}
+
 .ucpnb-carousel > .ucpnb-card {
-  flex: 0 0 290px;
+  --visible: 5.25;
+  flex: 0 0 clamp(190px, calc((100cqw - 44px - 16px * (var(--visible) - 0.25)) / var(--visible)), 300px);
   scroll-snap-align: start;
+}
+
+@container (max-width: 1250px) {
+  .ucpnb-carousel > .ucpnb-card { --visible: 4.25; }
+}
+
+@container (max-width: 900px) {
+  .ucpnb-carousel > .ucpnb-card { --visible: 3.25; }
+}
+
+@container (max-width: 700px) {
+  .ucpnb-carousel > .ucpnb-card { --visible: 2.25; }
+}
+
+@container (max-width: 480px) {
+  .ucpnb-carousel > .ucpnb-card { --visible: 1.25; }
+}
+
+/* Narrow cards: a little less padding and type. */
+@container (max-width: 240px) {
+  .ucpnb-card-body {
+    gap: 6px;
+    padding: 12px 12px 10px;
+  }
+
+  .ucpnb-card-title {
+    font-size: var(--nb-text-sm);
+  }
 }
 
 .ucpnb-carousel-nav {
@@ -811,9 +846,6 @@ select.ucpnb-input-sm {
   display: none;
 }
 
-#ucp-noticeboard-root .ucpnb-calendar-actions {
-  margin-top: 6px;
-}
 
 #ucp-noticeboard-root .ucpnb-detail-text {
   font-size: var(--nb-text-sm);
