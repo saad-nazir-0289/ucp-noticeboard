@@ -76,6 +76,47 @@ public class NoticeTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Publisher_DeletesSeveralOwnNoticesAtOnce()
+    {
+        var publisher = await _api.CreatePublisherAsync();
+        using var client = _api.CreateApiClient(publisher.Token);
+        var ids = new List<int>();
+        for (var i = 0; i < 3; i++)
+        {
+            var created = await client.PostAsJsonAsync("/notices", NewNotice("1111", $"Batch {i}"));
+            ids.Add((await created.Content.ReadFromJsonAsync<NoticeDto>())!.Id);
+        }
+
+        var wrongPin = await client.PostAsJsonAsync("/notices/delete", new DeleteNoticesRequest(ids.Take(2).ToList(), "2222"));
+        var response = await client.PostAsJsonAsync("/notices/delete", new DeleteNoticesRequest(ids.Take(2).ToList(), "1111"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, wrongPin.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, (await response.Content.ReadFromJsonAsync<DeleteNoticesResponse>())!.Deleted);
+        var left = (await client.GetFromJsonAsync<List<NoticeDto>>("/notices?includeDismissed=true&includeExpired=true"))!;
+        Assert.DoesNotContain(left, n => n.Id == ids[0] || n.Id == ids[1]);
+        Assert.Contains(left, n => n.Id == ids[2]);
+    }
+
+    [Fact]
+    public async Task BatchDelete_IncludingSomeoneElsesNotice_DeletesNothing()
+    {
+        var owner = await _api.CreatePublisherAsync();
+        var other = await _api.CreatePublisherAsync();
+        using var ownerClient = _api.CreateApiClient(owner.Token);
+        using var otherClient = _api.CreateApiClient(other.Token);
+        var theirs = (await (await ownerClient.PostAsJsonAsync("/notices", NewNotice("1111"))).Content.ReadFromJsonAsync<NoticeDto>())!;
+        var mine = (await (await otherClient.PostAsJsonAsync("/notices", NewNotice("2222"))).Content.ReadFromJsonAsync<NoticeDto>())!;
+
+        var response = await otherClient.PostAsJsonAsync("/notices/delete", new DeleteNoticesRequest(new List<int> { mine.Id, theirs.Id }, "2222"));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        var left = (await ownerClient.GetFromJsonAsync<List<NoticeDto>>("/notices?includeDismissed=true&includeExpired=true"))!;
+        Assert.Contains(left, n => n.Id == mine.Id);
+        Assert.Contains(left, n => n.Id == theirs.Id);
+    }
+
+    [Fact]
     public async Task ExpiredNotice_HiddenFromStudents_VisibleInManagementView()
     {
         var publisher = await _api.CreatePublisherAsync();

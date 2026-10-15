@@ -141,6 +141,10 @@ export const api = {
   deleteNotice: (id: number, pin: string | null, token: string) =>
     request<void>(pin ? `/notices/${id}?pin=${encodeURIComponent(pin)}` : `/notices/${id}`, { method: "DELETE" }, token),
 
+  /** Deletes several notices at once; `pin` isn't needed when this device is unlocked. */
+  deleteNotices: (ids: number[], pin: string | null, token: string) =>
+    request<{ deleted: number }>("/notices/delete", { method: "POST", body: JSON.stringify({ ids, pin }) }, token),
+
   dismissNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),
 

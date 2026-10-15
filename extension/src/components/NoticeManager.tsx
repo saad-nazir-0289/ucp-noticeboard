@@ -32,6 +32,10 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [isPinned, setIsPinned] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Notices ticked for "Delete selected".
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   // What pasting filled in, shown above the form so it gets a quick check.
   const [pasteNote, setPasteNote] = useState<string[] | null>(null);
 
@@ -46,6 +50,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
       .then(([all, cats]) => {
         setNotices(scope === "mine" ? all.filter((n) => n.createdByUserId === user.id) : all);
         setCategories(cats);
+        setSelected(new Set());
       })
       .catch(() => setError("Could not load notices."))
       .finally(() => setLoading(false));
@@ -177,6 +182,35 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     }
   };
 
+  const manageable = notices.filter(canManage);
+  const allSelected = manageable.length > 0 && manageable.every((n) => selected.has(n.id));
+
+  const toggleSelected = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const handleBulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (!confirm(`Permanently delete ${ids.length} ${ids.length === 1 ? "notice" : "notices"}? This cannot be undone.`)) return;
+    if (!(await ensureUnlocked())) return;
+    setBulkBusy(true);
+    setError(null);
+    try {
+      const { deleted } = await api.deleteNotices(ids, null, user.token);
+      setMessage(`Deleted ${deleted} ${deleted === 1 ? "notice" : "notices"}.`);
+      load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete the notices.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm("Permanently delete this notice? This cannot be undone.")) return;
     if (!(await ensureUnlocked())) return;
@@ -299,11 +333,51 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
           Notices you publish will be listed here.
         </EmptyState>
       ) : (
+        <>
+        {manageable.length > 0 && (
+          <div className="ucpnb-bulk-bar">
+            <label className="ucpnb-check">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => setSelected(allSelected ? new Set() : new Set(manageable.map((n) => n.id)))}
+              />
+              <span>{selected.size > 0 ? `${selected.size} selected` : "Select all"}</span>
+            </label>
+            <button
+              type="button"
+              className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm"
+              onClick={() => setSelected(new Set(manageable.filter(isExpired).map((n) => n.id)))}
+              disabled={!manageable.some(isExpired)}
+            >
+              Select expired
+            </button>
+            <button
+              type="button"
+              className="ucpnb-btn ucpnb-btn-danger ucpnb-btn-sm ucpnb-bulk-delete"
+              onClick={handleBulkDelete}
+              disabled={selected.size === 0 || bulkBusy}
+            >
+              {bulkBusy ? <span className="ucpnb-spinner" /> : <Icon name="trash" size={14} />}
+              Delete selected
+            </button>
+          </div>
+        )}
+        {message && <p className="ucpnb-form-success">{message}</p>}
         <ul className="ucpnb-manage-list">
           {notices.map((n) => {
             const expired = isExpired(n);
             return (
-              <li key={n.id} className="ucpnb-manage-row">
+              <li key={n.id} className={selected.has(n.id) ? "ucpnb-manage-row is-selected" : "ucpnb-manage-row"}>
+                {canManage(n) && (
+                  <input
+                    type="checkbox"
+                    className="ucpnb-row-check"
+                    checked={selected.has(n.id)}
+                    onChange={() => toggleSelected(n.id)}
+                    aria-label={`Select "${n.title}"`}
+                  />
+                )}
                 <div className="ucpnb-manage-info">
                   <div className="ucpnb-card-tags">
                     <span className={expired ? "ucpnb-badge ucpnb-badge-closed" : "ucpnb-badge ucpnb-badge-success"}>
@@ -337,6 +411,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
             );
           })}
         </ul>
+        </>
       )}
     </div>
   );

@@ -271,4 +271,40 @@ public class NoticesController : ControllerBase
 
         return NoContent();
     }
+
+    private const int MaxBatchDelete = 200;
+
+    /// <summary>
+    /// Deletes several notices in one go: one PIN (or unlocked device) check
+    /// for the lot, so clearing out old notices doesn't need a request, or a
+    /// PIN, per notice. All or nothing: a Publisher who includes someone
+    /// else's notice deletes none.
+    /// </summary>
+    [HttpPost("delete")]
+    [Authorize(Roles = "Publisher,Admin")]
+    [EnableRateLimiting("pin-check")]
+    public async Task<ActionResult<DeleteNoticesResponse>> DeleteNotices([FromBody] DeleteNoticesRequest request)
+    {
+        var ids = request.Ids?.Distinct().ToList() ?? new List<int>();
+        if (ids.Count == 0) return BadRequest("Choose at least one notice.");
+        if (ids.Count > MaxBatchDelete) return BadRequest($"Delete at most {MaxBatchDelete} notices at a time.");
+
+        var currentUser = await _db.Users.FindAsync(CurrentUserId);
+        if (currentUser is null) return Unauthorized();
+
+        var notices = await _db.Notices.Where(n => ids.Contains(n.Id)).ToListAsync();
+        if (!User.IsInRole("Admin") && notices.Any(n => n.CreatedByUserId != CurrentUserId))
+        {
+            return Forbid();
+        }
+
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        _db.Notices.RemoveRange(notices);
+        await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
+
+        return Ok(new DeleteNoticesResponse(notices.Count));
+    }
 }

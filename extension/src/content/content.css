@@ -928,3 +928,41 @@ select.ucpnb-input-sm {
   color: var(--nb-text-2);
   font-weight: 400;
 }
+
+/* ---------- Selecting several notices ---------- */
+.ucpnb-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 0 0 19px;
+}
+
+.ucpnb-bulk-delete {
+  margin-left: auto;
+}
+
+.ucpnb-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 4px;
+  color: var(--nb-text-2);
+  font: 500 var(--nb-text-sm) / 1 var(--nb-font);
+  cursor: pointer;
+}
+
+.ucpnb-check input,
+.ucpnb-row-check {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--nb-primary);
+  cursor: pointer;
+}
+
+
+.ucpnb-manage-row.is-selected {
+  background: var(--nb-primary-soft);
+}

@@ -70,6 +70,10 @@ public record UpdateLogoRequest(string? LogoUrl, string? Pin);
 // account has no PIN yet, whatever is supplied here becomes their PIN
 // going forward (first-use-sets-it) — otherwise it must match exactly.
 // IsPinned is only honoured for the Admin; null leaves it unchanged on update.
+/// <summary>Several notices deleted at once (the management lists' "Delete selected").</summary>
+public record DeleteNoticesRequest(List<int> Ids, string? Pin);
+public record DeleteNoticesResponse(int Deleted);
+
 public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
 
 public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
