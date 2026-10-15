@@ -64,9 +64,12 @@ public class ShareController : ControllerBase
         DateTime.SpecifyKind(utc, DateTimeKind.Utc).AddHours(5);
 
     /// <summary>
-    /// The picture in a link preview: the poster, as a JPEG no wider than
-    /// 1200px (WhatsApp skips large or unusual images), or for notices
-    /// without one, NoticeBoard's own preview card.
+    /// The picture in a link preview: the poster, or for notices without
+    /// one, NoticeBoard's own preview card. The poster is fitted whole into
+    /// the landscape 1200×630 that link previews are made for, on a blurred
+    /// copy of itself: WhatsApp sizes the message to the picture's shape,
+    /// so a tall poster as it is makes a narrow message. A JPEG, since
+    /// WhatsApp skips large or unusual images.
     /// </summary>
     private string PreviewImage(string? imageUrl)
     {
@@ -74,7 +77,7 @@ public class ShareController : ControllerBase
         const string marker = "/upload/";
         var at = imageUrl.IndexOf(marker, StringComparison.Ordinal);
         return imageUrl.Contains("res.cloudinary.com") && at >= 0
-            ? imageUrl.Insert(at + marker.Length, "w_1200,c_limit,q_auto,f_jpg/")
+            ? imageUrl.Insert(at + marker.Length, "w_1200,h_630,c_pad,b_blurred:400:15,q_auto,f_jpg/")
             : imageUrl;
     }
 
@@ -93,6 +96,8 @@ public class ShareController : ControllerBase
             ? ""
             : $"<meta property=\"og:image\" content=\"{WebUtility.HtmlEncode(imageUrl)}\" />\n" +
               $"<meta property=\"og:image:alt\" content=\"{safeTitle}\" />\n" +
+              "<meta property=\"og:image:width\" content=\"1200\" />\n" +
+              "<meta property=\"og:image:height\" content=\"630\" />\n" +
               "<meta name=\"twitter:card\" content=\"summary_large_image\" />";
 
         var html = $@"<!DOCTYPE html>

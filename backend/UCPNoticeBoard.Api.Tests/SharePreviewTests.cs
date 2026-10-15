@@ -28,7 +28,8 @@ public class SharePreviewTests : IClassFixture<ApiFactory>
         var html = await PreviewOf(new CreateNoticeRequest("Spring Hackathon", "Teams of 2-4.",
             "https://res.cloudinary.com/demo/image/upload/v1/posters/hack.png", null, null, null, "1111"));
 
-        Assert.Contains("og:image\" content=\"https://res.cloudinary.com/demo/image/upload/w_1200,c_limit,q_auto,f_jpg/v1/posters/hack.png\"", html);
+        Assert.Contains("og:image\" content=\"https://res.cloudinary.com/demo/image/upload/w_1200,h_630,c_pad,b_blurred:400:15,q_auto,f_jpg/v1/posters/hack.png\"", html);
+        Assert.Contains("og:image:width\" content=\"1200\"", html);
         Assert.Contains("og:site_name\" content=\"UCP NoticeBoard\"", html);
         Assert.Contains("og:title\" content=\"Spring Hackathon\"", html);
     }
