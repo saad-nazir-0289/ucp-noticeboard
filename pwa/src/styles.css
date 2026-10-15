@@ -981,3 +981,148 @@ textarea {
   gap: 4px;
   flex-shrink: 0;
 }
+
+/* ---------- A calmer layout ----------
+ * Fewer boxes and borders, lighter type: the screen is mostly notices.
+ * (Defaults apply to phones and computers alike; nothing here is phone-only
+ * except the layout switch, which phones get in the account menu.) */
+.ucpnb-pointer-flex {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .ucpnb-pointer-flex {
+    display: inline-flex;
+  }
+}
+
+/* App bar: a smaller mark, no badge, plain icon buttons. */
+.ucpnb-appbar-inner {
+  height: 56px;
+}
+
+.ucpnb-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+.ucpnb-brand-text strong {
+  font-size: 18px;
+  font-weight: 750;
+}
+
+.ucpnb-brand-text span {
+  display: none;
+}
+
+.ucpnb-appbar-actions {
+  gap: 2px;
+}
+
+.ucpnb-appbar .ucpnb-appbar-btn {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ucpnb-avatar-btn .ucpnb-avatar-md {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+/* Toolbar: soft search field and chips, no outlines. */
+.ucpnb-toolbar {
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ucpnb-toolbar .ucpnb-search .ucpnb-input {
+  height: 42px;
+  border-color: transparent;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-surface);
+  box-shadow: none;
+}
+
+.ucpnb-toolbar .ucpnb-search .ucpnb-input:focus {
+  border-color: var(--nb-primary);
+  background: var(--nb-surface);
+}
+
+.ucpnb-toolbar .ucpnb-icon-btn-outlined {
+  border-color: transparent;
+  background: transparent;
+}
+
+.ucpnb-toolbar .ucpnb-chip:not(.is-active) {
+  border-color: transparent;
+  background: var(--nb-surface);
+  font-weight: 500;
+}
+
+.ucpnb-toolbar .ucpnb-chip {
+  height: 32px;
+  padding: 0 13px;
+}
+
+/* List: edge to edge, plain rows, tags as text. */
+@media (max-width: 719px) {
+  .ucpnb-list {
+    margin: 0 -16px;
+    border-right: none;
+    border-left: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+.ucpnb-phone-zoom .ucpnb-list {
+  margin: 0 -16px;
+  border-right: none;
+  border-left: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ucpnb-row {
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.ucpnb-row-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+}
+
+.ucpnb-row-body {
+  gap: 3px;
+}
+
+.ucpnb-row-meta {
+  gap: 10px;
+}
+
+.ucpnb-row-category {
+  font-size: 11px;
+}
+
+.ucpnb-row-meta .ucpnb-badge {
+  height: auto;
+  padding: 0;
+  background: none;
+  font-size: 11.5px;
+}
+
+.ucpnb-row-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.ucpnb-row-source {
+  font-size: 12px;
+}

@@ -17,6 +17,9 @@ interface Props {
   initialNotices?: Notice[];
   initialCategories?: Category[];
   deepLinkNoticeId?: number;
+  /** List or cards: chosen in the toolbar on computers, in the account menu on phones. */
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 }
 
 export type ViewMode = "card" | "list";
@@ -35,7 +38,16 @@ export function getSavedViewMode(): ViewMode {
   return isPhoneLayout() ? "list" : "card";
 }
 
-export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId }: Props) {
+/** Remembers the chosen view for next time. */
+export function saveViewMode(mode: ViewMode): void {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+  } catch {
+    // Not remembered, but still applied for this visit.
+  }
+}
+
+export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkNoticeId, viewMode, onViewModeChange }: Props) {
   const [notices, setNotices] = useState<Notice[]>(initialNotices ?? []);
   const [categories, setCategories] = useState<Category[]>(initialCategories ?? []);
   const [loading, setLoading] = useState(!initialNotices);
@@ -44,7 +56,6 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "all">("all");
-  const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
   // First time in the list: the top row slides aside once to show that
   // swiping right archives a notice.
   const [swipeDemoSeen, setSwipeDemoSeen] = useState(() => localStorage.getItem(SWIPE_DEMO_KEY) === "1");
@@ -123,10 +134,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
     });
   };
 
-  const handleViewModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem(VIEW_MODE_KEY, mode);
-  };
+  const handleViewModeChange = onViewModeChange;
 
   const openArchive = () => {
     setShowArchive(true);
@@ -179,7 +187,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
               <CategoryMenu categories={categories} value={categoryId} onChange={setCategoryId} />
             </div>
           )}
-          <div className="ucpnb-segmented" role="group" aria-label="Layout">
+          {/* Phones choose this in the account menu, to keep this row short. */}
+          <div className="ucpnb-segmented ucpnb-pointer-flex" role="group" aria-label="Layout">
             <button
               className={viewMode === "card" ? "is-active" : ""}
               onClick={() => handleViewModeChange("card")}

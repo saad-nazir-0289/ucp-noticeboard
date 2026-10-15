@@ -13,7 +13,7 @@ import {
   getCurrentEndpoint,
 } from "./push";
 import { RollNumberEntry } from "./RollNumberEntry";
-import { NoticeFeed, getSavedViewMode } from "./components/NoticeFeed";
+import { NoticeFeed, getSavedViewMode, saveViewMode, type ViewMode } from "./components/NoticeFeed";
 import { NoticeSkeleton } from "./components/NoticeSkeleton";
 import { NoticeEditor } from "./components/NoticeEditor";
 import { ManageNotices } from "./components/ManageNotices";
@@ -64,6 +64,11 @@ export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAccount, setShowAccount] = useState(false);
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getThemePreference);
+  const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
+  const changeViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    saveViewMode(mode);
+  };
   // Back gesture closes these instead of leaving the app.
   useBackToClose(showAccount, () => setShowAccount(false));
   useBackToClose(showCategoryPrefs, () => setShowCategoryPrefs(false));
@@ -458,6 +463,8 @@ export function App() {
           initialNotices={refreshKey === 0 ? bootstrapNotices : undefined}
           initialCategories={bootstrapCategories}
           deepLinkNoticeId={refreshKey === 0 ? deepLinkNoticeId : undefined}
+          viewMode={viewMode}
+          onViewModeChange={changeViewMode}
         />
       </main>
 
@@ -553,6 +560,24 @@ export function App() {
                     <span>Lock posting on this phone</span>
                   </button>
                 )}
+                <div className="ucpnb-menu-item ucpnb-touch-only">
+                  <Icon name="list" />
+                  <span id="ucpnb-layout-label">Layout</span>
+                  <div className="ucpnb-segmented" role="radiogroup" aria-labelledby="ucpnb-layout-label">
+                    {(["list", "card"] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        role="radio"
+                        aria-checked={viewMode === mode}
+                        className={viewMode === mode ? "is-active" : undefined}
+                        onClick={() => changeViewMode(mode)}
+                      >
+                        {mode === "list" ? "List" : "Cards"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="ucpnb-menu-item">
                   <Icon name="moon" />
                   <span id="ucpnb-appearance-label">Appearance</span>
