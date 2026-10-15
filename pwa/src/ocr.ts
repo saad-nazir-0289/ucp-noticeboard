@@ -31,18 +31,28 @@ export async function readTextFromImage(file: Blob, onProgress?: (fraction: numb
   });
   try {
     const full = await worker.recognize(file, {}, { text: true, blocks: true });
-    if (!full.data.blocks) return { text: full.data.text, lettering: [] };
-    const text = confidentText(ocrParagraphs(full.data.blocks));
+    let text = full.data.text;
+    try {
+      if (full.data.blocks) text = confidentText(ocrParagraphs(full.data.blocks));
+    } catch {
+      // Keep the plain reading.
+    }
+    // The extra pass for giant lettering is a bonus: if it fails (a phone
+    // short of memory), the main reading still counts.
     pass = 1;
     let lettering: string[] = [];
-    const small = await smallPoster(file);
-    if (small) {
-      const { data } = await worker.recognize(small, {}, { blocks: true });
-      if (data.blocks) lettering = bigLettering(ocrParagraphs(data.blocks), text);
+    try {
+      const small = await smallPoster(file);
+      if (small) {
+        const { data } = await worker.recognize(small, {}, { blocks: true });
+        if (data.blocks) lettering = bigLettering(ocrParagraphs(data.blocks), text);
+      }
+    } catch {
+      lettering = [];
     }
     return { text, lettering };
   } finally {
-    await worker.terminate();
+    await worker.terminate().catch(() => undefined);
   }
 }
 
