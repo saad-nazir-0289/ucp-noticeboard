@@ -95,6 +95,8 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   // lines of nothing but hashtags don't need to.
   bodyLines = withoutSignOff(bodyLines).filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l) && !isGreeting(l));
   let description = bodyLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  // The same kind of label in front of the details: "Description: …".
+  description = description.replace(/^(description|details|notice|body|summary|about)\s*:\s*/i, "");
   if (!description) description = lines.join("\n").trim();
   if (description === title) description = "";
 
@@ -325,7 +327,11 @@ function firstSentence(value: string): string {
 
 /** "Subject: …", "Re: …", "Fwd: …" from a copied or forwarded email. */
 function stripEmailPrefix(value: string): string {
-  return value.replace(/^(subject|re|fw|fwd)\s*:\s*/i, "").replace(/^(re|fw|fwd)\s*:\s*/i, "");
+  return value
+    .replace(/^(subject|re|fw|fwd)\s*:\s*/i, "")
+    .replace(/^(re|fw|fwd)\s*:\s*/i, "")
+    // Typed-out forms: "Notice Title: …", "Event name: …", "Title: …".
+    .replace(/^((notice|event|program(me)?|workshop|competition|session|post)\s+)?(title|name|heading|topic)\s*[:\-–]\s*/i, "");
 }
 
 /** Emoji, bullets and trailing colons don't belong in a title. */

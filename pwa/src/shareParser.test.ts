@@ -191,6 +191,23 @@ describe("titles", () => {
     expect(parsed.title).toBe("Library closed on Friday for maintenance.");
   });
 
+  it("drops typed-out labels like Notice Title and Description", () => {
+    const first = parseSharedContent(
+      { text: "Notice Title: Interdepartmental Table Tennis Championship 2026\nDate: 20 October 2026\nVenue: Sports Complex" },
+      categories,
+      NOW
+    );
+    expect(first.title).toBe("Interdepartmental Table Tennis Championship 2026");
+
+    const second = parseSharedContent(
+      { text: "Title: Spring 2027 Merit Scholarship Applications\nDescription: Applications are open for the merit scholarship." },
+      categories,
+      NOW
+    );
+    expect(second.title).toBe("Spring 2027 Merit Scholarship Applications");
+    expect(second.description).toBe("Applications are open for the merit scholarship.");
+  });
+
   it("uses a quoted name the text gives", () => {
     const parsed = parseSharedContent({ text: 'You are invited to a seminar entitled “AI in Healthcare” on 20 Oct.' }, categories, NOW);
     expect(parsed.title).toBe("Seminar: AI in Healthcare");
