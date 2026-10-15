@@ -3,55 +3,54 @@
  * shared/styles (tokens.css, components.css), imported first in main.tsx.
  */
 
-/* ---------- Dark theme (PWA only; the extension matches the light portal) ---------- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --nb-brand: #e8eefb;
-    --nb-primary: #6b97ff;
-    --nb-primary-hover: #86a9ff;
-    --nb-primary-soft: rgba(107, 151, 255, 0.14);
-    --nb-on-primary: #0a1424;
+/* ---------- Dark theme (PWA only; the extension matches the light portal) ----------
+ * Chosen in theme.ts (Auto follows the device) and set as <html data-theme>. */
+:root[data-theme="dark"] {
+  --nb-brand: #e8eefb;
+  --nb-primary: #6b97ff;
+  --nb-primary-hover: #86a9ff;
+  --nb-primary-soft: rgba(107, 151, 255, 0.14);
+  --nb-on-primary: #0a1424;
 
-    --nb-bg: #0b111c;
-    --nb-surface: #131b29;
-    --nb-surface-2: #1b2535;
-    --nb-surface-3: #243045;
-    --nb-border: #233047;
-    --nb-border-strong: #31405a;
-    --nb-overlay: rgba(0, 0, 0, 0.62);
+  --nb-bg: #0b111c;
+  --nb-surface: #131b29;
+  --nb-surface-2: #1b2535;
+  --nb-surface-3: #243045;
+  --nb-border: #233047;
+  --nb-border-strong: #31405a;
+  --nb-overlay: rgba(0, 0, 0, 0.62);
 
-    --nb-text: #eef2f8;
-    --nb-text-2: #b2bdcf;
-    --nb-text-3: #7d8aa1;
+  --nb-text: #eef2f8;
+  --nb-text-2: #b2bdcf;
+  --nb-text-3: #7d8aa1;
 
-    --nb-danger: #ff8077;
-    --nb-danger-soft: rgba(255, 128, 119, 0.12);
-    --nb-warning: #ffb760;
-    --nb-warning-soft: rgba(255, 183, 96, 0.12);
-    --nb-success: #4fd18b;
-    --nb-success-soft: rgba(79, 209, 139, 0.12);
+  --nb-danger: #ff8077;
+  --nb-danger-soft: rgba(255, 128, 119, 0.12);
+  --nb-warning: #ffb760;
+  --nb-warning-soft: rgba(255, 183, 96, 0.12);
+  --nb-success: #4fd18b;
+  --nb-success-soft: rgba(79, 209, 139, 0.12);
 
-    --nb-tone-0-bg: rgba(107, 151, 255, 0.14); --nb-tone-0-fg: #8fb0ff;
-    --nb-tone-1-bg: rgba(79, 209, 139, 0.13); --nb-tone-1-fg: #6ddba0;
-    --nb-tone-2-bg: rgba(255, 140, 90, 0.13); --nb-tone-2-fg: #ffa278;
-    --nb-tone-3-bg: rgba(160, 130, 255, 0.15); --nb-tone-3-fg: #b8a2ff;
-    --nb-tone-4-bg: rgba(240, 110, 180, 0.14); --nb-tone-4-fg: #f58ec8;
-    --nb-tone-5-bg: rgba(70, 200, 230, 0.13); --nb-tone-5-fg: #6fd6ee;
-    --nb-tone-6-bg: rgba(240, 200, 80, 0.13); --nb-tone-6-fg: #f0cd6b;
-    --nb-tone-7-bg: rgba(80, 170, 240, 0.13); --nb-tone-7-fg: #7cc3f5;
-    --nb-tone-8-bg: rgba(250, 110, 100, 0.14); --nb-tone-8-fg: #ff9a90;
+  --nb-tone-0-bg: rgba(107, 151, 255, 0.14); --nb-tone-0-fg: #8fb0ff;
+  --nb-tone-1-bg: rgba(79, 209, 139, 0.13); --nb-tone-1-fg: #6ddba0;
+  --nb-tone-2-bg: rgba(255, 140, 90, 0.13); --nb-tone-2-fg: #ffa278;
+  --nb-tone-3-bg: rgba(160, 130, 255, 0.15); --nb-tone-3-fg: #b8a2ff;
+  --nb-tone-4-bg: rgba(240, 110, 180, 0.14); --nb-tone-4-fg: #f58ec8;
+  --nb-tone-5-bg: rgba(70, 200, 230, 0.13); --nb-tone-5-fg: #6fd6ee;
+  --nb-tone-6-bg: rgba(240, 200, 80, 0.13); --nb-tone-6-fg: #f0cd6b;
+  --nb-tone-7-bg: rgba(80, 170, 240, 0.13); --nb-tone-7-fg: #7cc3f5;
+  --nb-tone-8-bg: rgba(250, 110, 100, 0.14); --nb-tone-8-fg: #ff9a90;
 
-    --nb-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --nb-shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
-    --nb-shadow-3: 0 24px 60px rgba(0, 0, 0, 0.6);
-    --nb-focus: 0 0 0 3px rgba(107, 151, 255, 0.35);
+  --nb-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --nb-shadow-2: 0 6px 18px rgba(0, 0, 0, 0.45);
+  --nb-shadow-3: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --nb-focus: 0 0 0 3px rgba(107, 151, 255, 0.35);
 
-    color-scheme: dark;
-  }
+  color-scheme: dark;
+}
 
-  .ucpnb-chip.is-active {
-    color: #0b111c;
-  }
+[data-theme="dark"] .ucpnb-chip.is-active {
+  color: #0b111c;
 }
 
 /* ---------- Base ---------- */
@@ -735,6 +734,31 @@ textarea {
 .ucpnb-menu-item-danger,
 .ucpnb-menu-item-danger > .ucpnb-icon:first-child {
   color: var(--nb-danger);
+}
+
+.ucpnb-segmented {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-surface-3);
+}
+
+.ucpnb-segmented button {
+  min-height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--nb-r-full);
+  background: transparent;
+  color: var(--nb-text-2);
+  font: 600 var(--nb-text-sm) / 1 var(--nb-font);
+  cursor: pointer;
+}
+
+.ucpnb-segmented button.is-active {
+  background: var(--nb-surface);
+  color: var(--nb-text);
+  box-shadow: var(--nb-shadow-1);
 }
 
 .ucpnb-switch {

@@ -19,6 +19,7 @@ import { NoticeEditor } from "./components/NoticeEditor";
 import { ManageNotices } from "./components/ManageNotices";
 import { UnlockPrompt } from "./components/UnlockPrompt";
 import { InstallBanner } from "./components/InstallBanner";
+import { getThemePreference, setThemePreference, type ThemePreference } from "./theme";
 import { Icon } from "@shared/components/Icon";
 import { Avatar } from "@shared/components/Tags";
 import { EmptyState } from "@shared/components/EmptyState";
@@ -27,6 +28,12 @@ type Status = "loading" | "needs-identity" | "ready" | "error";
 type PushState = "unsupported" | "subscribed" | "not-subscribed" | "working";
 
 type ToastTone = "success" | "error" | "info";
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: "system", label: "Auto" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
 
 export function App() {
   const [status, setStatus] = useState<Status>("loading");
@@ -54,6 +61,7 @@ export function App() {
   // Bumped after a publish/edit/delete so the feed and list reload.
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAccount, setShowAccount] = useState(false);
+  const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getThemePreference);
   const [myLogoUrl, setMyLogoUrl] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
 
@@ -533,6 +541,27 @@ export function App() {
                     <span>Lock posting on this phone</span>
                   </button>
                 )}
+                <div className="ucpnb-menu-item">
+                  <Icon name="moon" />
+                  <span id="ucpnb-appearance-label">Appearance</span>
+                  <div className="ucpnb-segmented" role="radiogroup" aria-labelledby="ucpnb-appearance-label">
+                    {THEME_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={themePreference === o.value}
+                        className={themePreference === o.value ? "is-active" : undefined}
+                        onClick={() => {
+                          setThemePreference(o.value);
+                          setThemePreferenceState(o.value);
+                        }}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <a
                   className="ucpnb-menu-item"
                   href="https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb"

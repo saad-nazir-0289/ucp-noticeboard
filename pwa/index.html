@@ -7,6 +7,16 @@
     <meta name="description" content="Campus notices from UCP, on your phone." />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b111c" media="(prefers-color-scheme: dark)" />
+    <!-- The saved light/dark choice (src/theme.ts), applied before the first
+         paint so the page never flashes the other theme. -->
+    <script>
+      (function () {
+        var saved = null;
+        try { saved = localStorage.getItem("ucpnb_theme"); } catch (e) {}
+        var dark = saved === "dark" || (saved !== "light" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+      })();
+    </script>
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
