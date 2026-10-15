@@ -84,12 +84,14 @@ Then **log out and back in** (`exit`, then the ssh command again).
 ## D. The API's settings
 
 ```bash
-nano /opt/ucpnb/config/production.env
+/opt/ucpnb/repo/deploy/oracle/fill-settings.sh
 ```
 
-Replace every `RAILWAY` with the value of the same name from Railway (your
-API service → Variables). Using Railway's VAPID keys keeps everyone's
-notifications working after the move. Save: Ctrl+O, Enter, Ctrl+X.
+It asks for each value in turn: copy it from Railway (your API service →
+Variables), right-click to paste, Enter. Using Railway's VAPID keys keeps
+everyone's notifications working after the move. (To edit the file by hand
+instead: `nano /opt/ucpnb/config/production.env`; save with Ctrl+O, Enter,
+Ctrl+X.)
 
 ## E. A test website
 
