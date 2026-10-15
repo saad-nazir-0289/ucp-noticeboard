@@ -936,38 +936,30 @@ textarea {
 .ucpnb-install {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  padding: 12px 12px 12px 14px;
-  border: 1px solid var(--nb-border);
-  border-radius: var(--nb-r-lg);
-  background: var(--nb-surface);
-  box-shadow: var(--nb-shadow-1);
+  gap: 10px;
+  height: 40px;
+  margin-bottom: 12px;
+  padding: 0 4px 0 12px;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-primary-soft);
+  color: var(--nb-text);
 }
 
 .ucpnb-install-icon {
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
 }
 
 .ucpnb-install-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   flex: 1;
   min-width: 0;
-}
-
-.ucpnb-install-text strong {
-  font: 700 var(--nb-text-sm) / 1.3 var(--nb-font);
-  color: var(--nb-text);
-}
-
-.ucpnb-install-text span {
-  font: 400 var(--nb-text-xs) / 1.45 var(--nb-font);
-  color: var(--nb-text-2);
+  margin: 0;
+  overflow: hidden;
+  font: 500 var(--nb-text-sm) / 1 var(--nb-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ucpnb-install-text .ucpnb-icon {
@@ -975,11 +967,30 @@ textarea {
   vertical-align: -2px;
 }
 
-.ucpnb-install-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.ucpnb-install-go {
   flex-shrink: 0;
+  height: 30px;
+  padding: 0 14px;
+  border: none;
+  border-radius: var(--nb-r-full);
+  background: var(--nb-primary);
+  color: var(--nb-on-primary);
+  font: 600 var(--nb-text-sm) / 1 var(--nb-font);
+  cursor: pointer;
+}
+
+.ucpnb-install-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--nb-r-full);
+  background: none;
+  color: var(--nb-text-3);
+  cursor: pointer;
 }
 
 /* ---------- A calmer layout ----------

@@ -44,32 +44,30 @@ export function InstallBanner({ onInstalled }: Props) {
   };
 
   return (
+    // One slim line: the app's icon, a short how-to, and Install where the browser offers it.
     <aside className="ucpnb-install" aria-label="Install NoticeBoard">
-      <img className="ucpnb-install-icon" src="/icon-192.png" alt="" width={44} height={44} />
-      <div className="ucpnb-install-text">
-        <strong>{option === "prompt" ? "Install NoticeBoard" : "Add NoticeBoard to your home screen"}</strong>
-        {option === "prompt" && <span>Open it like an app, and get notified about new notices.</span>}
+      <img className="ucpnb-install-icon" src="/icon-192.png" alt="" width={22} height={22} />
+      <p className="ucpnb-install-text">
+        {option === "prompt" && "Get the app for quick access and alerts"}
         {option === "ios" && (
-          <span>
-            Tap <Icon name="share" size={14} /> Share, then <b>Add to Home Screen</b>.
-          </span>
+          <>
+            Tap <Icon name="share" size={13} />, then <b>Add to Home Screen</b>
+          </>
         )}
         {option === "manual" && (
-          <span>
-            Open your browser menu (⋮) and choose <b>Install app</b> or <b>Add to Home screen</b>.
-          </span>
+          <>
+            Get the app: tap <b>⋮</b>, then <b>Install app</b>
+          </>
         )}
-      </div>
-      <div className="ucpnb-install-actions">
-        {option === "prompt" && (
-          <button className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-sm" onClick={install}>
-            Install
-          </button>
-        )}
-        <button className="ucpnb-icon-btn ucpnb-icon-btn-sm" onClick={() => setDismissed(true)} aria-label="Not now" title="Not now">
-          <Icon name="x" size={16} />
+      </p>
+      {option === "prompt" && (
+        <button className="ucpnb-install-go" onClick={install}>
+          Install
         </button>
-      </div>
+      )}
+      <button className="ucpnb-install-close" onClick={() => setDismissed(true)} aria-label="Not now" title="Not now">
+        <Icon name="x" size={15} />
+      </button>
     </aside>
   );
 }
