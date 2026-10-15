@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from "react";
 import type { Notice } from "../types";
-import { shareNotice } from "../share";
+import { preparePoster, shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
 import { formatDateTime, toParagraphs } from "../format";
 import { downloadIcs, googleCalendarUrl } from "../calendar";
@@ -17,6 +17,11 @@ interface Props {
 /** Full notice: a bottom sheet on phones, a centred dialog on wider screens. */
 export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) {
   const [shared, setShared] = useState(false);
+
+  // Ready before Share is tapped, so the share sheet opens straight away.
+  useEffect(() => {
+    void preparePoster(notice);
+  }, [notice]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

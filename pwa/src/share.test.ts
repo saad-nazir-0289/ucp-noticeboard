@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { shareMessage } from "@shared/share";
+import { shareCaption } from "@shared/share";
 import type { Notice } from "@shared/types";
 
-const notice = (deadline: string | null): Notice => ({
+const notice = (deadline: string | null, description = "Teams of 2-4.\nPrizes for the top three teams."): Notice => ({
   id: 7,
   title: "Spring Hackathon registrations close",
-  description: "Teams of 2-4.",
+  description,
   imageUrl: null,
   linkUrl: null,
   categoryId: null,
@@ -20,15 +20,25 @@ const notice = (deadline: string | null): Notice => ({
   createdByLogoUrl: null,
 });
 
-describe("shareMessage", () => {
-  it("puts the notice's name above the link", () => {
-    expect(shareMessage(notice(null))).toBe("Spring Hackathon registrations close");
+const URL = "https://ucpnb-api.duckdns.org/share/notice/7";
+
+describe("shareCaption", () => {
+  it("name, then details, then the link on its own at the end", () => {
+    expect(shareCaption(notice(null), URL)).toBe(
+      "Spring Hackathon registrations close\n\nTeams of 2-4.\nPrizes for the top three teams.\n\n" + URL
+    );
   });
 
-  it("adds the deadline when there is one", () => {
-    const message = shareMessage(notice("2026-10-20T12:00:00Z"));
-    expect(message.split("\n")[0]).toBe("Spring Hackathon registrations close");
-    expect(message.split("\n")[1]).toMatch(/^Deadline: (?=.*Oct)(?=.*20)(?=.*2026).*$/);
-    expect(message).not.toContain("·");
+  it("adds the deadline under the name", () => {
+    const caption = shareCaption(notice("2026-10-20T12:00:00Z"), URL);
+    expect(caption.split("\n")[1]).toMatch(/^Deadline: (?=.*Oct)(?=.*20)(?=.*2026).*$/);
+    expect(caption).not.toContain("·");
+  });
+
+  it("shortens long details so it fits a photo caption, keeping the link", () => {
+    const caption = shareCaption(notice(null, "word ".repeat(400)), URL);
+    expect(caption.length).toBeLessThanOrEqual(1000);
+    expect(caption.endsWith("\n\n" + URL)).toBe(true);
+    expect(caption).toContain("…");
   });
 });
