@@ -33,7 +33,7 @@ main() {
   say "Checking Railway's Postgres version"
   local version
   version=$(docker run --rm "$PG_TOOLS_IMAGE" psql "$url" -tAc "show server_version_num") || die "couldn't connect to Railway"
-  [ "${version:0:2}" -le 17 ] || die "Railway runs Postgres ${version:0:2}; change postgres:17 to postgres:${version:0:2} in docker-compose.yml and common.sh first."
+  [ "${version:0:2}" -le "$PG_MAJOR" ] || die "Railway runs Postgres ${version:0:2}, newer than this server's $PG_MAJOR; the server's Postgres version needs raising first."
 
   # Global, so the clean-up below still sees it when the script ends.
   DUMP=$(mktemp /tmp/railway-XXXXXX.dump)

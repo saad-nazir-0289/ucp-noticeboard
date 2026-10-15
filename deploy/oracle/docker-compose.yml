@@ -7,12 +7,13 @@ name: ucpnb
 
 services:
   db:
-    image: postgres:17-alpine
+    image: postgres:18-alpine  # same major version as Railway's, and as PG_TOOLS_IMAGE in common.sh
     restart: unless-stopped
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in stack.env}
     volumes:
-      - db-data:/var/lib/postgresql/data
+      # Postgres 18+ images keep their data under /var/lib/postgresql/<version>.
+      - db-data:/var/lib/postgresql
       - ./initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]

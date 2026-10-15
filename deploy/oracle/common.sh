@@ -26,9 +26,10 @@ compose() {
 valid_env() { [ "$1" = production ] || [ "$1" = staging ]; }
 database_for() { echo "ucpnb_$1"; }
 
-# Postgres client tools, on the stack's network. Version 17 can dump any
-# older server and restores into the stack's Postgres 17.
-PG_TOOLS_IMAGE=postgres:17-alpine
+# Postgres client tools, on the stack's network. They can dump any server up
+# to their own version and restore into the stack's Postgres (same version).
+PG_TOOLS_IMAGE=postgres:18-alpine
+PG_MAJOR=18
 pg_tools() {
   docker run --rm -i --network ucpnb_default -e PGPASSWORD="$POSTGRES_PASSWORD" "$PG_TOOLS_IMAGE" "$@"
 }
