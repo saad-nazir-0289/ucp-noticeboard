@@ -16,6 +16,8 @@ export interface LoginResult extends AuthUser {
   categories: Category[];
   /** The signed-in publisher's own logo, if they've set one. */
   logoUrl?: string | null;
+  /** False until a Publisher/Admin has chosen their PIN (their first unlock sets it). */
+  hasPin?: boolean;
 }
 
 export interface Notice {

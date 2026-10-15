@@ -76,6 +76,18 @@ public class NoticeTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task Login_SaysWhetherAPinHasBeenChosen()
+    {
+        var publisher = await _api.CreatePublisherAsync();
+        Assert.False(publisher.HasPin);
+
+        using var client = _api.CreateApiClient(publisher.Token);
+        await client.PostAsJsonAsync("/notices", NewNotice("1111"));
+
+        Assert.True((await _api.LoginAsync(publisher.RollNumber)).HasPin);
+    }
+
+    [Fact]
     public async Task Publisher_DeletesSeveralOwnNoticesAtOnce()
     {
         var publisher = await _api.CreatePublisherAsync();

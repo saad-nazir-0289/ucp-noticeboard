@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { AuthUser, Category, Notice } from "@shared/types";
+import type { AuthUser, Category, LoginResult, Notice } from "@shared/types";
 import { api, setDeviceToken } from "@shared/api/client";
 import { clearDeviceToken, loadDeviceToken, saveDeviceToken } from "./deviceUnlock";
 import { AdminPinPrompt } from "../components/AdminPinPrompt";
@@ -24,6 +24,7 @@ export function NoticeBoard() {
   // Publishers and Admins enter their PIN once per computer; after that
   // this Chrome is "unlocked" (content/deviceUnlock.ts) for every action.
   const [unlocked, setUnlocked] = useState(false);
+  const [hasPin, setHasPin] = useState(true);
   const [askingPin, setAskingPin] = useState(false);
   const pendingUnlock = useRef<((ok: boolean) => void) | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,7 +55,7 @@ export function NoticeBoard() {
         window.history.replaceState({}, "", cleanUrl);
       }
 
-      let loggedInUser: AuthUser;
+      let loggedInUser: LoginResult;
       try {
         const result = await api.login(identity.rollNumber, identity.name, activationCode);
         loggedInUser = result;
@@ -73,6 +74,7 @@ export function NoticeBoard() {
           setUnlocked(true);
         }
       }
+      setHasPin(loggedInUser.hasPin !== false);
       setUser(loggedInUser);
       setStatus("ready");
 
@@ -99,6 +101,7 @@ export function NoticeBoard() {
     const result = await api.unlockDevice(pin, user.token, "Chrome extension");
     setDeviceToken(result.deviceToken, forgetUnlock);
     await saveDeviceToken(user.rollNumber, result.deviceToken);
+    setHasPin(true);
     setUnlocked(true);
   };
 
@@ -222,6 +225,7 @@ export function NoticeBoard() {
         <div className="ucpnb-overlay" onClick={() => finishUnlock(false)}>
           <div className="ucpnb-sheet ucpnb-sheet-pin" role="dialog" aria-modal="true" aria-label="Enter your PIN" onClick={(e) => e.stopPropagation()}>
             <AdminPinPrompt
+              firstTime={!hasPin}
               title="Enter your PIN to continue"
               onUnlock={async (pin) => {
                 await unlockWithPin(pin);

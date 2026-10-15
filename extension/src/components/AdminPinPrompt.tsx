@@ -8,6 +8,8 @@ interface Props {
   onUnlock: (pin: string) => Promise<void>;
   /** Shown as a Cancel button (the dialog form); omitted inline. */
   onCancel?: () => void;
+  /** No PIN chosen yet: ask for a new one twice instead. */
+  firstTime?: boolean;
 }
 
 /**
@@ -16,15 +18,21 @@ interface Props {
  * the Roll Number gets one. After that, posting, deleting and the Admin
  * sections work without the PIN until "Lock" is used or 30 days unused.
  */
-export function AdminPinPrompt({ title, onUnlock, onCancel }: Props) {
+export function AdminPinPrompt({ title, onUnlock, onCancel, firstTime = false }: Props) {
   const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [checking, setChecking] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!/^\d{4,6}$/.test(pin)) {
-      setError("Enter your PIN (4–6 digits).");
+      setError(firstTime ? "Choose a PIN of 4–6 digits." : "Enter your PIN (4–6 digits).");
+      return;
+    }
+    if (firstTime && pin !== confirmPin) {
+      setError("The two PINs don't match. Type the same PIN twice.");
+      setConfirmPin("");
       return;
     }
     setChecking(true);
@@ -34,6 +42,7 @@ export function AdminPinPrompt({ title, onUnlock, onCancel }: Props) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not verify your PIN.");
       setPin("");
+      setConfirmPin("");
     } finally {
       setChecking(false);
     }
@@ -45,8 +54,12 @@ export function AdminPinPrompt({ title, onUnlock, onCancel }: Props) {
         <span className="ucpnb-unlock-icon">
           <Icon name="lock" size={24} />
         </span>
-        <h4>{title}</h4>
-        <p className="ucpnb-field-hint">Once per computer. First time? The PIN you choose now becomes yours.</p>
+        <h4>{firstTime ? "Choose your PIN" : title}</h4>
+        <p className="ucpnb-field-hint">
+          {firstTime
+            ? "4–6 digits, kept to yourself: it protects posting under your name. Asked once per computer."
+            : "Once per computer."}
+        </p>
         <input
           className="ucpnb-input ucpnb-input-pin"
           type="password"
@@ -58,9 +71,21 @@ export function AdminPinPrompt({ title, onUnlock, onCancel }: Props) {
           onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
           maxLength={6}
         />
+        {firstTime && (
+          <input
+            className="ucpnb-input ucpnb-input-pin"
+            type="password"
+            inputMode="numeric"
+            placeholder="••••"
+            aria-label="Type the PIN again"
+            value={confirmPin}
+            onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            maxLength={6}
+          />
+        )}
         {error && <p className="ucpnb-form-error">{error}</p>}
         <button type="submit" className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-block" disabled={checking}>
-          {checking ? <span className="ucpnb-spinner" /> : "Unlock"}
+          {checking ? <span className="ucpnb-spinner" /> : firstTime ? "Save PIN" : "Unlock"}
         </button>
         {onCancel && (
           <button type="button" className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-block" onClick={onCancel}>

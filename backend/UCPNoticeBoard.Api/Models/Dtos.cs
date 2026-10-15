@@ -10,7 +10,10 @@ public record LoginResponse(
     string Token,
     List<NoticeDto> Notices,
     List<CategoryDto> Categories,
-    string? LogoUrl = null
+    string? LogoUrl = null,
+    // Whether a PIN has been chosen yet: the apps ask a new Publisher to
+    // type their first PIN twice, so a typo can't become their PIN.
+    bool HasPin = false
 );
 
 // PinLocked / ActiveDevices are only filled in by the Admin user list.

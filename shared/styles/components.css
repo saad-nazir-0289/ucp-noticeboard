@@ -925,8 +925,16 @@ select.ucpnb-input {
   margin: 0;
   font: 400 var(--nb-text-md) / 1.65 var(--nb-font);
   color: var(--nb-text);
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* Room to breathe between paragraphs (format.ts toParagraphs). */
+.ucpnb-detail-text p {
+  margin: 0;
+}
+
+.ucpnb-detail-text p + p {
+  margin-top: 0.85em;
 }
 
 .ucpnb-detail-actions {

@@ -54,6 +54,7 @@ export function App() {
   // Publishing (Publishers/Admins only). `editor` is open when non-null;
   // `notice` set means editing rather than creating.
   const [unlocked, setUnlocked] = useState(false);
+  const [hasPin, setHasPin] = useState(true);
   const [showUnlock, setShowUnlock] = useState(false);
   const [editor, setEditor] = useState<{ notice?: Notice; shared?: SharedPayload } | null>(null);
   // Arrived via "Share to NoticeBoard" (?share=1, see public/sw.js).
@@ -153,6 +154,7 @@ export function App() {
       const deviceToken = result.role === "Student" ? null : getSavedDeviceToken(rollNumber);
       setDeviceToken(deviceToken, handleDeviceTokenInvalid);
       setUnlocked(deviceToken !== null);
+      setHasPin(result.hasPin !== false);
       setUser(result);
       setMyLogoUrl(result.logoUrl ?? null);
       setBootstrapNotices(result.notices);
@@ -662,7 +664,17 @@ export function App() {
         />
       )}
 
-      {showUnlock && <UnlockPrompt token={user.token} onUnlocked={handleUnlocked} onClose={() => setShowUnlock(false)} />}
+      {showUnlock && (
+        <UnlockPrompt
+          token={user.token}
+          firstTime={!hasPin}
+          onUnlocked={(deviceToken) => {
+            setHasPin(true);
+            handleUnlocked(deviceToken);
+          }}
+          onClose={() => setShowUnlock(false)}
+        />
+      )}
     </div>
   );
 }

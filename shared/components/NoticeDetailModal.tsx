@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { Notice } from "../types";
 import { shareNotice } from "../share";
 import { optimizeImageUrl } from "../imageOptimize";
-import { formatDateTime } from "../format";
+import { formatDateTime, toParagraphs } from "../format";
 import { downloadIcs, googleCalendarUrl } from "../calendar";
 import { Icon } from "./Icon";
 import { Avatar, CategoryTag, DeadlineBadge, PinnedBadge } from "./Tags";
@@ -91,7 +91,18 @@ export function NoticeDetailModal({ notice, onClose, imageWidth = 900 }: Props) 
             </div>
           )}
 
-          <p className="ucpnb-detail-text">{notice.description}</p>
+          <div className="ucpnb-detail-text">
+            {toParagraphs(notice.description).map((lines, i) => (
+              <p key={i}>
+                {lines.map((line, j) => (
+                  <Fragment key={j}>
+                    {j > 0 && <br />}
+                    {line}
+                  </Fragment>
+                ))}
+              </p>
+            ))}
+          </div>
 
           {/* The last thing in the notice, once it's been read. */}
           {notice.deadline && new Date(notice.deadline) > new Date() && (

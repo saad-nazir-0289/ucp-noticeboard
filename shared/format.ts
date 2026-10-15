@@ -94,3 +94,33 @@ export function initials(name: string): string {
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[1][0]).toUpperCase();
 }
+
+/**
+ * A notice's details as paragraphs, for room to breathe between them: a
+ * blank line always starts a new one, and so does a line of prose (a full
+ * sentence that ran long). Short lines (Venue: …, Date: …, bullet points)
+ * stay together in one paragraph, a heading such as "Requirements:" starts
+ * its own group.
+ */
+export function toParagraphs(text: string): string[][] {
+  const paragraphs: string[][] = [];
+  let current: string[] = [];
+  const flush = () => {
+    if (current.length > 0) paragraphs.push(current);
+    current = [];
+  };
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      continue;
+    }
+    const prose = line.length > 80 || (line.length > 40 && /[.!?]["'”’)]?$/.test(line) && !/^[-•*·\d]/.test(line));
+    const heading = line.length <= 40 && /:$/.test(line);
+    if (prose || heading) flush();
+    current.push(line);
+    if (prose) flush();
+  }
+  flush();
+  return paragraphs;
+}
