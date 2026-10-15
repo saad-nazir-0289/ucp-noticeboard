@@ -736,3 +736,132 @@ select.ucpnb-input-sm {
   border: none;
   box-shadow: none;
 }
+
+/* ---------- Notice popup ----------
+ * On the portal (a computer screen) the popup is wide and side by side:
+ * the poster on the left, the notice on the right, sized to the window so
+ * the popup itself never scrolls. A very long description scrolls in
+ * place, without a visible scrollbar. */
+#ucp-noticeboard-root .ucpnb-detail {
+  max-width: 600px;
+  overflow: hidden;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-close {
+  box-shadow: none;
+  background: var(--nb-surface-2);
+}
+
+#ucp-noticeboard-root .ucpnb-detail-body {
+  gap: 12px;
+  padding: 24px 24px 8px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-body::-webkit-scrollbar {
+  display: none;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-title {
+  padding-right: 44px;
+  font-size: var(--nb-text-xl);
+}
+
+#ucp-noticeboard-root .ucpnb-detail-source .ucpnb-avatar-md {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-source > div > strong,
+#ucp-noticeboard-root .ucpnb-detail-info > div > strong {
+  font-size: var(--nb-text-sm);
+}
+
+/* The deadline as a plain line, not a grey box. */
+#ucp-noticeboard-root .ucpnb-detail-info {
+  padding: 0;
+  background: none;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-info > div > span {
+  display: none;
+}
+
+#ucp-noticeboard-root .ucpnb-calendar-actions {
+  margin-top: 6px;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-text {
+  font-size: var(--nb-text-sm);
+  color: var(--nb-text-2);
+}
+
+/* Open link and Share side by side, no divider. */
+#ucp-noticeboard-root .ucpnb-detail-actions {
+  position: static;
+  flex-direction: row;
+  margin-top: 0;
+  padding: 16px 24px 24px;
+  border-top: none;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-actions > .ucpnb-btn {
+  flex: 1;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-secondary {
+  flex: 1;
+}
+
+#ucp-noticeboard-root .ucpnb-detail-secondary .ucpnb-btn {
+  width: 100%;
+  height: 100%;
+}
+
+@media (min-width: 860px) {
+  #ucp-noticeboard-root .ucpnb-detail:has(.ucpnb-detail-media) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    width: min(1080px, calc(100vw - 64px));
+    max-width: none;
+    height: min(660px, calc(100vh - 64px));
+    max-height: none;
+  }
+
+  #ucp-noticeboard-root .ucpnb-detail:has(.ucpnb-detail-media) .ucpnb-detail-media {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    aspect-ratio: auto;
+  }
+
+  #ucp-noticeboard-root .ucpnb-detail:has(.ucpnb-detail-media) .ucpnb-detail-body {
+    grid-column: 2;
+    grid-row: 1;
+    min-height: 0;
+  }
+
+  #ucp-noticeboard-root .ucpnb-detail:has(.ucpnb-detail-media) .ucpnb-detail-actions {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #ucp-noticeboard-root .ucpnb-detail:has(.ucpnb-detail-media) .ucpnb-detail-title {
+    padding-right: 44px;
+  }
+
+  /* Without a poster: one column, never taller than the window. */
+  #ucp-noticeboard-root .ucpnb-detail:not(:has(.ucpnb-detail-media)) {
+    display: flex;
+    max-height: calc(100vh - 64px);
+  }
+
+  #ucp-noticeboard-root .ucpnb-detail:not(:has(.ucpnb-detail-media)) .ucpnb-detail-body {
+    min-height: 0;
+  }
+}
