@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSwipeable } from "react-swipeable";
-import type { Notice } from "../types";
-import { shareNotice } from "../share";
-import { optimizeImageUrl } from "../imageOptimize";
+import type { Notice } from "@shared/types";
+import { optimizeImageUrl } from "@shared/imageOptimize";
+import { categoryTone } from "@shared/format";
+import { Icon } from "@shared/components/Icon";
+import { DeadlineBadge, PinnedBadge } from "@shared/components/Tags";
 
 interface Props {
   notice: Notice;
   onView: (notice: Notice) => void;
   onDismiss: (notice: Notice) => void;
-  onLike?: (notice: Notice) => void;
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  /**
+   * Set on the first row for someone who hasn't seen it yet: the row
+   * slides right to show the archive action underneath, then this is
+   * called so it never plays again.
+   */
+  onSwipeDemoDone?: () => void;
 }
 
 // A swipe counts as "dismiss" if it travels far enough OR is a fast
@@ -22,12 +25,32 @@ function formatDate(iso: string) {
 const DISMISS_DISTANCE = 100;
 const DISMISS_VELOCITY = 0.5;
 
-export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
+export function NoticeListItem({ notice, onView, onDismiss, onSwipeDemoDone }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dismissing, setDismissing] = useState(false);
-  const [shared, setShared] = useState(false);
+
+  const [demo, setDemo] = useState(false);
+
+  useEffect(() => {
+    if (!onSwipeDemoDone) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onSwipeDemoDone();
+      return;
+    }
+    // A moment after the feed appears, so it's noticed rather than missed.
+    const start = setTimeout(() => setDemo(true), 700);
+    return () => clearTimeout(start);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSwipeDemoDone != null]);
+
+  const endDemo = () => {
+    if (!demo) return;
+    setDemo(false);
+    onSwipeDemoDone?.();
+  };
 
   const handlers = useSwipeable({
+    onSwipeStart: endDemo,
     onSwiping: (eventData) => {
       // Only dragging right does anything — left stays put at 0.
       if (eventData.dir === "Right") {
@@ -58,63 +81,44 @@ export function NoticeListItem({ notice, onView, onDismiss, onLike }: Props) {
     // perfectly without it.
   });
 
-  const handleShare = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const result = await shareNotice(notice);
-    if (result === "copied") {
-      setShared(true);
-      setTimeout(() => setShared(false), 2000);
-    }
-  };
-
   return (
-    <div className="ucpnb-list-item-wrap">
-      <div className="ucpnb-list-item-hint" aria-hidden="true">
-        Hidden
+    <div className="ucpnb-row-wrap">
+      <div className="ucpnb-row-hint" aria-hidden="true">
+        <Icon name="archive" size={18} />
+        {demo ? "Swipe right to archive" : "Archive"}
       </div>
       <div
         {...handlers}
-        className="ucpnb-list-item"
+        className={demo ? "ucpnb-row ucpnb-row-demo" : "ucpnb-row"}
+        onAnimationEnd={endDemo}
+        role="button"
+        tabIndex={0}
+        aria-label={notice.title}
         style={{
           transform: `translateX(${dismissing ? "100%" : `${dragX}px`})`,
           opacity: dismissing ? 0 : 1,
         }}
         onClick={() => dragX === 0 && onView(notice)}
+        onKeyDown={(e) => e.key === "Enter" && onView(notice)}
       >
-        <div className="ucpnb-list-item-thumb">
+        <div className={`ucpnb-row-thumb${notice.imageUrl ? "" : ` ucpnb-tone-${categoryTone(notice.categoryName ?? notice.title)}`}`}>
           {notice.imageUrl ? (
-            <img src={optimizeImageUrl(notice.imageUrl, 120) ?? undefined} alt="" loading="lazy" />
+            <img src={optimizeImageUrl(notice.imageUrl, 160) ?? undefined} alt="" loading="lazy" />
           ) : (
-            <span aria-hidden="true">📌</span>
+            <Icon name="megaphone" size={22} />
           )}
         </div>
-        <div className="ucpnb-list-item-body">
-          {notice.categoryName && <span className="ucpnb-card-category">{notice.categoryName}</span>}
-          <h4 className="ucpnb-list-item-title">{notice.title}</h4>
-          {notice.deadline && (
-            <span className="ucpnb-card-deadline">Deadline: {formatDate(notice.deadline)}</span>
-          )}
+        <div className="ucpnb-row-body">
+          <div className="ucpnb-row-meta">
+            {notice.isPinned && <PinnedBadge />}
+            {notice.categoryName && <span className={`ucpnb-row-category ucpnb-tone-text-${categoryTone(notice.categoryName)}`}>{notice.categoryName}</span>}
+            {notice.deadline && <DeadlineBadge deadline={notice.deadline} />}
+          </div>
+          <h3 className="ucpnb-row-title">{notice.title}</h3>
+          <div className="ucpnb-row-source">
+            <span>{notice.createdByName}</span>
+          </div>
         </div>
-        <button
-          className="ucpnb-list-item-share"
-          aria-label="Share this notice"
-          title={shared ? "Link copied!" : "Share this notice"}
-          onClick={handleShare}
-        >
-          {shared ? "✓" : "🔗"}
-        </button>
-        {onLike && (
-          <button
-            className={notice.likedByMe ? "ucpnb-list-item-like liked" : "ucpnb-list-item-like"}
-            aria-label={notice.likedByMe ? "Unlike" : "Like"}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLike(notice);
-            }}
-          >
-            {notice.likedByMe ? "❤️" : "🤍"} {notice.likeCount}
-          </button>
-        )}
       </div>
     </div>
   );

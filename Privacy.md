@@ -23,7 +23,7 @@ UCP NoticeBoard is **not** an official product of, or affiliated with, endorsed 
 - Account creation date
 - The last time you opened the dashboard, and a running count of how many times you have (used only to show the Admin aggregate usage numbers — e.g. "42 total views this week" — never a per-person activity log visible to anyone but the Admin's aggregate totals)
 - If you're a Publisher or Admin: the notices you create (title, description, optional poster image, optional external link, optional category, optional deadline)
-- Which notices you've personally hidden from your own feed ("dismissed") — this is private to you; it doesn't affect what anyone else sees
+- Which notices you've archived from your own feed — this is private to you; it doesn't affect what anyone else sees
 - If you opt into notifications: a push subscription for that specific device (see "Push notifications" below)
 
 **Not collected, ever:**

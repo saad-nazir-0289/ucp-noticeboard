@@ -1,0 +1,14 @@
+{
+  "name": "ucp-noticeboard-dev-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local preview tooling: mock UCP portal server and screenshot script. Not shipped anywhere.",
+  "scripts": {
+    "portal": "node serve-portal.mjs",
+    "screenshot": "node screenshot.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

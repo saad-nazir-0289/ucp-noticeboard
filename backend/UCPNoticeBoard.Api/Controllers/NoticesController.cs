@@ -1,7 +1,4 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -17,55 +14,28 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Authorize]
 public class NoticesController : ControllerBase
 {
-    private static readonly Regex PinFormat = new(@"^\d{4,6}$", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
     private readonly INoticeQueryService _noticeQuery;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPinService _pins;
 
-    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery, IServiceScopeFactory scopeFactory)
+    public NoticesController(AppDbContext db, INoticeQueryService noticeQuery, IServiceScopeFactory scopeFactory, IPinService pins)
     {
         _db = db;
         _noticeQuery = noticeQuery;
         _scopeFactory = scopeFactory;
+        _pins = pins;
     }
 
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
 
-    private static NoticeDto ToDto(Notice n, bool likedByMe = false) => new(
+    private bool CanSeeViews => User.IsInRole("Admin");
+
+    private NoticeDto ToDto(Notice n) => NoticeQueryService.ForViewer(new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.LikeCount, likedByMe);
-
-    private static string HashPin(string pin) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
-
-    /// <summary>
-    /// The actual security boundary for anything that changes public
-    /// content. If this account has never set a PIN, whatever's supplied
-    /// here becomes their PIN from this point on — otherwise it must
-    /// match exactly. Mutates the passed-in user (caller is responsible
-    /// for SaveChangesAsync). Returns null on success, an error message
-    /// on failure.
-    /// </summary>
-    private static string? VerifyOrSetPin(User user, string? pin)
-    {
-        if (string.IsNullOrWhiteSpace(pin) || !PinFormat.IsMatch(pin))
-        {
-            return "A 4-6 digit PIN is required.";
-        }
-
-        var hash = HashPin(pin);
-
-        if (user.PinHash is null)
-        {
-            user.PinHash = hash;
-            return null;
-        }
-
-        return user.PinHash == hash ? null : "Incorrect PIN.";
-    }
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned, n.CreatedByUser?.LogoUrl), CanSeeViews);
 
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices(
@@ -73,7 +43,7 @@ public class NoticesController : ControllerBase
         [FromQuery] bool includeExpired = false)
     {
         var canSeeExpired = includeExpired && (User.IsInRole("Publisher") || User.IsInRole("Admin"));
-        return Ok(await _noticeQuery.GetActiveNoticesAsync(CurrentUserId, includeDismissed, canSeeExpired));
+        return Ok(await _noticeQuery.GetActiveNoticesAsync(CurrentUserId, includeDismissed, canSeeExpired, CanSeeViews));
     }
 
     [HttpGet("{id}")]
@@ -88,14 +58,13 @@ public class NoticesController : ControllerBase
         notice.ViewCount++;
         await _db.SaveChangesAsync();
 
-        var likedByMe = await _db.NoticeLikes.AnyAsync(l => l.UserId == CurrentUserId && l.NoticeId == id);
-        return Ok(ToDto(notice, likedByMe));
+        return Ok(ToDto(notice));
     }
 
     [HttpGet("dismissed")]
     public async Task<ActionResult<List<NoticeDto>>> GetDismissedNotices()
     {
-        return Ok(await _noticeQuery.GetDismissedNoticesAsync(CurrentUserId));
+        return Ok(await _noticeQuery.GetDismissedNoticesAsync(CurrentUserId, CanSeeViews));
     }
 
     /// <summary>
@@ -151,55 +120,12 @@ public class NoticesController : ControllerBase
         return NoContent();
     }
 
-    [HttpPost("{id}/like")]
-    public async Task<IActionResult> LikeNotice(int id)
-    {
-        var userId = CurrentUserId;
-        var alreadyLiked = await _db.NoticeLikes
-            .AnyAsync(l => l.UserId == userId && l.NoticeId == id);
-
-        if (!alreadyLiked)
-        {
-            var notice = await _db.Notices.FindAsync(id);
-            if (notice is null) return NotFound();
-
-            _db.NoticeLikes.Add(new NoticeLike { UserId = userId, NoticeId = id });
-            notice.LikeCount++;
-            await _db.SaveChangesAsync();
-            _noticeQuery.InvalidateNoticesCache();
-        }
-
-        return NoContent();
-    }
-
-    [HttpDelete("{id}/like")]
-    public async Task<IActionResult> UnlikeNotice(int id)
-    {
-        var userId = CurrentUserId;
-        var like = await _db.NoticeLikes
-            .FirstOrDefaultAsync(l => l.UserId == userId && l.NoticeId == id);
-
-        if (like is not null)
-        {
-            var notice = await _db.Notices.FindAsync(id);
-            if (notice is not null && notice.LikeCount > 0)
-            {
-                notice.LikeCount--;
-            }
-            _db.NoticeLikes.Remove(like);
-            await _db.SaveChangesAsync();
-            _noticeQuery.InvalidateNoticesCache();
-        }
-
-        return NoContent();
-    }
-
     // A dedicated, stricter limit than the general 60/min — this is where
     // PIN guesses actually happen, so it gets its own tighter ceiling on
     // top of the general one, not instead of it.
     [HttpPost]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
+    [EnableRateLimiting("pin-check")]
     public async Task<ActionResult<NoticeDto>> CreateNotice([FromBody] CreateNoticeRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Description))
@@ -210,11 +136,8 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var notice = new Notice
         {
@@ -226,7 +149,8 @@ public class NoticesController : ControllerBase
             Deadline = request.Deadline?.ToUniversalTime(),
             CreatedByUserId = CurrentUserId,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            IsPinned = User.IsInRole("Admin") && request.IsPinned == true
         };
 
         _db.Notices.Add(notice);
@@ -244,6 +168,7 @@ public class NoticesController : ControllerBase
         var pushBody = TrimForPush(notice.Description);
         var pushImageUrl = notice.ImageUrl;
         var pushCategoryId = notice.CategoryId;
+        var pushUrl = NoticeLink(notice.Id);
 
         _ = Task.Run(async () =>
         {
@@ -251,7 +176,7 @@ public class NoticesController : ControllerBase
             {
                 using var scope = _scopeFactory.CreateScope();
                 var pushService = scope.ServiceProvider.GetRequiredService<IPushNotificationService>();
-                await pushService.NotifyAllAsync(pushTitle, pushBody, imageUrl: pushImageUrl, categoryId: pushCategoryId);
+                await pushService.NotifyAllAsync(pushTitle, pushBody, url: pushUrl, imageUrl: pushImageUrl, categoryId: pushCategoryId);
             }
             catch
             {
@@ -263,12 +188,19 @@ public class NoticesController : ControllerBase
         return CreatedAtAction(nameof(GetNotice), new { id = notice.Id }, responseDto);
     }
 
+    /// <summary>
+    /// Where tapping a notification about this notice lands: the PWA, with
+    /// the notice open. Relative, so the service worker resolves it against
+    /// whichever PWA (production or staging) the subscription came from.
+    /// </summary>
+    public static string NoticeLink(int noticeId) => $"/?notice={noticeId}";
+
     private static string TrimForPush(string description) =>
         description.Length > 120 ? description[..120] + "..." : description;
 
     [HttpPut("{id}")]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
+    [EnableRateLimiting("pin-check")]
     public async Task<ActionResult<NoticeDto>> UpdateNotice(int id, [FromBody] UpdateNoticeRequest request)
     {
         var notice = await _db.Notices
@@ -291,11 +223,8 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         notice.Title = request.Title;
         notice.Description = request.Description;
@@ -304,6 +233,10 @@ public class NoticesController : ControllerBase
         notice.CategoryId = request.CategoryId;
         notice.Deadline = request.Deadline?.ToUniversalTime();
         notice.UpdatedAt = DateTime.UtcNow;
+        if (isAdmin && request.IsPinned is bool pinned)
+        {
+            notice.IsPinned = pinned;
+        }
 
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
@@ -314,8 +247,8 @@ public class NoticesController : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "Publisher,Admin")]
-    [EnableRateLimiting("notice-mutation")]
-    public async Task<IActionResult> DeleteNotice(int id, [FromQuery] string pin)
+    [EnableRateLimiting("pin-check")]
+    public async Task<IActionResult> DeleteNotice(int id, [FromQuery] string? pin)
     {
         var notice = await _db.Notices.FindAsync(id);
         if (notice is null) return NotFound();
@@ -329,16 +262,49 @@ public class NoticesController : ControllerBase
         var currentUser = await _db.Users.FindAsync(CurrentUserId);
         if (currentUser is null) return Unauthorized();
 
-        var pinError = VerifyOrSetPin(currentUser, pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         _db.Notices.Remove(notice);
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
 
         return NoContent();
+    }
+
+    private const int MaxBatchDelete = 200;
+
+    /// <summary>
+    /// Deletes several notices in one go: one PIN (or unlocked device) check
+    /// for the lot, so clearing out old notices doesn't need a request, or a
+    /// PIN, per notice. All or nothing: a Publisher who includes someone
+    /// else's notice deletes none.
+    /// </summary>
+    [HttpPost("delete")]
+    [Authorize(Roles = "Publisher,Admin")]
+    [EnableRateLimiting("pin-check")]
+    public async Task<ActionResult<DeleteNoticesResponse>> DeleteNotices([FromBody] DeleteNoticesRequest request)
+    {
+        var ids = request.Ids?.Distinct().ToList() ?? new List<int>();
+        if (ids.Count == 0) return BadRequest("Choose at least one notice.");
+        if (ids.Count > MaxBatchDelete) return BadRequest($"Delete at most {MaxBatchDelete} notices at a time.");
+
+        var currentUser = await _db.Users.FindAsync(CurrentUserId);
+        if (currentUser is null) return Unauthorized();
+
+        var notices = await _db.Notices.Where(n => ids.Contains(n.Id)).ToListAsync();
+        if (!User.IsInRole("Admin") && notices.Any(n => n.CreatedByUserId != CurrentUserId))
+        {
+            return Forbid();
+        }
+
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        _db.Notices.RemoveRange(notices);
+        await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
+
+        return Ok(new DeleteNoticesResponse(notices.Count));
     }
 }

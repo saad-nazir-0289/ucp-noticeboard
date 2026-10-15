@@ -1,0 +1,73 @@
+# Runs every test and build on each pull request (and on pushes to main,
+# staging and Claude's working branches), so a broken change shows a red cross before it's merged —
+# Cloudflare publishes main straight to students. Nothing here deploys.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, staging, "claude/**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      UCP_TEST_POSTGRES: Host=localhost;Username=postgres;Password=postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test backend/UCPNoticeBoard.sln
+
+  pwa:
+    name: PWA tests and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pwa
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pwa/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  extension:
+    name: Extension build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - run: npm ci
+      - run: npm run build

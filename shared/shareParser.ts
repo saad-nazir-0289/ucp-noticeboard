@@ -1,0 +1,703 @@
+import type { Category } from "./types";
+
+/**
+ * Turns something shared into the app — a forwarded WhatsApp message, an
+ * Instagram link, an email from Outlook, or text read off a screenshot —
+ * into a first draft of a notice. Runs entirely on the device, for free;
+ * nothing is sent anywhere. The person always reviews the form before
+ * publishing, so this aims for "mostly right", not perfect.
+ */
+
+export interface SharedContent {
+  /** Android puts an email's subject here. */
+  title?: string;
+  text?: string;
+  url?: string;
+  /** The text was read off a screenshot (see cleanOcrText), not typed or copied. */
+  fromScreenshot?: boolean;
+}
+
+export type ShareSource = "instagram" | "whatsapp" | "email" | "text";
+
+export interface ParsedShare {
+  title: string;
+  description: string;
+  linkUrl?: string;
+  /** ISO timestamp, only ever in the future. */
+  deadline?: string;
+  categoryId?: number;
+  source: ShareSource;
+  /** Short notes to show above the form, e.g. what couldn't be filled in. */
+  hints: string[];
+}
+
+const URL_PATTERN = /\bhttps?:\/\/[^\s<>"']+/gi;
+const HAS_URL = /\bhttps?:\/\//i;
+const TITLE_MAX = 90;
+
+export function parseSharedContent(input: SharedContent, categories: Category[], now: Date = new Date()): ParsedShare {
+  const sharedText = (input.text ?? "").split("\n").filter((l) => !isShareBoilerplate(l.trim())).join("\n");
+  const rawText = [sharedText, input.url && !sharedText.includes(input.url) ? input.url : ""]
+    .filter(Boolean)
+    .join("\n");
+  const text = cleanFormatting(rawText)
+    // "Apply Now:" with its link on the line below: one line.
+    .replace(/:[ \t]*\n[ \t]*(?=https?:\/\/)/g, ": ")
+    .replace(URL_PATTERN, (url) => withoutTracking(trimUrl(url)) + url.slice(trimUrl(url).length));
+  const subjectRaw = cleanFormatting(input.title ?? "").trim();
+  // What apps put in a share when there's no real subject: "Saad shared a photo".
+  const subject = isShareBoilerplate(subjectRaw) ? "" : subjectRaw;
+
+  const urls = [...text.matchAll(URL_PATTERN)].map((m) => trimUrl(m[0]));
+  const linkUrl = urls[0] ?? bareAddress(text);
+  const isInstagram = urls.some((u) => /(^|\.)instagram\.com$/i.test(hostname(u)));
+
+  // Text with the links taken out, to judge what's actually written.
+  const prose = text.replace(URL_PATTERN, "").replace(/[ \t]+\n/g, "\n").trim();
+  // Lines of the message with its links kept ("Register here: https://…"),
+  // dropping only lines that are nothing but a link.
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && l.replace(URL_PATTERN, "").trim() !== "");
+
+  const source: ShareSource = isInstagram && prose.length < 40 ? "instagram" : subject ? "email" : rawText ? "whatsapp" : "text";
+
+  // Title: an email's subject; a social post's caption; otherwise the
+  // first real line of the message.
+  let title = "";
+  let bodyLines = lines;
+  const caption = findCaption(lines, input.fromScreenshot ?? false);
+  if (subject && !HAS_URL.test(subject)) {
+    title = stripEmailPrefix(subject);
+  } else if (caption && /…$/.test(caption.text) && !/[.!?]\s/.test(caption.text)) {
+    // Instagram cut the caption off mid-sentence ("The Career Services
+    // Office, University of Ce…"): its first phrase names who posted, the
+    // poster's headline ("HIRING!") says what it is.
+    const posterLines = lines.slice(0, caption.index);
+    const headline = posterLines.find((l) => /^[^\p{Ll}]*\p{Lu}{4,}[^\p{Ll}]*$/u.test(l) && l.split(" ").length <= 5);
+    const lead = caption.text.split(/[,…]/)[0].replace(/^the\s+/i, "").trim();
+    const calm = headline && /\p{Lu}{4,}/u.test(headline) ? headline[0] + headline.slice(1).toLowerCase() : headline;
+    title = calm ? `${lead}: ${calm}` : lead;
+    bodyLines = [...posterLines, ...lines.slice(caption.index + 1)];
+  } else if (caption) {
+    // "The countdown is on for innovators…" says nothing about what it is;
+    // "…the Prime Minister's SPARK AND ELEVATE Program…" later on does.
+    const opening = firstSentence(caption.text);
+    const name = namedTitle(caption.text) ?? programmeName(caption.text);
+    // The same when the name is buried in a long opening ("Registrations
+    // are now open for Pakistan Cybersecurity Challenge (PCC) 2026, …").
+    title = name && (!opening.includes(name) || opening.length > name.length + 30) ? name : opening;
+    bodyLines = [caption.text, ...lines.slice(caption.index + 1)];
+    // A short (or cut-off) caption leaves the details on the poster itself:
+    // keep the poster's text too, after the caption.
+    // Only when the poster has real text on it, though: a few headline words
+    // and a date ("PRIME MINISTER'S", "SPARK", "26 October,") add nothing
+    // the caption doesn't already say.
+    const posterLines = lines.slice(0, caption.index).filter((l) => !isHandle(l) && !l.toLowerCase().includes(caption.handle));
+    const posterHasText = posterLines.filter((l) => l.length >= 30 || /^\p{L}[\p{L} ]{1,20}:\s*\S/u.test(l)).length >= 2;
+    if (bodyLines.join(" ").length < 300 && posterHasText) {
+      bodyLines = [...bodyLines, "", ...posterLines];
+    }
+  } else if (namedTitle(prose) ?? announcedTitle(prose)) {
+    // 'a workshop titled "Discover the World of Game Development"', or
+    // "pleased to share the UCP ORIC E-Newsletter, …": the name of the
+    // thing beats whatever sentence happens to come first. The whole
+    // message stays in the details.
+    title = (namedTitle(prose) ?? announcedTitle(prose))!;
+  } else {
+    const firstIndex = lines.findIndex(
+      (l) => /[\p{L}\p{N}]/u.test(l.replace(URL_PATTERN, "")) && !isHandle(l) && !isGreeting(l) && !isEmailBanner(l)
+    );
+    if (firstIndex >= 0) {
+      title = stripEmailPrefix(lines[firstIndex].replace(URL_PATTERN, "").trim());
+      bodyLines = lines.slice(firstIndex + 1);
+    }
+  }
+  title = shortenTitle(titleCase(stripDecoration(title)));
+
+  // Description: the rest of the message, or the whole message when the
+  // title already used up its only line. Links stay in the text too;
+  // lines of nothing but hashtags don't need to.
+  bodyLines = withoutSignOff(bodyLines).filter((l) => !/^(#[\p{L}\p{N}_]+\s*)+$/u.test(l) && !isGreeting(l));
+  let description = bodyLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  // The same kind of label in front of the details: "Description: …".
+  description = description.replace(/^(description|details|notice|body|summary|about)\s*:\s*/i, "");
+  if (!description) description = lines.join("\n").trim();
+  if (description === title) description = "";
+
+  const hints: string[] = [];
+  if (!linkUrl && /\b(registration link|link below|following link|fill in (the )?form|click here|form link|apply here|register here)\b/i.test(prose)) {
+    hints.push("The message mentions a link, but its address wasn't included when it was copied. Copy the link itself and paste it into the Link field.");
+  }
+  if (source === "instagram") {
+    hints.push("Instagram only shares a link, not the caption or picture. Share a screenshot of the post to fill in the details too.");
+  }
+
+  const dates = scanDates(`${subject}\n${prose}`, now);
+  const deadline = pickDeadline(dates, `${subject}\n${prose}`, now);
+  const categoryId = guessCategory(`${subject}\n${prose}`, categories, title);
+  if (!deadline) {
+    const lastPast = dates.filter((c) => c.explicit && c.date.getTime() <= now.getTime()).sort((a, b) => b.date.getTime() - a.date.getTime())[0];
+    if (lastPast) {
+      hints.push(
+        `The dates in this post (latest ${lastPast.date.toLocaleDateString("en-GB", { day: "numeric", month: "long" })}) have already passed. Please check it is still relevant before posting.`
+      );
+    }
+  }
+
+  return {
+    title,
+    description,
+    linkUrl,
+    deadline: deadline?.toISOString(),
+    categoryId,
+    source,
+    hints,
+  };
+}
+
+/**
+ * Text read off a screenshot comes with the phone's and app's own chrome
+ * (clock, battery, "Liked by…", "View all 12 comments") and with noise the
+ * reader makes of icons and QR codes. Drops those lines, and anything above
+ * the post's header (the end of the previous post), and joins sentences
+ * the screen wrapped across lines.
+ */
+export function cleanOcrText(value: string): string {
+  value = unwrapMarkdownLinks(value);
+  const uiLine =
+    /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|(\S{1,2}\s)?follow(ing)?(\s\W{1,2})?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago|threads|.{0,40}\band \d+ others? (joined|liked|follow).*|\W*in?s?t?ag[a-z]{3,5}\W*)$/i;
+  let lines = value
+    .split(/\r?\n/)
+    .map((line) =>
+      line
+        .replace(/[|©®™•·]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        // Stray marks the reader picks up from icons and avatars: "( name".
+        .replace(/^[^\p{L}\p{N}@#"'“]+(?=\p{L})/u, "")
+        // An emoji read as a letter or symbol in front of a label: "I Venue: …", "@ Friday: …".
+        .replace(/^(?:[@&]|[Il])\s+(?=\p{Lu}\p{Ll}+:)/u, "")
+        // Instagram's "… more" / "less" for long captions.
+        .replace(/(\.{3}|…)\s*more$/i, "…")
+        // Bullets read as « or *, and a stray dot after a label: "Application Deadline: .".
+        .replace(/^[«»*]\s+/, "")
+        .replace(/\s+[.,]$/, "")
+        .replace(/\s+less$/i, "")
+        // An emoji read as a symbol after the account name: "pasha.org.pk ®) P@SHA…".
+        .replace(/^(@?[a-z][a-z0-9._]{4,29}) [^\p{L}\p{N}\s]{1,3} (?=\p{Lu})/u, "$1 ")
+        // A poster's social footer: "… Follow us! 0 [x] [in".
+        .replace(/\s*\bfollow us\b.*$/i, "")
+        // A superscript "th" read as a quote: "October 16\", 2026".
+        .replace(/(\b\d{1,2})["”](?=,?\s+\d{4})/g, "$1")
+    )
+    // The status bar ("10:21 PM ⏰ 5G 87%") is always at the very top.
+    .filter((line, index) => !(index < 3 && /^\d{1,2}[:.]\d{2}\s?([ap]m)?\b/i.test(line)));
+  // The post's account name, read off the caption ("ucpcso The Career…"):
+  // its header line ("S ucpcso j—") is kept through the noise filter below,
+  // so everything scrolled past above it can be cut.
+  const handle = lines.map(captionStart).find(Boolean)?.handle;
+  const isHeaderLine = (line: string) => handle !== undefined && line.length <= handle.length + 12 && line.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === handle);
+  // (Blank lines stay: they end a paragraph, so nothing is joined across them.)
+  lines = lines.filter((line) => line === "" || isHeaderLine(line) || (line.replace(/[^\p{L}]/gu, "").length >= 3 && !uiLine.test(line) && !isOcrNoise(line)));
+
+  // Everything above the post's header line (its account name) belongs to
+  // whatever was scrolled past.
+  const caption = findCaption(lines, true);
+  if (caption) {
+    const header = lines.findIndex((l, i) => i < caption.index && l.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === caption.handle));
+    if (header >= 0) lines = lines.slice(header);
+  }
+  // The next post's header ("workspace_organizer") and everything after it.
+  if (caption) {
+    const next = lines.findIndex((l, i) => i > caption.index && isHandle(l) && l.replace(/^@/, "").toLowerCase() !== caption.handle);
+    if (next >= 0) lines = lines.slice(0, next);
+  }
+  // The header line itself is only the account name again.
+  // (A clean "@account" line stays: findCaption recognises the caption by it.)
+  lines = lines.filter((line) => !isHeaderLine(line) || isHandle(line) || captionStart(line) !== undefined);
+
+  // Rejoin sentences the screen wrapped across lines: a line that doesn't
+  // end a sentence followed by one starting in lower case — or, in the
+  // caption (the app's own text, laid out edge to edge), a line about as
+  // wide as the caption's widest (it ran out of room, it didn't end).
+  // Poster lettering isn't judged by width: its lines vary too much.
+  const captionAt = findCaption(lines, true)?.index ?? lines.length;
+  const fullWidth = Math.max(0, ...lines.slice(captionAt).map((l) => l.length)) * 0.7;
+  return lines
+    .reduce<{ out: string[]; index: number }>(({ out: joined, index }, line) => {
+      if (line === "") {
+        if (joined.length > 0 && joined[joined.length - 1] !== "") joined.push("");
+        return { out: joined, index: index + 1 };
+      }
+      // Across a blank line only when the sentence plainly carries on:
+      // "YOUR CREATIVE" ⏎⏎ "JOURNEY.", or a next line in lower case.
+      const beforeBlank = joined[joined.length - 2];
+      const caps = (l: string) => /\p{L}{3}/u.test(l) && l === l.toUpperCase();
+      if (joined[joined.length - 1] === "" && beforeBlank && !/[.!?:…]$/.test(beforeBlank) && !isHandle(beforeBlank) && (/^\p{Ll}/u.test(line) || (caps(captionStart(beforeBlank)?.text ?? beforeBlank) && caps(line)))) {
+        joined.pop();
+      }
+      const previous = joined[joined.length - 1];
+      const startsWithHandle = isHandle(line.split(" ")[0]) || captionStart(line) !== undefined;
+      // A "Label: …" line ("Friday: 10 AM – 1 PM", "Apply: https://…") is
+      // complete in itself; whatever follows it is a new line.
+      const labelled = previous && /^\p{L}[\p{L} ]{0,20}:/u.test(previous);
+      const inCaption = index > captionAt;
+      const wrapped =
+        previous && (/^[\p{Ll}]/u.test(line) || (inCaption && !labelled && previous.length >= fullWidth && previous.length >= 30));
+      // Nothing continues a caption Instagram cut off ("… more").
+      if (previous && wrapped && !/[.!?:…]$/.test(previous) && !startsWithHandle && !isHandle(previous)) {
+        joined[joined.length - 1] = `${previous} ${line}`;
+      } else {
+        joined.push(line);
+      }
+      return { out: joined, index: index + 1 };
+    }, { out: [], index: 0 })
+    .out.join("\n")
+    .trim();
+}
+
+/**
+ * A screenshot's text ready for parseSharedContent: cleaned (cleanOcrText),
+ * with the poster's giant lettering (read separately, see the PWA's
+ * ocr.ts) put with the rest of the poster's text, above the caption.
+ */
+export function screenshotText(text: string, lettering: string[] = []): string {
+  const cleaned = cleanOcrText(text);
+  if (lettering.length === 0) return cleaned;
+  const lines = cleaned.split("\n");
+  const caption = findCaption(lines.filter(Boolean), true);
+  const at = caption ? lines.indexOf(lines.filter(Boolean)[caption.index]) : lines.length;
+  return [...lines.slice(0, at), ...lettering, ...lines.slice(at)].join("\n").trim();
+}
+
+/** Small words that count as real text even though they're short. */
+const SHORT_WORDS = new Set(["a", "an", "to", "of", "at", "in", "on", "by", "or", "and", "for", "the", "is", "it", "we", "we're", "&", "+", "-", "–", "—", "am", "pm", "ai", "it", "pk", "ucp", "no", "up", "my", "us"]);
+
+/**
+ * A line that's mostly not words — what the reader makes of icons, a QR
+ * code or a profile picture ("Qu Qz 2 Gv N"). Lines with a link, an email
+ * or a "Label:" are always kept.
+ */
+function isOcrNoise(line: string): boolean {
+  if (/https?:\/\/|@\w+\.\w|^\p{L}[\p{L} ]{1,20}:/u.test(line) || isHandle(line)) return false;
+  const tokens = line.split(" ").filter(Boolean);
+  const wordy = tokens.filter((t) => {
+    const bare = t.replace(/^[("'“‘[]+|[)"'”’\].,!?:;]+$/g, "");
+    if (SHORT_WORDS.has(bare.toLowerCase())) return true;
+    if (/^\d{2,4}(st|nd|rd|th)?$/i.test(bare) || /^\d{1,2}[:.]\d{2}$/.test(bare)) return true;
+    return /^[\p{L}][\p{L}'’-]{2,}$/u.test(bare) && /[aeiouy]/i.test(bare);
+  }).length;
+  return wordy / tokens.length <= 0.5;
+}
+
+/**
+ * "[https://forms…](https://forms…)": a link written the Markdown way,
+ * which some apps show as it is, wrapped across lines. → the address once
+ * (or "label address" when the label is words).
+ */
+function unwrapMarkdownLinks(value: string): string {
+  return value.replace(/\[([^\]\n]{1,200})\]\(\s*(https?:\/\/[^)\s]+(?:\s*\n\s*[^)\s]+)*)\s*\)/g, (_m, label: string, url: string) => {
+    const address = url.replace(/\s+/g, "");
+    const text = label.trim();
+    return /^https?:\/\//i.test(text) || text === address ? address : `${text} ${address}`;
+  });
+}
+
+/** Removes WhatsApp markup (*bold*, _italic_, ~strike~, ```mono```) and odd spacing. */
+export function cleanFormatting(value: string): string {
+  return unwrapMarkdownLinks(value)
+    .replace(/\r\n?/g, "\n")
+    .replace(/```/g, "")
+    .replace(/(^|[\s(])[*_~]+(?=\S)/g, "$1")
+    .replace(/(\S)[*_~]+(?=[\s().,!?:;]|$)/gm, "$1")
+    // "Register:(https://…)" — a link someone wrapped in brackets.
+    .replace(/:?\s*\((https?:\/\/[^\s)]+)\)/g, (m, url) => `${m.startsWith(":") ? ":" : ""} ${url}`)
+    .replace(/\u00a0/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/** "Apply now: segms.ignite.org.pk": a web address written without https://. */
+function bareAddress(text: string): string | undefined {
+  const m = text.match(/(?<=[ \t:(])((?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|pk|io|gle|me|info|co|ly|tech)(?:\/[^\s,)]*)?)(?![\w@-])/i);
+  return m ? `https://${m[1].replace(/[.,;:!?]+$/, "")}` : undefined;
+}
+
+/** A bare account handle ("computing.society"), common at the top of a screenshot. */
+function isHandle(line: string): boolean {
+  return line.length <= 31 && /^@?[a-z0-9_]+(?:[._][a-z0-9_]+)+$/i.test(line);
+}
+
+/**
+ * In a screenshot of a post, the caption is the line that starts with the
+ * account's handle ("arts.society.ucp Photography walk this Sunday!").
+ * Its words, not the poster's big lettering, make the best title. In
+ * screenshots, a plain handle ("ucpcso The Career Services Office…") counts
+ * too: a lower-case run-together name followed by a capitalised sentence.
+ */
+function findCaption(lines: string[], fromScreenshot: boolean): { text: string; index: number; handle: string } | undefined {
+  const handles = new Set(lines.filter(isHandle).map((l) => l.replace(/^@/, "").toLowerCase()));
+  for (const [index, line] of lines.entries()) {
+    const [first, ...rest] = line.split(" ");
+    const handle = first.replace(/^@/, "").toLowerCase();
+    if (rest.length >= 3 && handles.has(handle)) {
+      return { text: rest.join(" "), index, handle };
+    }
+  }
+  if (fromScreenshot) {
+    for (const [index, line] of lines.entries()) {
+      const caption = captionStart(line);
+      if (caption) return { ...caption, index };
+    }
+  }
+  return undefined;
+}
+
+/** "ucpcso The Career Services…" → the handle and the caption after it. */
+function captionStart(line: string): { text: string; handle: string } | undefined {
+  const m = line.match(/^@?([a-z][a-z0-9._]{4,29}) (\p{Lu}[^ ]*(?: [^ ]+){2,})$/u);
+  return m && !SHORT_WORDS.has(m[1]) ? { handle: m[1], text: m[2] } : undefined;
+}
+
+/** "Saad shared a photo", "Photo from Ali", "WhatsApp Image 2026-10-15 at 6.35 PM": a share's label, not its content. */
+export function isShareBoilerplate(line: string): boolean {
+  return (
+    /^.{1,40}\s(shared|sent|forwarded)\s(an?\s)?(photo|image|picture|video|file|post|reel|story|link|document)s?\.?$/i.test(line) ||
+    /^(photo|image|picture|video|file|document)s?\s(from|by)\s.{1,40}$/i.test(line) ||
+    /^(whatsapp\s(image|video)|img[-_]\d|screenshot[_ -]\d|pxl_\d|image\s\(\d+\))/i.test(line)
+  );
+}
+
+/** "Dear Students,", "Hello everyone" — how a message opens, never its title. */
+function isGreeting(line: string): boolean {
+  return line.length <= 40 && /^(dear|hi|hello|hey|respected|assalam|salam|greetings)\b[^.?]*[,!]?$/i.test(line);
+}
+
+/** Lines mail apps and senders put on top: "This email is targeted at…", "CAUTION: external email". */
+function isEmailBanner(line: string): boolean {
+  return /^(this (e-?mail|message) (is|was|has)\b|caution\b|external (e-?mail|sender)|you don't often get email)/i.test(line);
+}
+
+/**
+ * The name something was given in the text: 'a workshop titled "X"' →
+ * "Workshop: X", 'a session on "X"' → "Session: X".
+ */
+function namedTitle(text: string): string | undefined {
+  const kinds = "workshop|seminar|webinar|session|talk|event|competition|hackathon|bootcamp|training|lecture|course|programme|program|contest|conference|meetup";
+  const m =
+    text.match(new RegExp(`\\b(?:(${kinds})\\s+)?(?:titled|entitled|called|named)\\s*:?\\s*["“'‘]([^"”'’\\n]{6,160})["”'’]`, "i")) ??
+    text.match(new RegExp(`\\b(${kinds})\\s+on\\s+["“‘]([^"”’\\n]{6,160})["”’]`, "i"));
+  if (!m) return undefined;
+  const name = shortenName(m[2].replace(/[.,;:!]+$/, "").trim());
+  return m[1] ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}: ${name}` : name;
+}
+
+/** The name of a programme, festival, competition…: "Prime Minister's SPARK AND ELEVATE Program". */
+function programmeName(text: string): string | undefined {
+  const kinds = "Program|Programme|Fellowship|Scholarships?|Competition|Hackathon|Festival|Summit|Conference|Challenge|Awards?|Bootcamp|Olympiad|Expo|Fair|Championship|Cup|League";
+  const word = "\\p{Lu}[\\p{L}\\p{N}'’.-]*";
+  const m = text.match(new RegExp(`(?:${word}\\s+(?:(?:and|AND|of|for|&)\\s+)?)+(?:${kinds})\\b(?:\\s+\\([\\p{Lu}\\p{N} ]{2,12}\\))?(?:\\s+20\\d\\d)?`, "u"));
+  return m && m[0].split(/\s+/).length >= 3 && m[0].length <= TITLE_MAX ? m[0] : undefined;
+}
+
+/** A long event name cut at its own break ("Main Title – Tagline" → "Main Title"). */
+function shortenName(name: string): string {
+  if (name.length <= 70) return name;
+  const breaks = [...name.matchAll(/\s[–—-]\s|:\s/g)].map((m) => m.index!).filter((i) => i >= 15 && i <= 75);
+  return breaks.length > 0 ? name.slice(0, breaks[breaks.length - 1]).trim() : name;
+}
+
+/**
+ * What a message announces: "We are pleased to share the UCP ORIC
+ * E-Newsletter, Volume 4, Issue 3 (July–September 2026), highlighting…"
+ * → "UCP ORIC E-Newsletter, Volume 4, Issue 3 (July–September 2026)".
+ */
+function announcedTitle(text: string): string | undefined {
+  const m = text.match(
+    /\b(?:pleased|delighted|happy|glad|excited|proud)\s+to\s+(?:share|announce|present|introduce|launch|release)\s+(?:with you\s+)?(?:the|an?|our)?\s*([^\n]{8,})/i
+  );
+  if (!m) return undefined;
+  const thing = m[1]
+    .split(/,\s+(?=\w+ing\b)|,\s+which\b|\s+(?:on|to be held|in collaboration)\b|[.!?](?:\s|$)/i)[0]
+    .trim();
+  return thing.length >= 8 && thing.length <= 100 && /^\p{Lu}|^\d/u.test(thing) ? thing : undefined;
+}
+
+/** "Regards," and the signature under it don't belong in a notice. */
+function withoutSignOff(lines: string[]): string[] {
+  const signOff = lines.findIndex(
+    (l, i) => i >= lines.length - 6 && /^(regards|best regards|kind regards|warm regards|sincerely|yours sincerely|thanks|thank you|many thanks|best wishes)[,.!]?$/i.test(l)
+  );
+  return signOff >= 0 ? lines.slice(0, signOff) : lines;
+}
+
+function firstSentence(value: string): string {
+  const end = value.search(/[.!?](\s|$)/);
+  return end > 10 ? value.slice(0, end + 1) : value;
+}
+
+/** "Subject: …", "Re: …", "Fwd: …" from a copied or forwarded email. */
+function stripEmailPrefix(value: string): string {
+  return value
+    .replace(/^(subject|re|fw|fwd)\s*:\s*/i, "")
+    .replace(/^(re|fw|fwd)\s*:\s*/i, "")
+    // Typed-out forms: "Notice Title: …", "Event name: …", "Title: …".
+    .replace(/^((notice|event|program(me)?|workshop|competition|session|post)\s+)?(title|name|heading|topic)\s*[:\-–]\s*/i, "");
+}
+
+/** Emoji, bullets and trailing colons don't belong in a title. */
+function stripDecoration(value: string): string {
+  return value
+    .replace(/^[^\p{L}\p{N}"'(]+/u, "")
+    .replace(/[\s:\-–—|\p{Extended_Pictographic}\u200d\ufe0f]+$/u, "")
+    .trim();
+}
+
+/** Words kept in capitals when a shouted title is calmed down. */
+const KEEP_UPPER = /^(ucp|aws|ai|ml|it|cs|ui|ux|hr|ceo|cto|nastp|pkr|usa|uk|uae|ngo|faq|id|ieee|acm|gdsc|nasa|llm|api|seo|ptv|hec|ntf|sff|ii|iii|iv)$/i;
+
+/** "FAKIHA CORE TECHNOLOGIES" → "Fakiha Core Technologies", keeping "AWS", "AI"… */
+function titleCase(value: string): string {
+  const letters = value.replace(/[^\p{L}]/gu, "");
+  if (letters.length < 6 || letters !== letters.toUpperCase() || value.trim().split(/\s+/).length < 2) return value;
+  return value.replace(/\p{L}[\p{L}'’]*/gu, (word, offset: number) => {
+    if (KEEP_UPPER.test(word) || (word.length <= 2 && offset > 0 && !/^(OF|TO|IN|ON|AT|BY|OR|AN|A)$/.test(word))) return word;
+    const lower = word.toLowerCase();
+    if (offset > 0 && /^(of|to|in|on|at|by|or|an|a|and|the|for|with)$/.test(lower)) return lower;
+    return lower[0].toUpperCase() + lower.slice(1);
+  });
+}
+
+function shortenTitle(value: string): string {
+  if (value.length <= TITLE_MAX) return value;
+  const sentenceEnd = value.slice(0, TITLE_MAX).search(/[.!?](\s|$)/);
+  if (sentenceEnd >= 20) return value.slice(0, sentenceEnd + 1);
+  const cut = value.slice(0, TITLE_MAX - 1);
+  return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), 40)).trim()}…`;
+}
+
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function trimUrl(url: string): string {
+  return url.replace(/[).,!?:;'"*\]]+$/, "");
+}
+
+/** Drops tracking parameters (utm_*, Instagram's igsh, fbclid…) from a link. */
+function withoutTracking(url: string): string {
+  try {
+    const parsed = new URL(url);
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (/^(utm_\w+|igsh|igshid|fbclid|gclid|si|mibextid)$/i.test(key)) parsed.searchParams.delete(key);
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+// ---------- Deadlines ----------
+
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+const MONTH = "(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?";
+const DAY = "(\\d{1,2})(?:st|nd|rd|th)?";
+const YEAR = "(?:,?\\s*(\\d{4}))?";
+
+/** Words that mark a date as the one that matters ("register by 20 Oct"). */
+const DEADLINE_WORDS = /\b(deadline|last date|due|till|until|untill|before|by|closes?|closing|ends?|register|registration|apply|submit|submission|expires?)\b/i;
+
+interface Candidate {
+  date: Date;
+  index: number;
+  hasTime: boolean;
+  /** A real date ("20 Oct"), rather than a weekday or "tomorrow". */
+  explicit: boolean;
+}
+
+/**
+ * Finds the deadline in free text. Dates on a line with a deadline word
+ * win; otherwise the earliest upcoming date. Dates without a year are
+ * assumed to be the next time that date comes round. Day/month order
+ * follows Pakistan's convention (20/10 = 20 October).
+ */
+export function findDeadline(text: string, now: Date = new Date()): Date | undefined {
+  return pickDeadline(scanDates(text, now), text, now);
+}
+
+/**
+ * Dates on a line with a deadline word win; otherwise the earliest
+ * upcoming date. Weekdays ("this Thursday") only count when there's no
+ * real date anywhere — in "8–9 October … Thursday 11 AM" they're times of
+ * the dated event, not a separate deadline.
+ */
+function pickDeadline(candidates: Candidate[], text: string, now: Date): Date | undefined {
+  const anyExplicit = candidates.some((c) => c.explicit);
+  const upcoming = candidates.filter((c) => c.date.getTime() > now.getTime() && (c.explicit || !anyExplicit));
+  if (upcoming.length === 0) return undefined;
+
+  const onDeadlineLine = upcoming.filter((c) => DEADLINE_WORDS.test(lineAround(text, c.index)) || deadlineLabelAbove(text, c.index));
+  const pool = onDeadlineLine.length > 0 ? onDeadlineLine : upcoming;
+  return pool.sort((a, b) => a.date.getTime() - b.date.getTime())[0].date;
+}
+
+/** Every date mentioned, past or future. */
+function scanDates(text: string, now: Date): Candidate[] {
+  const candidates: Candidate[] = [];
+  const add = (date: Date | undefined, index: number, matchLength: number, explicit = true) => {
+    if (!date || Number.isNaN(date.getTime())) return;
+    const snippet = timeSnippet(text, index, matchLength);
+    const time = findTime(snippet);
+    // "Oct 15 - till 12 AM" means until that night's midnight, not the
+    // midnight that started the day.
+    const tillMidnight = /\b(till|until|untill|upto|up to|by)\s*12(?::?00)?\s*a\.?m\b|\b(till|until)\s+midnight\b/i.test(snippet);
+    if (time && !tillMidnight) date.setHours(time.hours, time.minutes, 0, 0);
+    else date.setHours(23, 59, 0, 0);
+    candidates.push({ date, index, hasTime: Boolean(time), explicit });
+  };
+
+  const lower = text.toLowerCase();
+
+  for (const m of lower.matchAll(new RegExp(`\\b${DAY}\\s*(?:of\\s+)?${MONTH}${YEAR}`, "g"))) {
+    add(makeDate(Number(m[1]), monthIndex(m[2]), m[3], now), m.index!, m[0].length);
+  }
+  for (const m of lower.matchAll(new RegExp(`\\b${MONTH}\\s+${DAY}\\b${YEAR}`, "g"))) {
+    add(makeDate(Number(m[2]), monthIndex(m[1]), m[3], now), m.index!, m[0].length);
+  }
+  for (const m of lower.matchAll(/\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b/g)) {
+    add(makeDate(Number(m[1]), Number(m[2]) - 1, m[3], now), m.index!, m[0].length);
+  }
+  for (const m of lower.matchAll(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})\b/g)) {
+    add(makeDate(Number(m[1]), Number(m[2]) - 1, m[3], now), m.index!, m[0].length);
+  }
+  for (const m of lower.matchAll(/\b(today|tonight|tomorrow|day after tomorrow)\b/g)) {
+    const offset = m[1] === "tomorrow" ? 1 : m[1] === "day after tomorrow" ? 2 : 0;
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    add(d, m.index!, m[0].length, false);
+  }
+  for (const m of lower.matchAll(/\b(?:(this|next|coming)\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g)) {
+    const target = WEEKDAYS.indexOf(m[2]);
+    let delta = (target - now.getDay() + 7) % 7;
+    if (m[1] === "next" && delta === 0) delta = 7;
+    add(new Date(now.getFullYear(), now.getMonth(), now.getDate() + delta), m.index!, m[0].length, false);
+  }
+  return candidates;
+}
+
+function monthIndex(token: string): number {
+  return MONTHS.indexOf(token.slice(0, 3));
+}
+
+function makeDate(day: number, month: number, year: string | undefined, now: Date): Date | undefined {
+  if (month < 0 || month > 11 || day < 1 || day > 31) return undefined;
+  let fullYear = year ? Number(year.length === 2 ? `20${year}` : year) : now.getFullYear();
+  let date = new Date(fullYear, month, day);
+  if (date.getMonth() !== month) return undefined; // e.g. 31 Feb
+  // No year given and the date has passed (by more than a day): next
+  // year's — but only around the turn of the year ("5 Jan" in December).
+  // "October 5" in mid-October is a post's date, not one 12 months away.
+  const nextYears = new Date(fullYear + 1, month, day);
+  if (!year && date.getTime() < now.getTime() - 24 * 3600 * 1000 && nextYears.getTime() - now.getTime() < 120 * 24 * 3600 * 1000) {
+    fullYear += 1;
+    date = new Date(fullYear, month, day);
+  }
+  return date;
+}
+
+/**
+ * Where a date's time can be: just after it on the same line ("20 Oct,
+ * 5pm"), or on a following "Time:" line. A time on any other line belongs
+ * to something else ("Thursday: 11 AM" under a date range).
+ */
+function timeSnippet(text: string, index: number, matchLength: number): string {
+  const sameLine = text.slice(index, index + matchLength + 25).split("\n")[0];
+  const lineEnd = text.indexOf("\n", index);
+  const nextLine = lineEnd === -1 ? "" : text.slice(lineEnd + 1).split("\n")[0];
+  return /^\W*time\s*:/i.test(nextLine) ? `${sameLine}\n${nextLine}` : sameLine;
+}
+
+/** "5pm", "5:30 pm", "17:00" near a date. */
+function findTime(snippet: string): { hours: number; minutes: number } | undefined {
+  const twelve = snippet.match(/\b(\d{1,2})(?::|\.)?(\d{2})?\s*(am|pm)\b/i);
+  if (twelve) {
+    let hours = Number(twelve[1]) % 12;
+    if (twelve[3].toLowerCase() === "pm") hours += 12;
+    return { hours, minutes: Number(twelve[2] ?? 0) };
+  }
+  const twentyFour = snippet.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (twentyFour) return { hours: Number(twentyFour[1]), minutes: Number(twentyFour[2]) };
+  return undefined;
+}
+
+/** The line above is a deadline label on its own: "Application Deadline:" (the date is on the next line). */
+function deadlineLabelAbove(text: string, index: number): boolean {
+  const lineStart = text.lastIndexOf("\n", index - 1);
+  if (lineStart <= 0) return false;
+  const above = text.slice(text.lastIndexOf("\n", lineStart - 1) + 1, lineStart).replace(/[\s.]+$/, "");
+  return above.length <= 40 && /:$/.test(above) && DEADLINE_WORDS.test(above);
+}
+
+function lineAround(text: string, index: number): string {
+  const start = text.lastIndexOf("\n", index) + 1;
+  const end = text.indexOf("\n", index);
+  return text.slice(start, end === -1 ? undefined : end);
+}
+
+// ---------- Category ----------
+
+/**
+ * Words that suggest each of the fixed categories (backend CategoryCatalog),
+ * keyed by a word in the category's name. Each matching word scores a
+ * point; in the title it scores three, since a title says what a notice is.
+ */
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  academic: ["exam", "mid-term", "midterm", "mids", "final exam", "final term", "quiz", "assignment", "class", "classes", "lecture", "timetable", "time table", "datesheet", "date sheet", "semester", "result", "fee", "enrollment", "enrolment", "registration of courses", "course registration", "add/drop", "attendance", "transcript", "makeup", "make-up", "viva", "thesis", "fyp"],
+  campus: ["newsletter", "e-newsletter", "announcement", "library", "transport", "shuttle", "point bus", "holiday", "closed", "closure", "maintenance", "cafeteria", "cafe", "parking", "id card", "hostel", "wifi", "wi-fi", "electricity", "notice board", "lost and found", "security", "facilit"],
+  career: ["internship", "intern", "job", "hiring", "career", "placement", "cv", "resume", "vacancy", "recruiter", "interview", "seeking", "executive", "salary", "stipend", "commission", "full-time", "part-time", "fresh graduates", "employer", "job fair"],
+  scholarship: ["scholarship", "financial aid", "need-based", "merit-based", "grant", "fellowship", "funding", "tuition", "fee waiver", "exchange program", "study abroad", "erasmus", "fulbright"],
+  workshop: ["workshop", "seminar", "webinar", "session", "talk", "training", "trainer", "what you will learn", "bootcamp", "masterclass", "speaker", "panel discussion", "guest lecture", "certification", "hands-on"],
+  competition: ["competition", "contest", "hackathon", "championship", "debate", "olympiad", "challenge", "prize", "prizes", "winners", "ideathon", "datathon", "pitch", "case study competition", "speed programming"],
+  event: ["event", "festival", "fest", "ceremony", "conference", "meetup", "expo", "exhibition", "showcase", "screening", "gala", "summit", "orientation", "concert", "convocation", "celebration", "dinner", "trip", "tour", "carnival", "mushaira", "qawwali"],
+  societ: ["society", "societies", "club", "auditions", "recruit", "members", "join", "membership", "walk-in"],
+  sport: ["sport", "football", "cricket", "basketball", "futsal", "badminton", "volleyball", "trials", "tournament", "match", "gym", "athletics", "table tennis", "hockey", "squash", "e-sports", "esports"],
+};
+
+/**
+ * The best-matching category, or none when nothing matches or the best two
+ * tie (a coin flip is worse than asking).
+ */
+export function guessCategory(text: string, categories: Category[], title = ""): number | undefined {
+  const lower = text.toLowerCase();
+  const lowerTitle = title.toLowerCase();
+  let best: { id: number; score: number } | undefined;
+  let tied = false;
+
+  for (const category of categories) {
+    const name = category.name.toLowerCase();
+    // The category's own name counts only in the title: "Campus" or
+    // "Events" in a venue or a sentence says little.
+    let score = lowerTitle.includes(name) ? 2 : 0;
+    for (const [stem, words] of Object.entries(CATEGORY_KEYWORDS)) {
+      if (!name.includes(stem)) continue;
+      for (const word of words) {
+        const pattern = new RegExp(`\\b${word.replace(/[-\s]/g, "[-\\s]?").replace("/", "\\/")}`, "i");
+        if (pattern.test(lower)) score += 1;
+        if (lowerTitle && pattern.test(lowerTitle)) score += 2;
+      }
+    }
+    if (score > 0 && (!best || score > best.score)) {
+      best = { id: category.id, score };
+      tied = false;
+    } else if (score > 0 && score === best?.score) {
+      tied = true;
+    }
+  }
+  return tied ? undefined : best?.id;
+}

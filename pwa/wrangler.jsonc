@@ -3,5 +3,16 @@
     "compatibility_date": "2026-08-20",
     "assets": {
         "directory": "./dist"
+    },
+    // `npx wrangler deploy --env staging` publishes the staging build
+    // (npm run build:staging → dist-staging/) as a separate Worker, so it
+    // can never overwrite the live site. See docs/STAGING.md.
+    "env": {
+        "staging": {
+            "name": "ucp-noticeboard-staging",
+            "assets": {
+                "directory": "./dist-staging"
+            }
+        }
     }
 }

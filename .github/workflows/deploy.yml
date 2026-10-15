@@ -1,0 +1,67 @@
+# Deploys to the Oracle server after CI passes: the staging branch to
+# staging (if the server has one), main to production. Off until these repository secrets exist
+# (Settings → Secrets and variables → Actions), see docs/ORACLE.md:
+#   ORACLE_HOST     the server's address (IP or name)
+#   ORACLE_SSH_KEY  the private key setup.sh made (it can only deploy and back up)
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy (its branch's latest commit)
+        type: choice
+        options: [staging, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.workflow_run.head_branch || inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Work out what to deploy
+        id: target
+        env:
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+          CHOSEN: ${{ inputs.environment }}
+        run: |
+          if [ -n "$CHOSEN" ]; then
+            env=$CHOSEN
+            sha=$(git ls-remote "https://github.com/$GITHUB_REPOSITORY" "refs/heads/$([ "$CHOSEN" = production ] && echo main || echo staging)" | cut -f1)
+          else
+            env=$([ "$BRANCH" = main ] && echo production || echo staging)
+            sha=$SHA
+          fi
+          echo "environment=$env" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Deploying $sha to $env"
+
+      - name: Deploy over SSH
+        env:
+          HOST: ${{ secrets.ORACLE_HOST }}
+          KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ENVIRONMENT: ${{ steps.target.outputs.environment }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          if [ -z "$HOST" ] || [ -z "$KEY" ]; then
+            echo "::notice::Deploys are off: set the ORACLE_HOST and ORACLE_SSH_KEY secrets to turn them on."
+            exit 0
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          # The key's forced command on the server runs: deploy <environment> <commit>
+          ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            "ubuntu@$HOST" "deploy $ENVIRONMENT $SHA"

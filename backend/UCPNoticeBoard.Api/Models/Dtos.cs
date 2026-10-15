@@ -9,18 +9,41 @@ public record LoginResponse(
     string Role,
     string Token,
     List<NoticeDto> Notices,
-    List<CategoryDto> Categories
+    List<CategoryDto> Categories,
+    string? LogoUrl = null,
+    // Whether a PIN has been chosen yet: the apps ask a new Publisher to
+    // type their first PIN twice, so a typo can't become their PIN.
+    bool HasPin = false
 );
 
-public record UserDto(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
+// PinLocked / ActiveDevices are only filled in by the Admin user list.
+public record UserDto(
+    int Id,
+    string Name,
+    string RollNumber,
+    string Role,
+    DateTime CreatedAt,
+    bool PinLocked = false,
+    int ActiveDevices = 0,
+    string? LogoUrl = null
+);
 
-public record UpdateUserRoleRequest(string Role, string Pin);
+/// <summary>One page of a longer list, with the total so clients can page through it.</summary>
+public record PagedResult<T>(List<T> Items, int Total, int Page, int PageSize);
+
+public record UnlockDeviceRequest(string? Pin, string? Label);
+
+public record UnlockDeviceResponse(string DeviceToken, int DeviceId, DateTime ExpiresAt);
+
+public record DeviceSessionDto(int Id, string Label, DateTime CreatedAt, DateTime LastUsedAt, bool IsCurrent);
+
+public record UpdateUserRoleRequest(string Role, string? Pin);
 
 public record UpdateUserRoleResponse(int Id, string Name, string RollNumber, string Role, DateTime CreatedAt);
 
-public record UpdateUserNameRequest(string Name);
+public record UpdateUserNameRequest(string Name, string? Pin);
 
-public record AddUserRequest(string RollNumber, string Name, string Pin);
+public record AddUserRequest(string RollNumber, string Name, string? Pin);
 
 public record NoticeDto(
     int Id,
@@ -35,24 +58,31 @@ public record NoticeDto(
     string CreatedByName,
     DateTime CreatedAt,
     DateTime UpdatedAt,
-    int ViewCount,
-    int LikeCount,
-    // Whether the CURRENT requesting user has liked this — never baked
-    // into the shared notices cache (that's shared across every user),
-    // always overlaid per-request afterward. See NoticeQueryService.
-    bool LikedByMe
+    // Admin only — null for everyone else (NoticeQueryService.ForViewer).
+    int? ViewCount,
+    bool IsPinned,
+    string? CreatedByLogoUrl
 );
 
-// Pin is required for every notice-mutating action. If the account has no
-// PinHash set yet, whatever is supplied here becomes their PIN going
-// forward (first-use-sets-it) — otherwise it must match exactly.
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+// Null or empty clears the logo. Pin as for notices (not needed on an
+// unlocked device); for the Admin's per-user endpoint it's the Admin's PIN.
+public record UpdateLogoRequest(string? LogoUrl, string? Pin);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string Pin);
+// Pin is required for every notice-mutating action unless the request
+// comes from an unlocked device (X-Device-Token, see PinService). If the
+// account has no PIN yet, whatever is supplied here becomes their PIN
+// going forward (first-use-sets-it) — otherwise it must match exactly.
+// IsPinned is only honoured for the Admin; null leaves it unchanged on update.
+/// <summary>Several notices deleted at once (the management lists' "Delete selected").</summary>
+public record DeleteNoticesRequest(List<int> Ids, string? Pin);
+public record DeleteNoticesResponse(int Deleted);
+
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
+
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
 
 public record CategoryDto(int Id, string Name);
 
-public record CreateCategoryRequest(string Name);
 
 public record AnalyticsSummaryDto(
     int TotalUsers,
@@ -60,8 +90,17 @@ public record AnalyticsSummaryDto(
     int TotalPublishers,
     int TotalAdmins,
     int TotalViews,
-    int ActiveLast7Days
+    int ActiveLast7Days,
+    int NoticesLast30Days,
+    // The most-opened notices posted in the last 30 days.
+    List<NoticeActivityDto> TopNotices,
+    // Every Publisher (and the Admin, if they post), most recently active first.
+    List<PublisherActivityDto> Publishers
 );
+
+public record NoticeActivityDto(int Id, string Title, string CreatedByName, DateTime CreatedAt, int ViewCount, bool IsPinned);
+
+public record PublisherActivityDto(int Id, string Name, int NoticesLast30Days, int TotalNotices, int ViewsLast30Days, DateTime? LastPostedAt);
 
 public record PushSubscribeRequest(string Endpoint, string P256dh, string Auth);
 

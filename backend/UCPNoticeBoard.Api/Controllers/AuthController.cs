@@ -24,13 +24,16 @@ public class AuthController : ControllerBase
     private readonly IJwtTokenService _jwtTokenService;
     private readonly IConfiguration _configuration;
     private readonly INoticeQueryService _noticeQuery;
+    private readonly IPinService _pins;
 
     public AuthController(
         AppDbContext db,
         IJwtTokenService jwtTokenService,
         IConfiguration configuration,
-        INoticeQueryService noticeQuery)
+        INoticeQueryService noticeQuery,
+        IPinService pins)
     {
+        _pins = pins;
         _db = db;
         _jwtTokenService = jwtTokenService;
         _configuration = configuration;
@@ -62,14 +65,14 @@ public class AuthController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber))
         {
-            return BadRequest("rollNumber is required.");
+            return BadRequest("Please enter your Roll Number.");
         }
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
 
         if (!RollNumberFormat.IsMatch(rollNumber))
         {
-            return BadRequest("rollNumber is not in a valid format.");
+            return BadRequest("That Roll Number doesn't look right. Please check it and try again.");
         }
 
         var suppliedCode = string.IsNullOrWhiteSpace(request.ActivationCode)
@@ -113,10 +116,14 @@ public class AuthController : ControllerBase
                     // AND the real AdminActivationSecret from Railway's
                     // config — the same bar as claiming Admin in the
                     // first place, not just knowing a Roll Number. Clears
-                    // the PIN; their next publish/manage-user action
-                    // prompts them to set a fresh one, same as first use.
-                    user.PinHash = null;
+                    // the PIN and any lockout (this is also how the Admin
+                    // gets back in if someone locked their account by
+                    // guessing), and logs out every unlocked device; their
+                    // next privileged action sets a fresh PIN, same as
+                    // first use.
+                    _pins.ClearPin(user);
                     user.SecurityStamp = Guid.NewGuid().ToString("N");
+                    await _pins.RevokeDevicesAsync(user.Id);
                     needsSave = true;
                 }
             }
@@ -138,9 +145,9 @@ public class AuthController : ControllerBase
 
         var token = _jwtTokenService.CreateToken(user, user.Role);
 
-        var notices = await _noticeQuery.GetActiveNoticesAsync(user.Id, includeDismissed: false);
+        var notices = await _noticeQuery.GetActiveNoticesAsync(user.Id, includeDismissed: false, includeViews: user.Role == UserRole.Admin);
         var categories = await _noticeQuery.GetCategoriesAsync();
 
-        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token, notices, categories));
+        return Ok(new LoginResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), token, notices, categories, user.LogoUrl, user.PinHash is not null));
     }
 }

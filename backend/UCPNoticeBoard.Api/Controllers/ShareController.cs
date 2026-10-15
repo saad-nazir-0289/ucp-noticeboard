@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using UCPNoticeBoard.Api.Data;
@@ -8,14 +9,16 @@ namespace UCPNoticeBoard.Api.Controllers;
 [Route("share")]
 public class ShareController : ControllerBase
 {
-    // Update this if the PWA ever moves to a different host.
-    private const string PwaBaseUrl = "https://ucp-noticeboard.msndev.workers.dev";
-
     private readonly AppDbContext _db;
 
-    public ShareController(AppDbContext db)
+    // Where a human following a share link ends up. Comes from
+    // Pwa:BaseUrl so a staging API redirects into the staging PWA.
+    private readonly string _pwaBaseUrl;
+
+    public ShareController(AppDbContext db, IConfiguration configuration)
     {
         _db = db;
+        _pwaBaseUrl = (configuration["Pwa:BaseUrl"] ?? "https://ucp-noticeboard.msndev.workers.dev").TrimEnd('/');
     }
 
     /// <summary>
@@ -37,19 +40,45 @@ public class ShareController : ControllerBase
     [HttpGet("notice/{id}")]
     public async Task<ContentResult> SharePreview(int id)
     {
-        var destinationUrl = $"{PwaBaseUrl}/?notice={id}";
-        var notice = await _db.Notices.FindAsync(id);
+        var destinationUrl = $"{_pwaBaseUrl}/?notice={id}";
+        var notice = await _db.Notices.Include(n => n.CreatedByUser).FirstOrDefaultAsync(n => n.Id == id);
 
         if (notice is null)
         {
             return BuildHtml("UCP NoticeBoard", "This notice is no longer available.", null, destinationUrl);
         }
 
-        var description = notice.Description.Length > 200
-            ? notice.Description[..200] + "..."
-            : notice.Description;
+        // Short: the shared message itself carries the full details (the
+        // apps put them in the text), so the card under the poster says only
+        // when it's due and who posted it, instead of repeating them.
+        var postedBy = notice.CreatedByUser?.Name;
+        var description = notice.Deadline is DateTime deadline
+            ? $"Deadline: {PakistanTime(deadline):ddd, d MMM yyyy, h:mm tt}" + (postedBy is null ? "" : $" · {postedBy}")
+            : postedBy ?? "UCP NoticeBoard";
 
-        return BuildHtml(notice.Title, description, notice.ImageUrl, destinationUrl);
+        return BuildHtml(notice.Title, description, PreviewImage(notice.ImageUrl), destinationUrl);
+    }
+
+    /// <summary>Deadlines are stored in UTC; students read them in Pakistan time.</summary>
+    private static DateTime PakistanTime(DateTime utc) =>
+        DateTime.SpecifyKind(utc, DateTimeKind.Utc).AddHours(5);
+
+    /// <summary>
+    /// The picture in a link preview: the poster, or for notices without
+    /// one, NoticeBoard's own preview card. The poster is fitted whole into
+    /// the landscape 1200×630 that link previews are made for, on a blurred
+    /// copy of itself: WhatsApp sizes the message to the picture's shape,
+    /// so a tall poster as it is makes a narrow message. A JPEG, since
+    /// WhatsApp skips large or unusual images.
+    /// </summary>
+    private string PreviewImage(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl)) return $"{_pwaBaseUrl}/og-image.jpg";
+        const string marker = "/upload/";
+        var at = imageUrl.IndexOf(marker, StringComparison.Ordinal);
+        return imageUrl.Contains("res.cloudinary.com") && at >= 0
+            ? imageUrl.Insert(at + marker.Length, "w_1200,h_630,c_pad,b_blurred:400:15,q_auto,f_jpg/")
+            : imageUrl;
     }
 
     private static ContentResult BuildHtml(string title, string description, string? imageUrl, string destinationUrl)
@@ -63,30 +92,32 @@ public class ShareController : ControllerBase
         var safeDescription = WebUtility.HtmlEncode(description);
         var safeDestination = WebUtility.HtmlEncode(destinationUrl);
 
-        // Omitted entirely (not a broken/placeholder image) when the
-        // notice has none — most platforms degrade cleanly to a
-        // text-only preview, which looks better than a broken image icon.
-        var imageTag = string.IsNullOrWhiteSpace(imageUrl)
+        var imageTags = string.IsNullOrWhiteSpace(imageUrl)
             ? ""
-            : $"<meta property=\"og:image\" content=\"{WebUtility.HtmlEncode(imageUrl)}\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />";
+            : $"<meta property=\"og:image\" content=\"{WebUtility.HtmlEncode(imageUrl)}\" />\n" +
+              $"<meta property=\"og:image:alt\" content=\"{safeTitle}\" />\n" +
+              "<meta property=\"og:image:width\" content=\"1200\" />\n" +
+              "<meta property=\"og:image:height\" content=\"630\" />\n" +
+              "<meta name=\"twitter:card\" content=\"summary_large_image\" />";
 
         var html = $@"<!DOCTYPE html>
 <html>
 <head>
 <meta charset=""utf-8"" />
 <title>{safeTitle}</title>
+<meta property=""og:site_name"" content=""UCP NoticeBoard"" />
 <meta property=""og:title"" content=""{safeTitle}"" />
 <meta property=""og:description"" content=""{safeDescription}"" />
 <meta property=""og:url"" content=""{safeDestination}"" />
 <meta property=""og:type"" content=""article"" />
-{imageTag}
+{imageTags}
 <meta http-equiv=""refresh"" content=""0;url={safeDestination}"" />
 </head>
 <body>
-<p>Redirecting to <a href=""{safeDestination}"">UCP NoticeBoard</a>...</p>
+<p>Opening <a href=""{safeDestination}"">UCP NoticeBoard</a>…</p>
 </body>
 </html>";
 
-        return new ContentResult { Content = html, ContentType = "text/html" };
+        return new ContentResult { Content = html, ContentType = "text/html; charset=utf-8" };
     }
 }

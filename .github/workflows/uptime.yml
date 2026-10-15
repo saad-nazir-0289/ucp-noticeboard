@@ -1,0 +1,28 @@
+# Checks every hour that the API is up and can reach its database. When
+# a check fails, GitHub emails you (the failed-run notification), so you
+# hear about an outage before students do. Off until the repository
+# variable HEALTH_URL is set (Settings → Secrets and variables → Actions
+# → Variables), e.g. https://ucpnb-api.duckdns.org/health
+name: Uptime
+
+on:
+  schedule:
+    - cron: "41 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the API
+        env:
+          HEALTH_URL: ${{ vars.HEALTH_URL }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "::notice::Uptime checks are off: set the HEALTH_URL repository variable to turn them on."
+            exit 0
+          fi
+          # Retries ride out a deploy restart; a real outage still fails.
+          curl --fail --silent --show-error --max-time 20 --retry 3 --retry-delay 30 --retry-all-errors "$HEALTH_URL"

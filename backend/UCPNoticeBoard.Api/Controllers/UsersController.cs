@@ -1,34 +1,39 @@
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using UCPNoticeBoard.Api.Data;
 using UCPNoticeBoard.Api.Models;
+using UCPNoticeBoard.Api.Services;
 
 namespace UCPNoticeBoard.Api.Controllers;
 
 [ApiController]
 [Route("users")]
 [Authorize(Roles = "Admin")]
+// Every action here checks the acting Admin's PIN, so every action shares
+// the same brute-force limit as the other PIN-checked endpoints.
+[EnableRateLimiting("pin-check")]
 public class UsersController : ControllerBase
 {
-    private static readonly Regex PinFormat = new(@"^\d{4,6}$", RegexOptions.Compiled);
-
     private readonly AppDbContext _db;
+    private readonly IPinService _pins;
+    private readonly TimeProvider _time;
+    private readonly INoticeQueryService _noticeQuery;
 
-    public UsersController(AppDbContext db)
+    public UsersController(AppDbContext db, IPinService pins, TimeProvider time, INoticeQueryService noticeQuery)
     {
         _db = db;
+        _pins = pins;
+        _time = time;
+        _noticeQuery = noticeQuery;
     }
+
+    public const string AdminPinHeader = "X-Admin-Pin";
 
     private int CurrentUserId =>
         int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub")!);
-
-    private static string HashPin(string pin) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pin)));
 
     /// <summary>
     /// Every action here that grants or changes privilege now requires
@@ -41,34 +46,64 @@ public class UsersController : ControllerBase
     /// creating new privileged access now needs the real Admin's PIN,
     /// same as actually publishing does.
     /// </summary>
-    private static string? VerifyOrSetAdminPin(User admin, string? pin)
-    {
-        if (string.IsNullOrWhiteSpace(pin) || !PinFormat.IsMatch(pin))
-        {
-            return "Your 4-6 digit PIN is required for this action.";
-        }
+    public const string AdminPinMessage = "Please enter your PIN (4–6 digits) to continue.";
 
-        var hash = HashPin(pin);
-
-        if (admin.PinHash is null)
-        {
-            admin.PinHash = hash;
-            return null;
-        }
-
-        return admin.PinHash == hash ? null : "Incorrect PIN.";
-    }
-
+    /// <summary>
+    /// Lists every account's name and Roll Number, so it needs the PIN too
+    /// — an Admin token alone (which anyone knowing the Admin's Roll Number
+    /// can get) must not be enough to read it. Sent as a header since GET
+    /// has no body.
+    ///
+    /// One page at a time (Admins at a whole university shouldn't load
+    /// every account at once), optionally filtered by `search`, which
+    /// matches part of a Roll Number or a name, case-insensitively.
+    /// </summary>
     [HttpGet]
-    public async Task<ActionResult<List<UserDto>>> GetUsers()
+    public async Task<ActionResult<PagedResult<UserDto>>> GetUsers(
+        [FromHeader(Name = AdminPinHeader)] string? adminPin,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = DefaultPageSize)
     {
-        var users = await _db.Users
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+
+        var query = _db.Users.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{EscapeLike(search.Trim())}%";
+            query = query.Where(u => EF.Functions.ILike(u.RollNumber, pattern) || EF.Functions.ILike(u.Name, pattern));
+        }
+
+        var total = await query.CountAsync();
+        var now = _time.GetUtcNow().UtcDateTime;
+        var users = await query
             .OrderBy(u => u.Name)
-            .Select(u => new UserDto(u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt))
+            .ThenBy(u => u.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(u => new UserDto(
+                u.Id, u.Name, u.RollNumber, u.Role.ToString(), u.CreatedAt,
+                u.PinLockedUntil != null && u.PinLockedUntil > now,
+                _db.DeviceSessions.Count(d => d.UserId == u.Id && d.ExpiresAt > now && d.SecurityStamp == u.SecurityStamp),
+                u.LogoUrl))
             .ToListAsync();
 
-        return Ok(users);
+        return Ok(new PagedResult<UserDto>(users, total, page, pageSize));
     }
+
+    private const int DefaultPageSize = 20;
+    private const int MaxPageSize = 100;
+
+    /// <summary>So a search for "50%" or "a_b" matches those characters literally.</summary>
+    private static string EscapeLike(string value) =>
+        value.Replace(@"\", @"\\").Replace("%", @"\%").Replace("_", @"\_");
 
     /// <summary>
     /// Adds someone directly as a Publisher — immediate, but now requires
@@ -82,17 +117,14 @@ public class UsersController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.RollNumber) || string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest("rollNumber and name are required.");
+            return BadRequest("Please enter a Roll Number and a name.");
         }
 
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var rollNumber = request.RollNumber.Trim().ToUpperInvariant();
 
@@ -140,11 +172,8 @@ public class UsersController : ControllerBase
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, request.Pin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)
@@ -157,10 +186,12 @@ public class UsersController : ControllerBase
 
         if (newRole == UserRole.Student)
         {
-            user.PinHash = null;
+            _pins.ClearPin(user);
         }
 
         await _db.SaveChangesAsync();
+        // The stamp rotation above already invalidates them; this removes the rows.
+        await _pins.RevokeDevicesAsync(user.Id);
 
         return Ok(new UpdateUserRoleResponse(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt));
     }
@@ -173,25 +204,21 @@ public class UsersController : ControllerBase
     /// role visibility alone got them here).
     /// </summary>
     [HttpPost("{id}/reset-pin")]
-    public async Task<IActionResult> ResetPin(int id, [FromQuery] string adminPin)
+    public async Task<IActionResult> ResetPin(int id, [FromQuery] string? adminPin)
     {
         if (id == CurrentUserId)
         {
             return BadRequest(
-                "You can't reset your own PIN this way. Use the Admin activation link " +
-                "(the same one that grants Admin access) to reset it instead — that's the " +
-                "only path for your own PIN, so there's exactly one way to touch it, and " +
-                "it requires the real secret, not just your current PIN.");
+                // The activation link is the only way to reset your own PIN:
+                // it needs the real secret, not just the current PIN.
+                "You can't reset your own PIN here. Use the Admin activation link to reset it.");
         }
 
         var admin = await _db.Users.FindAsync(CurrentUserId);
         if (admin is null) return Unauthorized();
 
-        var pinError = VerifyOrSetAdminPin(admin, adminPin);
-        if (pinError is not null)
-        {
-            return BadRequest(pinError);
-        }
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)
@@ -199,25 +226,78 @@ public class UsersController : ControllerBase
             return NotFound();
         }
 
-        user.PinHash = null;
+        // Also the way to lift a lockout, and a reset is often because a
+        // device or PIN leaked, so every unlocked device is logged out too.
+        _pins.ClearPin(user);
         await _db.SaveChangesAsync();
+        await _pins.RevokeDevicesAsync(user.Id);
 
         return NoContent();
     }
 
     /// <summary>
+    /// Logs every unlocked device of this user out (e.g. a society member
+    /// left, or lost their phone), without touching their PIN.
+    /// </summary>
+    [HttpDelete("{id}/devices")]
+    public async Task<IActionResult> RevokeDevices(int id, [FromHeader(Name = AdminPinHeader)] string? adminPin)
+    {
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, adminPin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        if (!await _db.Users.AnyAsync(u => u.Id == id)) return NotFound();
+
+        await _pins.RevokeDevicesAsync(id);
+        return NoContent();
+    }
+
+    /// <summary>Sets or clears any user's logo (e.g. a society that sent theirs to the Admin).</summary>
+    [HttpPut("{id}/logo")]
+    public async Task<ActionResult<UserDto>> UpdateLogo(int id, [FromBody] UpdateLogoRequest request)
+    {
+        if (!LogoRules.TryNormalize(request.LogoUrl, out var logoUrl, out var problem))
+        {
+            return BadRequest(problem);
+        }
+
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        var user = await _db.Users.FindAsync(id);
+        if (user is null) return NotFound();
+
+        user.LogoUrl = logoUrl;
+        await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
+
+        return Ok(new UserDto(user.Id, user.Name, user.RollNumber, user.Role.ToString(), user.CreatedAt, LogoUrl: user.LogoUrl));
+    }
+
+    /// <summary>
     /// The only way a name can change after account creation, now that
     /// /login no longer trusts a client-supplied name for existing users.
-    /// Admin-only and authenticated, unlike /login. Doesn't touch notice
-    /// publishing rights, so no PIN needed here.
+    /// Requires the acting Admin's PIN: renaming a Publisher changes who
+    /// students see a notice as coming from.
     /// </summary>
     [HttpPatch("{id}/name")]
     public async Task<ActionResult<UserDto>> UpdateName(int id, [FromBody] UpdateUserNameRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return BadRequest("name is required.");
+            return BadRequest("Please enter a name.");
         }
+
+        var admin = await _db.Users.FindAsync(CurrentUserId);
+        if (admin is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(admin, request.Pin, AdminPinMessage);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
         var user = await _db.Users.FindAsync(id);
         if (user is null)

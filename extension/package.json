@@ -4,8 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite build --config vite.content.config.ts --watch",
-    "build": "tsc -b && vite build --config vite.content.config.ts && node scripts/copy-static.js"
+    "dev": "vite build --config vite.content.config.ts --mode development --watch",
+    "build": "tsc -b && vite build --config vite.content.config.ts",
+    "build:local": "tsc -b && vite build --config vite.content.config.ts --mode development",
+    "build:staging": "tsc -b && vite build --config vite.content.config.ts --mode staging"
   },
   "dependencies": {
     "react": "^18.3.1",

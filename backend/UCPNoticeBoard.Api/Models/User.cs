@@ -40,5 +40,15 @@ public class User
     // plaintext; only a hash.
     public string? PinHash { get; set; }
 
+    // Per-account brute-force protection (see PinService): wrong PINs in
+    // a row, and when the resulting lock ends. The per-IP rate limit alone
+    // doesn't stop a guesser who switches networks; this does.
+    public int FailedPinAttempts { get; set; }
+    public DateTime? PinLockedUntil { get; set; }
+
+    // A publisher's logo (e.g. a society's), shown on their notices instead
+    // of initials. Set by the publisher themselves or the Admin.
+    public string? LogoUrl { get; set; }
+
     public ICollection<Notice> Notices { get; set; } = new List<Notice>();
 }

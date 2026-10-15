@@ -1,4 +1,4 @@
-import { api } from "./api/client";
+import { api } from "@shared/api/client";
 
 // Web Push requires the VAPID public key as a Uint8Array, but the backend
 // hands it out as a base64url string — this is the standard conversion.

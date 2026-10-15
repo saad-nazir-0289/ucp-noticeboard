@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <rect width="1600" height="1000" fill="#0f5132"/>
+  <g stroke="#ffffff" stroke-opacity=".35" stroke-width="6" fill="none">
+    <rect x="60" y="60" width="1480" height="880"/><line x1="800" y1="60" x2="800" y2="940"/><circle cx="800" cy="500" r="150"/>
+  </g>
+  <text x="800" y="420" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="150" font-weight="800" fill="#fff">FOOTBALL</text>
+  <text x="800" y="560" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="150" font-weight="800" fill="#facc15">TRIALS</text>
+  <text x="800" y="680" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="50" fill="#d1fae5">Saturday · 9 AM · Main Ground</text>
+</svg>

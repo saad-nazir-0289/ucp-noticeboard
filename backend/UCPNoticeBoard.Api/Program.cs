@@ -49,6 +49,9 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INoticeQueryService, NoticeQueryService>();
 builder.Services.AddScoped<IPushNotificationService, PushNotificationService>();
+builder.Services.AddScoped<IPinService, PinService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<DeadlineReminderService>();
 
 // --- Auth ---
@@ -79,26 +82,34 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // --- CORS ---
-// Restricted to the two real client origins instead of a wildcard. Note
-// this is browser-enforced defense-in-depth, not a security boundary on
-// its own — a non-browser client (curl, a script) never sends or is
-// bound by an Origin header at all, CORS is purely about what a *browser*
-// running on someone else's page is allowed to read. The extension's own
-// requests aren't blocked by this either way, since Manifest V3
-// host_permissions already exempt it from CORS enforcement on the
-// requesting side — this specifically stops an unrelated website's JS
-// from successfully reading responses using a visiting browser.
+// Restricted to the real client origins instead of a wildcard. Note this
+// is browser-enforced defense-in-depth, not a security boundary on its
+// own — a non-browser client (curl, a script) never sends or is bound by
+// an Origin header at all, CORS is purely about what a *browser* running
+// on someone else's page is allowed to read. The extension's requests
+// come from a content script, which Chrome treats as the host page's own
+// origin for CORS — that's why the portal origin is on this list.
+//
+// Cors:AllowedOrigins is a comma-separated list, so a staging deploy can
+// point at its own PWA with a single environment variable
+// (Cors__AllowedOrigins). In Development, any localhost origin is also
+// allowed, for the local PWA dev server and the mock portal page.
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+var allowLocalhostOrigins = builder.Environment.IsDevelopment();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Extension", policy =>
     {
         policy
-            .WithOrigins(
-                "https://horizon.ucp.edu.pk",
-                "https://ucp-noticeboard.msndev.workers.dev"
-            )
+            .SetIsOriginAllowed(origin =>
+                allowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase) ||
+                (allowLocalhostOrigins && Uri.TryCreate(origin, UriKind.Absolute, out var uri) && uri.IsLoopback))
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            // Lets the clients see when their device unlock has lapsed.
+            .WithExposedHeaders(PinService.DeviceTokenStatusHeader);
     });
 });
 
@@ -138,14 +149,15 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
-    // Notice create/edit/delete is where a PIN actually gets checked — a
+    // Every endpoint that checks a PIN (notice create/edit/delete and all
+    // Admin actions) shares this bucket — a
     // 4-6 digit PIN has low enough entropy that even the general 60/min
     // limit isn't tight enough to meaningfully slow down a brute-force
     // attempt on its own. This doesn't fully solve that on its own either
     // (worth knowing honestly), but it meaningfully raises the cost of
     // trying, on top of the general limit, without throttling a real
     // Publisher's actual (infrequent) use of these endpoints at all.
-    options.AddPolicy("notice-mutation", context =>
+    options.AddPolicy("pin-check", context =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
@@ -195,6 +207,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // The fixed category list (see CategoryCatalog): created on a fresh
+    // database, and older free-form categories folded into it.
+    await CategoryCatalog.EnsureAsync(db, app.Logger);
+
+    // Sample content for local runs and staging only. Off unless
+    // SeedDemoData=true, and a no-op on any database that already has
+    // users, so it can never add demo rows to real data.
+    if (app.Configuration.GetValue<bool>("SeedDemoData"))
+    {
+        await DemoDataSeeder.SeedIfEmptyAsync(db, posterBaseUrl: app.Configuration["DemoData:PosterBaseUrl"]);
+    }
 }
 
 // --- Forwarded headers, so rate limiting and logging see the real client
@@ -224,15 +248,25 @@ app.UseExceptionHandler(errorApp =>
     {
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
+        // Exception messages can name tables, columns or connection
+        // details, so only development shows them; everyone else gets a
+        // generic message (the full error still goes to the logs).
         var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
-        var message = feature?.Error?.Message ?? "An unexpected error occurred.";
+        var message = app.Environment.IsDevelopment() && feature?.Error is not null
+            ? feature.Error.Message
+            : "Something went wrong. Please try again.";
         await context.Response.WriteAsync(
             System.Text.Json.JsonSerializer.Serialize(new { error = message }));
     });
 });
 
-app.UseSwagger();
-app.UseSwaggerUI();
+// The API explorer lists every endpoint and request shape — handy while
+// developing, but nothing a public server needs to advertise.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseAuthentication();
 
@@ -279,7 +313,7 @@ app.Use(async (context, next) =>
         {
             context.Response.StatusCode = 401;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync("{\"error\":\"Session no longer valid — please reload.\"}");
+            await context.Response.WriteAsync("{\"error\":\"Your session has expired. Please reload the page.\"}");
             return;
         }
     }
@@ -290,4 +324,17 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 app.MapControllers();
 
+// For uptime checks: 200 when the API is up and can reach the database,
+// 503 when the database is unreachable. Unauthenticated and says nothing
+// beyond "ok"/"unhealthy".
+app.MapGet("/health", async (AppDbContext db, CancellationToken cancellationToken) =>
+    await db.Database.CanConnectAsync(cancellationToken)
+        ? Results.Ok(new { status = "ok" })
+        : Results.Json(new { status = "unhealthy" }, statusCode: StatusCodes.Status503ServiceUnavailable))
+    .DisableRateLimiting();
+
 app.Run();
+
+// Exposes the compiler-generated Program class so the test project's
+// WebApplicationFactory<Program> can boot this exact pipeline in-memory.
+public partial class Program { }

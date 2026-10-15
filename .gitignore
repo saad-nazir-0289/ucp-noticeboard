@@ -1,6 +1,7 @@
 # Node / extension
 node_modules/
 dist/
+dist-*/
 
 # .NET
 bin/
@@ -15,3 +16,14 @@ obj/
 .env
 appsettings.Development.json
 context.md
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Vite per-machine env overrides (e.g. .env.staging.local)
+.env*.local
+
+# Local preview runtime files (logs, pids)
+dev/.run/
+
+# On-device OCR engine and model, copied from node_modules at build time
+pwa/public/ocr/

@@ -11,7 +11,7 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-informational)
 
-**[Install the extension](https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb)** · **[Open the mobile site](https://ucp-noticeboard.msndev.workers.dev/)** · [Privacy Policy](./PRIVACY.md)
+**[Install the extension](https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg?utm_source=item-share-cb)** · **[Open the mobile site](https://ucp-noticeboard.msndev.workers.dev/)** · [Privacy Policy](./Privacy.md)
 
 ---
 
@@ -38,15 +38,17 @@ Behind both is one shared system: a Manifest V3 Chrome extension, a standalone R
 
 | Role | Capabilities |
 |---|---|
-| **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, dismiss notices they don't want to see, share any notice via a real link |
+| **Student** | Sees the notice feed automatically — zero setup, zero login. Search, filter by category, switch between card/list view, archive notices they don't need (just for themselves), share any notice via a real link |
 | **Publisher** | Create / edit / delete their own notices — title, description, poster image, external link, category, and an optional deadline |
-| **Admin** | Everything a Publisher can do, on *any* notice, plus user management (add Publishers via one-time activation links, change any role, correct a name), category management, and a live usage-analytics dashboard |
+| **Admin** | Everything a Publisher can do, on *any* notice, plus how many times each notice was opened (visible to the Admin only), user management (add Publishers via one-time activation links, change any role, correct a name), and a live usage-analytics dashboard |
 
 - Poster images uploaded directly from the browser to Cloudinary — never touch the backend, so it costs nothing regardless of upload volume
 - Push notifications (standard Web Push/VAPID — no third-party push service) sent to every subscriber when a Publisher posts
 - Shareable links that work for anyone, even someone who's never opened the app before — they land straight in onboarding, then the specific notice
 - Soft 7-day (or custom deadline) expiry — hidden from students, always recoverable by Admin/Publisher
-- Built-in analytics: total users by role, total dashboard views, active-in-last-7-days
+- Built-in analytics: total users by role, total dashboard views, active-in-last-7-days, the most-opened notices and each publisher's activity
+- Pinned notices (Admin), publisher logos, "Add to calendar" for deadlines, and notifications that open the notice they're about
+- Nightly encrypted database backups, an hourly uptime check and tests on every pull request (GitHub Actions — see [`docs/BACKUPS.md`](./docs/BACKUPS.md))
 - Ships with a Dockerfile — deploys to any container host in one push
 
 ## Architecture
@@ -85,30 +87,57 @@ flowchart LR
 **Backend** — ASP.NET Core 8 Web API · Entity Framework Core · JWT authentication · in-memory response caching
 **Database** — PostgreSQL
 **Image hosting** — Cloudinary (direct browser upload, zero backend cost)
-**Deployment** — Docker · Railway (backend), Cloudflare Pages (PWA)
+**Deployment** — Docker · Oracle Cloud Always Free server with Caddy (backend and database, see [`docs/ORACLE.md`](./docs/ORACLE.md)), Cloudflare (PWA)
 
 ## Getting started
 
-Quick version, for anyone who wants to run it locally instead of using the live links above:
+**See it running with demo data** — backend, PWA and the extension on a
+mock portal page, all local, nothing touching production:
 
 ```bash
-# Backend
+cd dev && npm install && cd ..
+dev/start-local.sh --reset      # see dev/README.md for URLs and demo accounts
+```
+
+**Posting from WhatsApp, Instagram or email** — publishers can share
+straight into the installed app (Android) or use Quick fill to paste text or
+read a screenshot: see [`docs/SHARING.md`](./docs/SHARING.md).
+
+**Test on real devices before release** — a full staging copy (separate
+backend, database, PWA and extension build): see [`docs/STAGING.md`](./docs/STAGING.md).
+
+Each part on its own:
+
+```bash
+# Backend (needs PostgreSQL; migrations apply automatically on start)
 cd backend/UCPNoticeBoard.Api
-dotnet restore
-dotnet ef database update
 dotnet run
+
+# Backend tests — integration tests against a real PostgreSQL. Each test
+# class creates and drops its own throwaway database on the server given by
+# UCP_TEST_POSTGRES (default: Host=localhost;Username=postgres;Password=postgres)
+cd backend
+dotnet test
 
 # Extension
 cd extension
 npm install
-npm run build
-# then load /extension/dist as an unpacked extension in chrome://extensions
+npm run build          # production → dist/ (what ships to the Chrome Web Store)
+npm run build:local    # → dist-local/, talks to a backend on localhost:5000
+npm run build:staging  # → dist-staging/, see docs/STAGING.md
 
 # PWA
 cd pwa
 npm install
-npm run dev
+npm run dev            # talks to a backend on localhost:5000
+npm test               # unit tests (e.g. the share/screenshot reader)
+npm run build          # production → dist/
+npm run build:staging  # → dist-staging/, see docs/STAGING.md
 ```
+
+Which backend a build talks to is decided by its mode (production, local or
+staging) in `pwa/vite.config.ts` and `extension/vite.content.config.ts`;
+production is always the default.
 
 ## API overview
 
@@ -117,16 +146,19 @@ npm run dev
 | `POST` | `/login` | — | Identify/register a user by Roll Number; bundles first-load notices + categories |
 | `GET` | `/notices` | any user | Active notices, newest first (`?includeExpired=true`, `?includeDismissed=true` for management views) |
 | `GET` | `/notices/{id}` | any user | Single notice, regardless of expiry — what makes shared links always work |
-| `GET` | `/notices/dismissed` | any user | Notices the caller has personally hidden |
+| `GET` | `/notices/dismissed` | any user | Notices the caller has archived for themselves |
 | `POST` / `PUT` / `DELETE` | `/notices` `/notices/{id}` | Publisher, Admin | Create / edit / remove a notice |
-| `POST` / `DELETE` | `/notices/{id}/dismiss` | any user | Hide / restore a notice, for the caller only |
-| `GET` / `POST` | `/categories` | any / Admin | List categories / create one |
+| `POST` / `DELETE` | `/notices/{id}/dismiss` | any user | Archive / restore a notice, for the caller only |
+| `GET` | `/categories` | any user | The fixed categories (Academics, Campus, Careers, Scholarships, Workshops, Competitions, Events, Societies, Sports) |
 | `GET` / `POST` | `/users` | Admin | List users / add a Publisher (returns a one-time activation link) |
 | `PATCH` | `/users/{id}/role` \| `/users/{id}/name` | Admin | Change a user's role or correct their name |
 | `GET` | `/uploads/signature` | Publisher, Admin | Short-lived signed Cloudinary upload credentials |
 | `GET` | `/push/vapid-public-key` | any user | Public key for setting up a push subscription |
 | `POST` / `DELETE` | `/push/subscribe` | any user | Register / remove a device's push subscription |
-| `GET` | `/analytics/summary` | Admin | Usage statistics |
+| `GET` | `/analytics/summary` | Admin | Usage statistics, most-opened notices, publisher activity |
+| `PUT` | `/profile/logo` | Publisher, Admin | Set or clear your own logo |
+| `PUT` | `/users/{id}/logo` | Admin | Set or clear anyone's logo |
+| `GET` | `/health` | — | Uptime check: 200 when the API and database are up |
 
 ## Project structure
 
@@ -134,16 +166,16 @@ npm run dev
 UCP-NoticeBoard/
 ├── extension/            Chrome Extension — MV3, React, TypeScript, Vite
 │   └── src/
-│       ├── content/       Injected UI: entry point, root component, identity scraper, share links
-│       ├── components/    NoticeFeed, NoticeCard, NoticeManager, AdminPanel, AnalyticsPanel
-│       ├── api/            Backend API client
-│       └── types/
+│       ├── content/       Injected UI: entry point, root component, identity scraper
+│       └── components/    NoticeFeed, NoticeManager, AdminPanel, AnalyticsPanel
+├── shared/                Code compiled into both the extension and the PWA:
+│                          API client, types, notice card/detail, uploads, share links
 ├── pwa/                   Standalone mobile site — React, TypeScript, Vite
 │   └── src/
 │       ├── App.tsx         Root: identity check → feed
 │       ├── push.ts         Web Push subscription logic
 │       ├── storage.ts      Local Roll Number persistence
-│       └── components/     NoticeFeed, NoticeCard, NoticeListItem, NoticeSkeleton
+│       └── components/     NoticeFeed, NoticeListItem, NoticeSkeleton
 └── backend/               ASP.NET Core 8 Web API
     └── UCPNoticeBoard.Api/
         ├── Controllers/    Auth, Users, Notices, Categories, Uploads, Push, Analytics
@@ -155,7 +187,7 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [ ] Migrate backend + database off Railway to a VPS (Rabisu, Karachi — closer to the actual user base, cheaper, and removes the public-database-proxy workaround entirely)
+- [ ] Move backend + database off Railway to the free Oracle server (kit and steps ready: [`docs/ORACLE.md`](./docs/ORACLE.md))
 - [ ] Direct Publisher outreach to campus clubs and societies
 - [ ] Evaluate a "past papers" module — paused pending institutional sign-off, since exam content carries real copyright/institutional questions this project takes seriously rather than building around
 

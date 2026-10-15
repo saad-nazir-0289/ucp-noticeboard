@@ -1,8 +1,10 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UCPNoticeBoard.Api", "UCPNoticeBoard.Api\UCPNoticeBoard.Api.csproj", "{8F5D6C2A-9B3E-4A1F-9C2D-1E7F4B8A6D10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UCPNoticeBoard.Api.Tests", "UCPNoticeBoard.Api.Tests\UCPNoticeBoard.Api.Tests.csproj", "{0352AC31-2830-4B3F-B723-2BAD044CA946}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -14,5 +16,9 @@ Global
 		{8F5D6C2A-9B3E-4A1F-9C2D-1E7F4B8A6D10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F5D6C2A-9B3E-4A1F-9C2D-1E7F4B8A6D10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F5D6C2A-9B3E-4A1F-9C2D-1E7F4B8A6D10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0352AC31-2830-4B3F-B723-2BAD044CA946}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0352AC31-2830-4B3F-B723-2BAD044CA946}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0352AC31-2830-4B3F-B723-2BAD044CA946}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0352AC31-2830-4B3F-B723-2BAD044CA946}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
