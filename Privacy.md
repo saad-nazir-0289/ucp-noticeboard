@@ -1,107 +1,148 @@
 # Privacy Policy — UCP NoticeBoard
 
-**Last updated:** August 2026
+**Last updated: October 15, 2026**
 
-This document explains what UCP NoticeBoard collects, why, and what happens to it — across both the Chrome extension and the standalone mobile-friendly site (the "PWA"). It's written to match exactly what the code actually does, not generic boilerplate.
+This document explains what UCP NoticeBoard collects, why it collects it, and how the information is handled across both the Chrome extension and the standalone mobile-friendly website (the “PWA”). It is intended to reflect the application's actual implementation, not generic boilerplate.
 
-## Important: this is an independent student project
+## Important: This Is an Independent Student Project
 
-UCP NoticeBoard is **not** an official product of, or affiliated with, endorsed by, or operated on behalf of the University of Central Punjab (UCP). It is a personal/student-built tool that integrates with the public-facing UCP Student Portal. Any resemblance in visual styling to the portal is for a consistent user experience only, not a claim of official status. This remains true regardless of how the extension is discovered — including via public listing on the Chrome Web Store.
+UCP NoticeBoard is **not an official product of, affiliated with, endorsed by, or operated on behalf of the University of Central Punjab (UCP)**. It is an independent, student-built tool that integrates with the public-facing UCP Student Portal. Any resemblance in visual styling to the portal is intended solely to provide a consistent user experience and does not imply official status. This remains true regardless of how the extension is discovered, including through its public Chrome Web Store listing.
 
-## What information is collected
+## What Information Is Collected
 
-**Identity:**
+### Identity
+
 - Your Roll Number
-- Your Name
+- Your Name, where available
 
-**How these two are obtained differs by which surface you use:**
-- **Chrome extension**: your Roll Number and Name are read directly off the already-authenticated UCP Student Portal page — nothing is typed in, nothing is asked.
-- **Standalone site (PWA)**: since it isn't embedded in the portal, you enter your Roll Number once, the first time you use it on a given device. That device then remembers it — you're never asked again. The PWA does **not** ask for your name at all; if you're a brand-new account created this way, your display name simply defaults to your Roll Number until an Admin corrects it (see "Security measures" below for why names work this way).
+How these are obtained depends on which version you use:
 
-**Created by using either surface:**
-- An account role (Student, Publisher, or Admin)
-- Account creation date
-- The last time you opened the dashboard, and a running count of how many times you have (used only to show the Admin aggregate usage numbers — e.g. "42 total views this week" — never a per-person activity log visible to anyone but the Admin's aggregate totals)
-- If you're a Publisher or Admin: the notices you create (title, description, optional poster image, optional external link, optional category, optional deadline)
-- Which notices you've archived from your own feed — this is private to you; it doesn't affect what anyone else sees
-- If you opt into notifications: a push subscription for that specific device (see "Push notifications" below)
+- **Chrome extension:** Your Roll Number and Name are read directly from your already-authenticated UCP Student Portal page. You do not need to enter them manually.
+- **Standalone website (PWA):** You enter your Roll Number once when first using the application on a device. It is saved locally so you do not need to enter it again. The PWA does not ask for your name. For a new account created this way, your display name defaults to your Roll Number until an Admin corrects it.
 
-**Not collected, ever:**
-- Passwords (there is no password — see "How you're identified" below)
-- Email addresses
-- Browsing activity outside the dashboard/site
-- Location data
-- Any information from a device or browser beyond what's needed to identify you and, if you choose, send you notifications
+### Information Created Through Use of Either Version
 
-## How you're identified — no separate account or password, on either surface
+- Your account role: Student, Publisher, or Admin.
+- Account creation date.
+- The last time you opened the dashboard and a running count of dashboard visits. These are used to provide the Admin with aggregate usage statistics, such as total views and recently active users, rather than a per-person activity history.
+- If you are a Publisher or Admin, the notices you create, including their titles, descriptions, optional poster images, external links, categories, and deadlines.
+- Notices you have archived from your own feed. These records are private to your account and do not affect what other users see.
+- If you enable notifications, a push subscription associated with that device.
+- If you unlock Publisher access through the Chrome extension, your Roll Number and a server-issued sign-in token, as described in **Chrome Extension Storage** below.
 
-Neither the extension nor the PWA has a traditional sign-in screen. Both rely on your Roll Number as your identity — the extension reads it automatically off your authenticated portal session; the PWA asks you to type it once. Either way:
-- No password of yours is ever seen, stored, or handled by this project.
-- A Roll Number alone only ever grants ordinary read-only (Student) access.
-- Publisher or Admin access requires a separate one-time secret link, issued individually by the Admin — never granted by the Roll Number alone.
+### Not Collected
 
-## Push notifications
+UCP NoticeBoard does not intentionally collect:
 
-If you choose to enable notifications (a clearly separate, opt-in action — never on by default), your browser creates a **push subscription**: a set of technical identifiers (an endpoint address and encryption keys) that let a notice be delivered to that specific device, even when the app isn't open. This is a standard browser feature (not something built by this project) — the actual delivery is routed through your browser vendor's own push infrastructure (e.g. Google's, for Chrome), the same mechanism any website's notifications use.
+- Your UCP portal password.
+- Your email address.
+- Browsing activity outside the dashboard or the information required to integrate with the UCP Student Portal.
+- Location data.
+- Unrelated device or browser information beyond what is needed to operate the application and, if you opt in, deliver notifications.
 
-- Notifications currently contain only a notice's title and a short excerpt of its description — nothing else about your account is included in a notification.
-- You can disable notifications at any time from the same button used to enable them.
-- If a device's subscription becomes invalid (e.g. the app was uninstalled, browser data was cleared), it's automatically detected and removed the next time a notification fails to deliver to it — no manual cleanup needed on your part.
-- Push notifications are sent to every subscribed device when a new notice is published — there's no per-topic or per-category targeting.
+## How You're Identified — No Traditional Account or Password
 
-## Where your data is stored
+Neither the extension nor the PWA provides a traditional username-and-password sign-in system. Both use your Roll Number as your application identity.
 
-- **Application data** (accounts, notices, categories, dismissal records, push subscriptions) is stored in a PostgreSQL database hosted on Railway (railway.app), a third-party cloud hosting provider.
-- **Poster images**, if a Publisher/Admin adds one, are hosted on Cloudinary (cloudinary.com), a third-party image hosting provider. Uploaded images are typically publicly accessible via their hosted URL — the same way any image URL posted in a notice would be.
-- No data is stored on your own device beyond what your browser needs to run the extension or PWA normally, and (for the PWA) your Roll Number itself, saved locally so you aren't asked for it again.
+- The extension reads your Roll Number from your authenticated UCP Student Portal session.
+- The PWA asks you to enter your Roll Number once on each device where it is first used.
+- UCP NoticeBoard does not see, collect, or store your UCP portal password.
+- A Roll Number alone grants ordinary read-only Student access.
+- Publisher or Admin privileges require a separate authorization process using a PIN or one-time secret link, as applicable to the interface. These privileges are not granted merely by knowing a Roll Number.
 
-None of these third parties (Railway, Cloudinary, or browser push infrastructure) is authorized to use this data for their own purposes — they are infrastructure providers only, storing and delivering what this project sends them.
+## Chrome Extension Storage
 
-## What this data is used for
+The Chrome extension uses `chrome.storage.local` for one specific purpose: **remembering that a Publisher has unlocked posting access on a particular computer**.
 
-- Showing you the right notices, filtered to what's currently active
-- Determining what you're allowed to do (view only, publish, or administer) based on your role
-- Delivering notifications to devices that have opted in
-- Letting the Admin see aggregate usage numbers (total users, total views, active-in-last-7-days) to understand whether the tool is actually being used
-- Letting a Publisher/Admin manage the notices they're responsible for
+When a Publisher, such as a university office or student society, enters their PIN to unlock posting access, the extension saves the following information locally:
 
-This data is **not** sold, rented, or shared with any third party for advertising, marketing, or any purpose beyond operating this project. There are no ad networks, analytics trackers, or data brokers involved anywhere in this project.
+- The Publisher's Roll Number.
+- A sign-in token issued by the UCP NoticeBoard server.
 
-## How long data is kept
+This allows the Publisher to create, edit, and delete notices without entering the PIN every time. The saved token is removed when the Publisher locks the device or signs out.
 
-- **Notices**: automatically hidden from the student-facing feed once their deadline passes (or, if no deadline was set, 7 days after posting) — but **not deleted**. A Publisher/Admin can still review, edit, or manually delete them from the management view at any time. Nothing is silently erased by the passage of time.
-- **Accounts** (Roll Number, Name, Role, usage stats): kept for as long as the service operates, since role assignments (e.g. Publisher access) need to persist across visits.
-- **Dismissed notices**: kept until the underlying notice itself expires or is deleted, at which point the dismissal record naturally has nothing left to refer to.
-- **Push subscriptions**: kept until you disable notifications, or automatically removed once detected as no longer valid.
+The extension uses its own `chrome.storage.local` storage rather than the UCP Student Portal page's storage. This helps prevent scripts running in the portal page from directly reading the saved Publisher token.
 
-## Your choices
+**Students who only read notices do not have Publisher credentials saved through this mechanism.** The extension does not use this storage for browsing history or unrelated personal information.
 
-- **Viewing notices** requires no action or consent step beyond visiting the dashboard/site — this is the intended zero-friction design.
-- **Hiding a notice** ("dismissing" it) is fully reversible from the "Hidden Notices" panel at any time.
-- **Notifications** are entirely opt-in and can be turned off at any time, on a per-device basis.
-- **Requesting removal of your account data**: contact the Admin (see below) and ask for your account to be removed. Since Roll Numbers are how the university itself identifies students, removing your record here doesn't affect anything on the actual UCP portal — only within this project.
+The locally saved token is an authentication credential. Anyone who gains access to an active, unlocked Publisher session or obtains the token may potentially be able to exercise the associated privileges until the token is invalidated or expires. Publishers should lock the extension or sign out when leaving a shared computer unattended.
 
-## Security measures in place
+## Push Notifications
 
-- All communication with the backend happens over HTTPS.
-- Access to Publisher/Admin capabilities requires a one-time secret link, not just knowledge of a Roll Number — Roll Numbers are visible on the portal and can be sequential/guessable between classmates, so they're never treated as sufficient proof of identity on their own.
-- A display name is only ever trusted at the exact moment an account is first created. After that, no request — from anyone — can silently change it; only an Admin can correct a name afterward. This specifically prevents someone from renaming another student just by guessing their Roll Number.
-- Session tokens are short-lived and re-issued fresh on every visit rather than cached indefinitely.
-- Rate limiting is in place to reduce the impact of abuse or misbehaving clients hitting the backend.
+Notifications are optional and are never enabled by default. If you opt in, your browser creates a push subscription consisting of technical identifiers, including an endpoint address and encryption keys, that allow notifications to reach that device.
 
-No system is perfectly secure, and this is a small student-run project without a dedicated security team — if you discover a vulnerability, please report it responsibly to the contact below rather than exploiting it.
+This is a standard browser capability. Delivery is routed through the browser vendor's push infrastructure, such as Google's infrastructure for Chrome.
 
-## Children's privacy
+- Notifications contain a notice's title and a short excerpt of its description, not additional account details.
+- You can disable notifications at any time using the same control used to enable them.
+- Invalid subscriptions are automatically removed when a notification delivery failure identifies them as invalid.
+- When a new notice is published, notifications are sent to subscribed devices. Notifications are not currently targeted by individual topic or category.
 
-This tool is intended for use by university students and staff and is not directed at children. It is not knowingly used to collect data from anyone under the age required to be enrolled at a university.
+## Where Your Data Is Stored
 
-## Changes to this policy
+- **Application data:** Accounts, notices, categories, dismissal records, and push subscriptions are stored in a PostgreSQL database hosted by Railway (railway.app), a third-party cloud hosting provider.
+- **Poster images:** Images uploaded by Publishers or Admins are hosted on Cloudinary (cloudinary.com), a third-party image hosting provider. These images may be publicly accessible through their hosted URLs.
+- **Chrome extension:** Publisher Roll Numbers and server-issued sign-in tokens are stored locally using `chrome.storage.local` for the purpose described above.
+- **PWA:** Your Roll Number is saved locally by the application so you do not need to enter it again on that device.
 
-If what this project collects or how it's used changes, this document will be updated accordingly, and the "Last updated" date at the top will change to reflect that.
+Other data may be temporarily processed or cached as required for normal browser and application operation.
+
+Railway, Cloudinary, and browser push infrastructure are used to operate the service. Their handling of information is subject to their respective service terms and privacy practices; UCP NoticeBoard does not authorize these providers to use application data for unrelated purposes.
+
+## What This Data Is Used For
+
+Your information is used to:
+
+- Display relevant notices that are currently active.
+- Determine your application permissions.
+- Deliver notifications to devices that have opted in.
+- Provide the Admin with aggregate usage statistics, including total users, total views, and users active within the last seven days.
+- Allow Publishers and Admins to manage the notices they are responsible for.
+- Maintain Publisher authorization across visits on a computer where the extension has been unlocked.
+
+Your data is **not sold, rented, or shared with third parties for advertising or marketing purposes**. UCP NoticeBoard does not intentionally use advertising networks, analytics trackers, or data brokers.
+
+## How Long Data Is Kept
+
+- **Notices:** A notice is automatically hidden from the student-facing feed after its deadline passes or, if no deadline is specified, seven days after publication. It is not automatically deleted. Authorized Publishers and Admins can review, edit, or manually delete notices through the management interface.
+- **Accounts:** Roll Numbers, names, roles, and usage statistics are retained while the service operates because role assignments and application functionality depend on them.
+- **Dismissed notices:** Records are retained until the underlying notice expires or is deleted, after which the dismissal record no longer has an active notice to reference.
+- **Push subscriptions:** Retained until notifications are disabled or the subscription is detected as invalid.
+- **Publisher credentials in extension storage:** The locally saved Roll Number and sign-in token are removed when the Publisher locks the device or signs out. Server-side token validity is subject to the server's authentication and expiration rules.
+
+## Your Choices
+
+- **Viewing notices:** You can view notices by visiting the dashboard or using the extension without a separate account-registration or consent process.
+- **Hiding notices:** You can reverse a dismissal through the Hidden Notices panel.
+- **Notifications:** You can enable or disable notifications on each subscribed device.
+- **Publisher access:** Publishers can lock the extension or sign out to remove their locally saved Publisher credentials.
+- **Requesting data removal:** Contact the project Admin to request removal of your account data. Removing your account from UCP NoticeBoard does not change your student record or account on the official UCP Student Portal.
+
+## Security Measures
+
+The project implements the following safeguards:
+
+- HTTPS is used for communication with the backend.
+- Publisher and Admin access requires a separate authorization mechanism rather than a Roll Number alone.
+- Display names are trusted only when an account is first created. Subsequent name changes require Admin intervention, preventing someone from renaming another student simply by guessing their Roll Number.
+- Session tokens are short-lived and reissued on visits rather than cached indefinitely.
+- Rate limiting helps reduce abuse and excessive requests to the backend.
+- Publisher credentials are stored in the extension's isolated `chrome.storage.local` storage rather than in the portal page's own storage.
+
+No system is perfectly secure. UCP NoticeBoard is a small, student-run project without a dedicated security team. If you discover a vulnerability, please report it responsibly through the contact information below rather than exploiting it.
+
+## Children's Privacy
+
+UCP NoticeBoard is intended for university students and staff and is not directed at children. The project does not knowingly seek to collect information from children below the age required for university enrollment.
+
+## Changes to This Policy
+
+If the information collected, the application's functionality, or the way data is used changes, this policy will be updated accordingly. The date at the top will indicate the latest revision.
 
 ## Contact
 
-For questions about this policy, to request your data be removed, to report a security concern, or to leave feedback:
+For questions about this policy, requests to remove account data, security reports, or feedback, contact:
 
 **Muhammad Saad Nazir**
-GitHub: [github.com/saad-nazir-0289](https://github.com/saad-nazir-0289)
+
+GitHub: https://github.com/saad-nazir-0289
