@@ -66,9 +66,9 @@ services:
       - "443:443"
     environment:
       API_DOMAIN: ${API_DOMAIN:?set in stack.env}
-      STAGING_API_DOMAIN: ${STAGING_API_DOMAIN:?set in stack.env}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/ucpnb/config/caddy:/etc/caddy/sites:ro
       - caddy-data:/data
       - caddy-config:/config
 

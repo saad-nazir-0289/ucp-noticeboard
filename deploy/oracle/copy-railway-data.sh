@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Copies the live Railway database into one environment here.
-#   copy-railway-data.sh staging      # rehearsal: real data on staging, to test with
-#   copy-railway-data.sh production   # the real move
+#   copy-railway-data.sh production --test   # a copy to test with (no notifications go out)
+#   copy-railway-data.sh production          # the real move, on release day
+#   copy-railway-data.sh staging             # into a separate staging API, if you have one
 # It asks for Railway's public database URL (Railway → Postgres → Variables
 # → DATABASE_PUBLIC_URL), so it never ends up in a file or your shell history.
 # The target database is backed up first, then replaced; the API then starts
@@ -10,14 +11,17 @@ set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/common.sh"
 
 main() {
-  local env=${1:-}
-  valid_env "$env" || die "usage: copy-railway-data.sh staging|production"
+  local env=${1:-} test=0
+  [ "${2:-}" = --test ] && test=1
+  [ "$env" = staging ] && test=1
+  valid_env "$env" || die "usage: copy-railway-data.sh production [--test] | staging"
   [ -f "$CONFIG_DIR/$env.env" ] || die "$env isn't set up yet ($CONFIG_DIR/$env.env is missing)."
   load_stack_env
   local db; db=$(database_for "$env")
 
-  if [ "$env" = production ]; then
-    echo "This REPLACES the production database here with Railway's."
+  if [ "$env" = production ] && [ "$test" = 0 ]; then
+    echo "This REPLACES the database here with Railway's, keeping notification"
+    echo "subscriptions: anything posted here afterwards reaches students' phones."
     read -rp "Type 'copy to production' to continue: " answer
     [ "$answer" = "copy to production" ] || die "cancelled"
   fi
@@ -50,13 +54,13 @@ main() {
   pg_tools pg_restore --host db --username postgres --no-owner --no-acl -d "$db" < "$DUMP" \
     || echo "pg_restore reported problems (above). Check the counts below before relying on this copy." >&2
 
-  if [ "$env" = staging ]; then
-    # Staging must never reach real students' phones, or keep their unlocked devices.
+  if [ "$test" = 1 ]; then
+    # A test copy must never reach real students' phones, or keep their unlocked devices.
     # (Railway's database may predate the unlocked-devices table.)
     pg_tools psql --host db --username postgres -d "$db" -v ON_ERROR_STOP=1 \
       -c 'DELETE FROM "PushSubscriptions";' \
       -c 'DO $$ BEGIN IF to_regclass($q$"DeviceSessions"$q$) IS NOT NULL THEN DELETE FROM "DeviceSessions"; END IF; END $$;' >/dev/null
-    echo "Removed the copied notification subscriptions and unlocked devices from staging."
+    echo "Test copy: removed the notification subscriptions and unlocked devices, so nothing reaches students."
   fi
 
   say "Starting the $env API on the copy"

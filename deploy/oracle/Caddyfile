@@ -1,11 +1,10 @@
-# HTTPS for both APIs; Caddy fetches and renews the certificates itself.
+# HTTPS for the API; Caddy fetches and renews the certificates itself.
 
 {$API_DOMAIN} {
 	encode gzip
 	reverse_proxy api-production:8080
 }
 
-{$STAGING_API_DOMAIN} {
-	encode gzip
-	reverse_proxy api-staging:8080
-}
+# Optional extra sites, such as staging (setup.sh --staging-domain writes
+# /opt/ucpnb/config/caddy/staging.caddy). None is fine.
+import /etc/caddy/sites/*.caddy

@@ -1,7 +1,7 @@
 # Staging environment
 
 > **Hosting has moved to Oracle Cloud.** Setting up the staging backend and
-> database is now covered by [`ORACLE.md`](./ORACLE.md) (section D). The
+> database is now covered by [`ORACLE.md`](./ORACLE.md): one server, tested with a copy of the real data, then promoted to production. The
 > Railway steps below are kept for reference only. The flow, the PWA's
 > Cloudflare Worker and the staging extension work the same way.
 

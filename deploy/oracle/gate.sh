@@ -15,6 +15,10 @@ main() {
       local env=${words[1]:-} sha=${words[2]:-}
       [[ "$env" =~ ^(production|staging)$ ]] || { echo "refused: unknown environment" >&2; exit 1; }
       [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || { echo "refused: not a commit id" >&2; exit 1; }
+      if [ ! -f "/opt/ucpnb/config/$env.env" ]; then
+        echo "$env isn't set up on this server; nothing to deploy."
+        exit 0
+      fi
       # The scripts themselves come from the commit being deployed.
       git -C "$repo" fetch --quiet --prune origin
       git -C "$repo" checkout --quiet --force --detach "$sha"

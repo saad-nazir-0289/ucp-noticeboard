@@ -1,5 +1,5 @@
 # Deploys to the Oracle server after CI passes: the staging branch to
-# staging, main to production. Off until these repository secrets exist
+# staging (if the server has one), main to production. Off until these repository secrets exist
 # (Settings → Secrets and variables → Actions), see docs/ORACLE.md:
 #   ORACLE_HOST     the server's address (IP or name)
 #   ORACLE_SSH_KEY  the private key setup.sh made (it can only deploy and back up)
