@@ -1,3 +1,5 @@
+import { confidentText } from "./ocrText";
+
 /**
  * Reads the text out of an image (a screenshot of an Instagram post, a
  * photo of a printed poster…) on the device itself — free, nothing is
@@ -18,8 +20,13 @@ export async function readTextFromImage(file: Blob, onProgress?: (fraction: numb
     },
   });
   try {
-    const { data } = await worker.recognize(file);
-    return data.text;
+    const { data } = await worker.recognize(file, {}, { text: true, blocks: true });
+    if (!data.blocks) return data.text;
+    return confidentText(
+      data.blocks.flatMap((block) =>
+        block.paragraphs.map((paragraph) => paragraph.lines.map((line) => line.words.map((word): [string, number] => [word.text, word.confidence])))
+      )
+    );
   } finally {
     await worker.terminate();
   }

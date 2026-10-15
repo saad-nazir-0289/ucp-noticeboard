@@ -40,13 +40,16 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   const rawText = [sharedText, input.url && !sharedText.includes(input.url) ? input.url : ""]
     .filter(Boolean)
     .join("\n");
-  const text = cleanFormatting(rawText).replace(URL_PATTERN, (url) => withoutTracking(trimUrl(url)) + url.slice(trimUrl(url).length));
+  const text = cleanFormatting(rawText)
+    // "Apply Now:" with its link on the line below: one line.
+    .replace(/:[ \t]*\n[ \t]*(?=https?:\/\/)/g, ": ")
+    .replace(URL_PATTERN, (url) => withoutTracking(trimUrl(url)) + url.slice(trimUrl(url).length));
   const subjectRaw = cleanFormatting(input.title ?? "").trim();
   // What apps put in a share when there's no real subject: "Saad shared a photo".
   const subject = isShareBoilerplate(subjectRaw) ? "" : subjectRaw;
 
   const urls = [...text.matchAll(URL_PATTERN)].map((m) => trimUrl(m[0]));
-  const linkUrl = urls[0];
+  const linkUrl = urls[0] ?? bareAddress(text);
   const isInstagram = urls.some((u) => /(^|\.)instagram\.com$/i.test(hostname(u)));
 
   // Text with the links taken out, to judge what's actually written.
@@ -78,12 +81,20 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
     title = calm ? `${lead}: ${calm}` : lead;
     bodyLines = [...posterLines, ...lines.slice(caption.index + 1)];
   } else if (caption) {
-    title = firstSentence(caption.text);
+    // "The countdown is on for innovators…" says nothing about what it is;
+    // "…the Prime Minister's SPARK AND ELEVATE Program…" later on does.
+    const opening = firstSentence(caption.text);
+    const name = programmeName(caption.text);
+    title = name && !opening.includes(name) ? name : opening;
     bodyLines = [caption.text, ...lines.slice(caption.index + 1)];
     // A short (or cut-off) caption leaves the details on the poster itself:
     // keep the poster's text too, after the caption.
+    // Only when the poster has real text on it, though: a few headline words
+    // and a date ("PRIME MINISTER'S", "SPARK", "26 October,") add nothing
+    // the caption doesn't already say.
     const posterLines = lines.slice(0, caption.index).filter((l) => !isHandle(l) && !l.toLowerCase().includes(caption.handle));
-    if (bodyLines.join(" ").length < 300 && posterLines.length > 0) {
+    const posterHasText = posterLines.filter((l) => l.length >= 30 || /^\p{L}[\p{L} ]{1,20}:\s*\S/u.test(l)).length >= 2;
+    if (bodyLines.join(" ").length < 300 && posterHasText) {
       bodyLines = [...bodyLines, "", ...posterLines];
     }
   } else if (namedTitle(prose) ?? announcedTitle(prose)) {
@@ -152,6 +163,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
  * the screen wrapped across lines.
  */
 export function cleanOcrText(value: string): string {
+  value = unwrapMarkdownLinks(value);
   const uiLine =
     /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago|threads|.{0,40}\band \d+ others? (joined|liked|follow).*|\W*in?s?t?ag[a-z]{3,5}\W*)$/i;
   let lines = value
@@ -171,6 +183,8 @@ export function cleanOcrText(value: string): string {
         .replace(/^[«»*]\s+/, "")
         .replace(/\s+[.,]$/, "")
         .replace(/\s+less$/i, "")
+        // A superscript "th" read as a quote: "October 16\", 2026".
+        .replace(/(\b\d{1,2})["”](?=,?\s+\d{4})/g, "$1")
     )
     // The status bar ("10:21 PM ⏰ 5G 87%") is always at the very top.
     .filter((line, index) => !(index < 3 && /^\d{1,2}[:.]\d{2}\s?([ap]m)?\b/i.test(line)));
@@ -187,6 +201,11 @@ export function cleanOcrText(value: string): string {
   if (caption) {
     const header = lines.findIndex((l, i) => i < caption.index && l.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === caption.handle));
     if (header >= 0) lines = lines.slice(header);
+  }
+  // The next post's header ("workspace_organizer") and everything after it.
+  if (caption) {
+    const next = lines.findIndex((l, i) => i > caption.index && isHandle(l) && l.replace(/^@/, "").toLowerCase() !== caption.handle);
+    if (next >= 0) lines = lines.slice(0, next);
   }
   // The header line itself is only the account name again.
   // (A clean "@account" line stays: findCaption recognises the caption by it.)
@@ -240,9 +259,22 @@ function isOcrNoise(line: string): boolean {
   return wordy / tokens.length <= 0.5;
 }
 
+/**
+ * "[https://forms…](https://forms…)": a link written the Markdown way,
+ * which some apps show as it is, wrapped across lines. → the address once
+ * (or "label address" when the label is words).
+ */
+function unwrapMarkdownLinks(value: string): string {
+  return value.replace(/\[([^\]\n]{1,200})\]\(\s*(https?:\/\/[^)\s]+(?:\s*\n\s*[^)\s]+)*)\s*\)/g, (_m, label: string, url: string) => {
+    const address = url.replace(/\s+/g, "");
+    const text = label.trim();
+    return /^https?:\/\//i.test(text) || text === address ? address : `${text} ${address}`;
+  });
+}
+
 /** Removes WhatsApp markup (*bold*, _italic_, ~strike~, ```mono```) and odd spacing. */
 export function cleanFormatting(value: string): string {
-  return value
+  return unwrapMarkdownLinks(value)
     .replace(/\r\n?/g, "\n")
     .replace(/```/g, "")
     .replace(/(^|[\s(])[*_~]+(?=\S)/g, "$1")
@@ -252,6 +284,12 @@ export function cleanFormatting(value: string): string {
     .replace(/\u00a0/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+/** "Apply now: segms.ignite.org.pk": a web address written without https://. */
+function bareAddress(text: string): string | undefined {
+  const m = text.match(/(?<![@\w.\/-])((?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|pk|io|gle|me|info|co|ly|tech)(?:\/[^\s,)]*)?)(?![\w@-])/i);
+  return m ? `https://${m[1].replace(/[.,;:!?]+$/, "")}` : undefined;
 }
 
 /** A bare account handle ("computing.society"), common at the top of a screenshot. */
@@ -321,6 +359,14 @@ function namedTitle(text: string): string | undefined {
   if (!m) return undefined;
   const name = shortenName(m[2].replace(/[.,;:!]+$/, "").trim());
   return m[1] ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}: ${name}` : name;
+}
+
+/** The name of a programme, festival, competition…: "Prime Minister's SPARK AND ELEVATE Program". */
+function programmeName(text: string): string | undefined {
+  const kinds = "Program|Programme|Fellowship|Scholarships?|Competition|Hackathon|Festival|Summit|Conference|Challenge|Awards?|Bootcamp|Olympiad|Expo|Fair|Championship|Cup|League";
+  const word = "\\p{Lu}[\\p{L}\\p{N}'’.-]*";
+  const m = text.match(new RegExp(`(?:${word}\\s+(?:(?:and|AND|of|for|&)\\s+)?)+(?:${kinds})\\b(?:\\s+20\\d\\d)?`, "u"));
+  return m && m[0].split(/\s+/).length >= 3 && m[0].length <= TITLE_MAX ? m[0] : undefined;
 }
 
 /** A long event name cut at its own break ("Main Title – Tagline" → "Main Title"). */

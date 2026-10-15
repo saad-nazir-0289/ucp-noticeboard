@@ -3,6 +3,8 @@ import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
 import { CATALOG_FOR_TESTS } from "@shared/categories";
 import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, INOVATIVEX_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, LIC_FINANCE_SESSION_OUTLOOK, MEDIA_CLUB_OCR, ORIC_NEWSLETTER_OUTLOOK } from "./shareSamples";
+import { IGNITE_SPARK_WORDS, SYMUFOLK_JOBS_WORDS } from "./ocrSamples";
+import { confidentText } from "./ocrText";
 
 const categories: Category[] = CATALOG_FOR_TESTS;
 /** A category's id by name. */
@@ -76,6 +78,44 @@ describe("real Instagram screenshots", () => {
     expect(parsed.description).not.toMatch(/5 days ago|Ministry of Ignite/);
     expect(parsed.categoryId).toBe(cat("Events"));
     expect(parsed.hints).toEqual([]);
+  });
+});
+
+describe("real Instagram screenshots, read word by word", () => {
+  // Shared on 15 October 2026, evening.
+  const read = (words: Parameters<typeof confidentText>[0]) =>
+    parseSharedContent({ text: cleanOcrText(confidentText(words)), fromScreenshot: true }, categories, new Date(2026, 9, 15, 19, 45));
+
+  it("drops the words the reader only guessed at from the artwork", () => {
+    const ignite = confidentText(IGNITE_SPARK_WORDS);
+    expect(ignite).not.toMatch(/mene|Ignites|Rise|ERs|fare a/);
+    expect(ignite).toContain("ignite.ntf The countdown is on");
+    const symufolk = confidentText(SYMUFOLK_JOBS_WORDS);
+    // The QR code panel beside the text.
+    expect(symufolk).not.toMatch(/Canto|Rao\)|Oreg|rE a|Diya|To I\b|R024/);
+    expect(symufolk).toContain("Bachelor's degree I a relevant field\n");
+    expect(symufolk).toContain("Salary Bracket: PKR 50,000-70,000/month\n");
+  });
+
+  it("Ignite SPARK: the programme's name as the title, caption only, address without https", () => {
+    const parsed = read(IGNITE_SPARK_WORDS);
+    expect(parsed.title).toBe("Prime Minister's SPARK AND ELEVATE Program");
+    expect(parsed.description).toBe(
+      "The countdown is on for innovators ready to take their ideas further. Submit your application for the Prime Minister's SPARK AND ELEVATE Program before the window closes on 26 October 2026.\nApply now: segms.ignite.org.pk"
+    );
+    expect(parsed.linkUrl).toBe("https://segms.ignite.org.pk");
+    expect(local(parsed.deadline)).toEqual([2026, 10, 26, 23, 59]);
+  });
+
+  it("Symufolk jobs: caption, then the poster's details; Markdown link unwrapped", () => {
+    const parsed = read(SYMUFOLK_JOBS_WORDS);
+    expect(parsed.title).toBe("SYMUFOLK is Hiring");
+    expect(parsed.linkUrl).toBe("https://forms.cloud.microsoft/r/DZx9bz8BaR");
+    expect(parsed.description).toContain("Apply Now: https://forms.cloud.microsoft/r/DZx9bz8BaR\n\nJOB OPPORTUNITIES");
+    expect(parsed.description).toContain("2. Receptionist (Female)");
+    expect(parsed.description).not.toMatch(/Canto|Diya|R024|\]\(/);
+    expect(local(parsed.deadline)).toEqual([2026, 10, 16, 23, 59]);
+    expect(parsed.categoryId).toBe(cat("Careers"));
   });
 });
 
