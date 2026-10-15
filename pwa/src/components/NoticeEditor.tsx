@@ -3,9 +3,10 @@ import { api, hasDeviceToken } from "@shared/api/client";
 import { uploadImage, ImageUploadError } from "@shared/api/imageUpload";
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@shared/noticeForm";
 import { optimizeImageUrl } from "@shared/imageOptimize";
+import { posterFrom } from "@shared/posterCrop";
 import type { AuthUser, Category, Notice } from "@shared/types";
 import { Icon } from "@shared/components/Icon";
-import { cleanOcrText, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
+import { cleanOcrText, isShareBoilerplate, parseSharedContent, type ParsedShare, type SharedContent } from "@shared/shareParser";
 import { readTextFromImage } from "../ocr";
 import { PinToggle } from "@shared/components/Tags";
 
@@ -40,6 +41,8 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
   const [title, setTitle] = useState(initial.title ?? "");
   const [description, setDescription] = useState(initial.description ?? "");
   const [imageUrl, setImageUrl] = useState(initial.imageUrl ?? "");
+  // A screenshot cropped to its poster keeps the original, to switch back.
+  const [uncropped, setUncropped] = useState<File | null>(null);
   const [linkUrl, setLinkUrl] = useState(initial.linkUrl ?? "");
   const [categoryId, setCategoryId] = useState<number | "">(initial.categoryId ?? "");
   const [deadline, setDeadline] = useState(toDatetimeLocalValue(initial.deadline ?? null));
@@ -56,6 +59,13 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
   const [pasteText, setPasteText] = useState("");
   const [filledFrom, setFilledFrom] = useState<string | null>(null);
   const handledShare = useRef(false);
+
+  /** A shared or picked screenshot: uploads just the poster when one is recognised in it. */
+  const uploadFromScreenshot = async (file: File) => {
+    const { poster, cropped } = await posterFrom(file);
+    setUncropped(cropped ? file : null);
+    await uploadPoster(poster);
+  };
 
   const uploadPoster = async (file: File) => {
     setUploading(true);
@@ -113,7 +123,7 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    void uploadPoster(file);
+    void uploadFromScreenshot(file);
     await fillFromImage(file);
   };
 
@@ -139,8 +149,14 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
     const parsed = parseSharedContent(shared.content, categories);
     applyParsed(parsed, "what you shared");
     if (shared.image) {
-      void uploadPoster(shared.image);
-      if ((shared.content.text ?? "").replace(/https?:\/\/\S+/g, "").trim().length < 40) {
+      void uploadFromScreenshot(shared.image);
+      const realText = (shared.content.text ?? "")
+        .split("\n")
+        .filter((l) => !isShareBoilerplate(l.trim()))
+        .join(" ")
+        .replace(/https?:\/\/\S+/g, "")
+        .trim();
+      if (realText.length < 40) {
         void fillFromImage(shared.image, shared.content);
       }
     }
@@ -283,11 +299,37 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
             {imageUrl ? (
               <div className="ucpnb-poster">
                 <img src={optimizeImageUrl(imageUrl, 700) ?? imageUrl} alt="" />
-                <button type="button" className="ucpnb-icon-btn ucpnb-poster-remove" onClick={() => setImageUrl("")} aria-label="Remove poster">
+                <button
+                  type="button"
+                  className="ucpnb-icon-btn ucpnb-poster-remove"
+                  onClick={() => {
+                    setImageUrl("");
+                    setUncropped(null);
+                  }}
+                  aria-label="Remove poster"
+                >
                   <Icon name="trash" size={18} />
                 </button>
               </div>
-            ) : (
+            ) : null}
+            {imageUrl && uncropped ? (
+              <p className="ucpnb-field-hint">
+                Cropped to the poster.{" "}
+                <button
+                  type="button"
+                  className="ucpnb-link-btn"
+                  disabled={uploading}
+                  onClick={() => {
+                    const original = uncropped;
+                    setUncropped(null);
+                    void uploadPoster(original);
+                  }}
+                >
+                  Use the whole image
+                </button>
+              </p>
+            ) : null}
+            {imageUrl ? null : (
               <label className={`ucpnb-dropzone${uploading ? " is-busy" : ""}`}>
                 {uploading ? <span className="ucpnb-spinner" /> : <Icon name="image" size={24} />}
                 <strong>{uploading ? "Uploading…" : "Add a poster"}</strong>

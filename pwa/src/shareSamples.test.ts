@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cleanOcrText, parseSharedContent } from "@shared/shareParser";
 import type { Category } from "@shared/types";
 import { CATALOG_FOR_TESTS } from "@shared/categories";
-import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, LIC_FINANCE_SESSION_OUTLOOK, MEDIA_CLUB_OCR, ORIC_NEWSLETTER_OUTLOOK } from "./shareSamples";
+import { AWS_BUILDERS_DAY_WHATSAPP, CSO_HIRING_OCR, INOVATIVEX_HIRING_OCR, FAKIHA_BDE_WHATSAPP, IGDA_WORKSHOP_OUTLOOK, IGNITE_SFF_OCR, LIC_FINANCE_SESSION_OUTLOOK, MEDIA_CLUB_OCR, ORIC_NEWSLETTER_OUTLOOK } from "./shareSamples";
 
 const categories: Category[] = CATALOG_FOR_TESTS;
 /** A category's id by name. */
@@ -34,6 +34,24 @@ describe("real Instagram screenshots", () => {
     expect(parsed.deadline).toBeUndefined();
     expect(parsed.hints.join(" ")).toMatch(/11 October.*passed/);
     expect(parsed.categoryId).toBe(cat("Careers"));
+  });
+
+  it("InovativeX hiring: cut-off caption, Threads banner, deadline on the line under its label", () => {
+    // Shared at 6:38 PM on 15 October, the last day to apply.
+    const parsed = parseSharedContent({ text: cleanOcrText(INOVATIVEX_HIRING_OCR), fromScreenshot: true }, categories, new Date(2026, 9, 15, 18, 38));
+    expect(parsed.title).toBe("Career Services Office: Hiring!");
+    expect(parsed.description).not.toMatch(/Instag|Threads|others joined|University of Ce/);
+    expect(parsed.description).toContain("Venue: D Building");
+    expect(parsed.description).toContain("1+ year of graphic design experience");
+    // "Oct 15th, 2026 - Till 12Am" is that night, not the event on the 16th.
+    expect(local(parsed.deadline)).toEqual([2026, 10, 15, 23, 59]);
+    expect(parsed.categoryId).toBe(cat("Careers"));
+  });
+
+  it("a share's own label is not the title", () => {
+    const parsed = parseSharedContent({ title: "Saad shared a photo", text: "Saad shared a photo\nRegistrations for the Spring Hackathon close on 20 Oct." }, categories, NOW);
+    expect(parsed.title).not.toMatch(/shared a photo/i);
+    expect(parsed.description).not.toMatch(/shared a photo/i);
   });
 
   it("Media Club: caption found without an account header; weekday times don't become the deadline", () => {

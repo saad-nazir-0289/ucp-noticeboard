@@ -888,7 +888,20 @@ select.ucpnb-input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
+}
+
+/* After the description, below a line: adding to a calendar comes last. */
+.ucpnb-detail-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--nb-border);
+}
+
+.ucpnb-detail-calendar > span {
+  font: 500 var(--nb-text-sm) / 1.4 var(--nb-font);
+  color: var(--nb-text-3);
 }
 
 .ucpnb-detail-source > div > span,
@@ -1054,3 +1067,21 @@ select.ucpnb-input {
 .ucpnb-tone-text-6 { color: var(--nb-tone-6-fg); }
 .ucpnb-tone-text-7 { color: var(--nb-tone-7-fg); }
 .ucpnb-tone-text-8 { color: var(--nb-tone-8-fg); }
+
+/* A button that reads as a link inside a sentence ("Use the whole image"). */
+.ucpnb-link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--nb-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.ucpnb-link-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

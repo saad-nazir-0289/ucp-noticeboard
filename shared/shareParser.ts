@@ -36,11 +36,14 @@ const HAS_URL = /\bhttps?:\/\//i;
 const TITLE_MAX = 90;
 
 export function parseSharedContent(input: SharedContent, categories: Category[], now: Date = new Date()): ParsedShare {
-  const rawText = [input.text, input.url && !input.text?.includes(input.url) ? input.url : ""]
+  const sharedText = (input.text ?? "").split("\n").filter((l) => !isShareBoilerplate(l.trim())).join("\n");
+  const rawText = [sharedText, input.url && !sharedText.includes(input.url) ? input.url : ""]
     .filter(Boolean)
     .join("\n");
   const text = cleanFormatting(rawText).replace(URL_PATTERN, (url) => withoutTracking(trimUrl(url)) + url.slice(trimUrl(url).length));
-  const subject = cleanFormatting(input.title ?? "").trim();
+  const subjectRaw = cleanFormatting(input.title ?? "").trim();
+  // What apps put in a share when there's no real subject: "Saad shared a photo".
+  const subject = isShareBoilerplate(subjectRaw) ? "" : subjectRaw;
 
   const urls = [...text.matchAll(URL_PATTERN)].map((m) => trimUrl(m[0]));
   const linkUrl = urls[0];
@@ -64,6 +67,16 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   const caption = findCaption(lines, input.fromScreenshot ?? false);
   if (subject && !HAS_URL.test(subject)) {
     title = stripEmailPrefix(subject);
+  } else if (caption && /…$/.test(caption.text) && !/[.!?]\s/.test(caption.text)) {
+    // Instagram cut the caption off mid-sentence ("The Career Services
+    // Office, University of Ce…"): its first phrase names who posted, the
+    // poster's headline ("HIRING!") says what it is.
+    const posterLines = lines.slice(0, caption.index);
+    const headline = posterLines.find((l) => /^[^\p{Ll}]*\p{Lu}{4,}[^\p{Ll}]*$/u.test(l) && l.split(" ").length <= 5);
+    const lead = caption.text.split(/[,…]/)[0].replace(/^the\s+/i, "").trim();
+    const calm = headline && /\p{Lu}{4,}/u.test(headline) ? headline[0] + headline.slice(1).toLowerCase() : headline;
+    title = calm ? `${lead}: ${calm}` : lead;
+    bodyLines = [...posterLines, ...lines.slice(caption.index + 1)];
   } else if (caption) {
     title = firstSentence(caption.text);
     bodyLines = [caption.text, ...lines.slice(caption.index + 1)];
@@ -140,7 +153,7 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
  */
 export function cleanOcrText(value: string): string {
   const uiLine =
-    /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago)$/i;
+    /^(\d{1,2}[:.]\d{2}(\s?[ap]m)?|\d{1,3}%|liked by\b.*|view (all )?\d*\s*comments?|\d+\s*(likes?|comments?|shares?|views?)|follow(ing)?|message|reply|translate|see translation|sponsored|suggested for you|add a comment.*|more|less|original audio.*|\d+\s*[smhdw]( ago)?|\d+\s+(seconds?|minutes?|hours?|days?|weeks?)\s+ago|threads|.{0,40}\band \d+ others? (joined|liked|follow).*|\W*in?s?t?ag[a-z]{3,5}\W*)$/i;
   let lines = value
     .split(/\r?\n/)
     .map((line) =>
@@ -154,19 +167,30 @@ export function cleanOcrText(value: string): string {
         .replace(/^(?:[@&]|[Il])\s+(?=\p{Lu}\p{Ll}+:)/u, "")
         // Instagram's "… more" / "less" for long captions.
         .replace(/(\.{3}|…)\s*more$/i, "…")
+        // Bullets read as « or *, and a stray dot after a label: "Application Deadline: .".
+        .replace(/^[«»*]\s+/, "")
+        .replace(/\s+[.,]$/, "")
         .replace(/\s+less$/i, "")
     )
     // The status bar ("10:21 PM ⏰ 5G 87%") is always at the very top.
-    .filter((line, index) => !(index < 3 && /^\d{1,2}[:.]\d{2}\s?([ap]m)?\b/i.test(line)))
-    .filter((line) => line.replace(/[^\p{L}]/gu, "").length >= 3 && !uiLine.test(line) && !isOcrNoise(line));
+    .filter((line, index) => !(index < 3 && /^\d{1,2}[:.]\d{2}\s?([ap]m)?\b/i.test(line)));
+  // The post's account name, read off the caption ("ucpcso The Career…"):
+  // its header line ("S ucpcso j—") is kept through the noise filter below,
+  // so everything scrolled past above it can be cut.
+  const handle = lines.map(captionStart).find(Boolean)?.handle;
+  const isHeaderLine = (line: string) => handle !== undefined && line.length <= handle.length + 12 && line.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === handle);
+  lines = lines.filter((line) => isHeaderLine(line) || (line.replace(/[^\p{L}]/gu, "").length >= 3 && !uiLine.test(line) && !isOcrNoise(line)));
 
   // Everything above the post's header line (its account name) belongs to
   // whatever was scrolled past.
   const caption = findCaption(lines, true);
   if (caption) {
     const header = lines.findIndex((l, i) => i < caption.index && l.toLowerCase().split(" ").some((w) => w.replace(/^@/, "") === caption.handle));
-    if (header > 0) lines = lines.slice(header);
+    if (header >= 0) lines = lines.slice(header);
   }
+  // The header line itself is only the account name again.
+  // (A clean "@account" line stays: findCaption recognises the caption by it.)
+  lines = lines.filter((line) => !isHeaderLine(line) || isHandle(line) || captionStart(line) !== undefined);
 
   // Rejoin sentences the screen wrapped across lines: a line that doesn't
   // end a sentence followed by one starting in lower case — or, in the
@@ -185,7 +209,8 @@ export function cleanOcrText(value: string): string {
       const inCaption = index > captionAt;
       const wrapped =
         previous && (/^[\p{Ll}]/u.test(line) || (inCaption && !labelled && previous.length >= fullWidth && previous.length >= 30));
-      if (previous && wrapped && !/[.!?:]$/.test(previous) && !startsWithHandle && !isHandle(previous)) {
+      // Nothing continues a caption Instagram cut off ("… more").
+      if (previous && wrapped && !/[.!?:…]$/.test(previous) && !startsWithHandle && !isHandle(previous)) {
         joined[joined.length - 1] = `${previous} ${line}`;
       } else {
         joined.push(line);
@@ -263,6 +288,15 @@ function findCaption(lines: string[], fromScreenshot: boolean): { text: string; 
 function captionStart(line: string): { text: string; handle: string } | undefined {
   const m = line.match(/^@?([a-z][a-z0-9._]{4,29}) (\p{Lu}[^ ]*(?: [^ ]+){2,})$/u);
   return m && !SHORT_WORDS.has(m[1]) ? { handle: m[1], text: m[2] } : undefined;
+}
+
+/** "Saad shared a photo", "Photo from Ali", "WhatsApp Image 2026-10-15 at 6.35 PM": a share's label, not its content. */
+export function isShareBoilerplate(line: string): boolean {
+  return (
+    /^.{1,40}\s(shared|sent|forwarded)\s(an?\s)?(photo|image|picture|video|file|post|reel|story|link|document)s?\.?$/i.test(line) ||
+    /^(photo|image|picture|video|file|document)s?\s(from|by)\s.{1,40}$/i.test(line) ||
+    /^(whatsapp\s(image|video)|img[-_]\d|screenshot[_ -]\d|pxl_\d|image\s\(\d+\))/i.test(line)
+  );
 }
 
 /** "Dear Students,", "Hello everyone" — how a message opens, never its title. */
@@ -430,7 +464,7 @@ function pickDeadline(candidates: Candidate[], text: string, now: Date): Date | 
   const upcoming = candidates.filter((c) => c.date.getTime() > now.getTime() && (c.explicit || !anyExplicit));
   if (upcoming.length === 0) return undefined;
 
-  const onDeadlineLine = upcoming.filter((c) => DEADLINE_WORDS.test(lineAround(text, c.index)));
+  const onDeadlineLine = upcoming.filter((c) => DEADLINE_WORDS.test(lineAround(text, c.index)) || deadlineLabelAbove(text, c.index));
   const pool = onDeadlineLine.length > 0 ? onDeadlineLine : upcoming;
   return pool.sort((a, b) => a.date.getTime() - b.date.getTime())[0].date;
 }
@@ -440,8 +474,12 @@ function scanDates(text: string, now: Date): Candidate[] {
   const candidates: Candidate[] = [];
   const add = (date: Date | undefined, index: number, matchLength: number, explicit = true) => {
     if (!date || Number.isNaN(date.getTime())) return;
-    const time = findTime(timeSnippet(text, index, matchLength));
-    if (time) date.setHours(time.hours, time.minutes, 0, 0);
+    const snippet = timeSnippet(text, index, matchLength);
+    const time = findTime(snippet);
+    // "Oct 15 - till 12 AM" means until that night's midnight, not the
+    // midnight that started the day.
+    const tillMidnight = /\b(till|until|untill|upto|up to|by)\s*12(?::?00)?\s*a\.?m\b|\b(till|until)\s+midnight\b/i.test(snippet);
+    if (time && !tillMidnight) date.setHours(time.hours, time.minutes, 0, 0);
     else date.setHours(23, 59, 0, 0);
     candidates.push({ date, index, hasTime: Boolean(time), explicit });
   };
@@ -517,6 +555,14 @@ function findTime(snippet: string): { hours: number; minutes: number } | undefin
   const twentyFour = snippet.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
   if (twentyFour) return { hours: Number(twentyFour[1]), minutes: Number(twentyFour[2]) };
   return undefined;
+}
+
+/** The line above is a deadline label on its own: "Application Deadline:" (the date is on the next line). */
+function deadlineLabelAbove(text: string, index: number): boolean {
+  const lineStart = text.lastIndexOf("\n", index - 1);
+  if (lineStart <= 0) return false;
+  const above = text.slice(text.lastIndexOf("\n", lineStart - 1) + 1, lineStart).replace(/[\s.]+$/, "");
+  return above.length <= 40 && /:$/.test(above) && DEADLINE_WORDS.test(above);
 }
 
 function lineAround(text: string, index: number): string {

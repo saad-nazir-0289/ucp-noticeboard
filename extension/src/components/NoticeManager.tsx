@@ -9,6 +9,7 @@ import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
 import { parseSharedContent } from "@shared/shareParser";
+import { posterFrom } from "@shared/posterCrop";
 
 interface Props {
   user: AuthUser;
@@ -38,6 +39,8 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [message, setMessage] = useState<string | null>(null);
   // What pasting filled in, shown above the form so it gets a quick check.
   const [pasteNote, setPasteNote] = useState<string[] | null>(null);
+  // A pasted screenshot cropped to its poster keeps the original, to switch back.
+  const [uncropped, setUncropped] = useState<File | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -70,6 +73,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     setIsPinned(false);
     setError(null);
     setPasteNote(null);
+    setUncropped(null);
   };
 
   const startCreate = () => {
@@ -126,7 +130,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
       notes.push("Filled in from what you pasted. Check it before posting.", ...parsed.hints);
     }
     if (image) {
-      void uploadPoster(image);
+      void uploadFromScreenshot(image);
       notes.push(text ? "The image is the poster." : "Poster added. Paste the message text too, and the rest fills in.");
     }
     setPasteNote(notes);
@@ -136,7 +140,14 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     const image = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
     if (!image) return;
     e.preventDefault();
-    void uploadPoster(image);
+    void uploadFromScreenshot(image);
+  };
+
+  /** A pasted or dropped screenshot: uploads just the poster when one is recognised in it. */
+  const uploadFromScreenshot = async (file: File) => {
+    const { poster, cropped } = await posterFrom(file);
+    setUncropped(cropped ? file : null);
+    await uploadPoster(poster);
   };
 
   const uploadPoster = async (file: File) => {
@@ -307,6 +318,23 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
                 </label>
               </div>
               {imageUrl && <img src={optimizeImageUrl(imageUrl, 500) ?? imageUrl} alt="" className="ucpnb-upload-preview" />}
+              {imageUrl && uncropped && (
+                <span className="ucpnb-field-hint">
+                  Cropped to the poster.{" "}
+                  <button
+                    type="button"
+                    className="ucpnb-link-btn"
+                    disabled={uploading}
+                    onClick={() => {
+                      const original = uncropped;
+                      setUncropped(null);
+                      void uploadPoster(original);
+                    }}
+                  >
+                    Use the whole image
+                  </button>
+                </span>
+              )}
             </div>
             <label className="ucpnb-field ucpnb-span-2">
               <span className="ucpnb-field-label">Link</span>
