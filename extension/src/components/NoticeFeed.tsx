@@ -33,6 +33,9 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
+  // Whether there's more to scroll to on each side: shows that side's
+  // arrow and soft edge (the scrollbar itself is hidden).
+  const [edges, setEdges] = useState({ prev: false, next: false });
 
   useEffect(() => {
     // Already have data from the login bootstrap — nothing to fetch on
@@ -116,6 +119,20 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
     if (el) el.scrollBy({ left: direction * el.clientWidth * 0.8, behavior: "smooth" });
   };
 
+  const updateEdges = () => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const prev = el.scrollLeft > 4;
+    const next = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    setEdges((e) => (e.prev === prev && e.next === next ? e : { prev, next }));
+  };
+
+  useEffect(() => {
+    updateEdges();
+    window.addEventListener("resize", updateEdges);
+    return () => window.removeEventListener("resize", updateEdges);
+  }, [filtered, loading]);
+
   if (loading) {
     return (
       <div className="ucpnb-carousel">
@@ -186,18 +203,22 @@ export function NoticeFeed({ token, initialNotices, initialCategories }: Props) 
       {filtered.length === 0 ? (
         empty
       ) : (
-        <div className="ucpnb-carousel-wrap">
-          <button className="ucpnb-icon-btn ucpnb-carousel-nav is-prev" onClick={() => scrollCarousel(-1)} aria-label="Previous notices">
-            <Icon name="chevronLeft" />
-          </button>
-          <div className="ucpnb-carousel" ref={carouselRef}>
+        <div className={`ucpnb-carousel-wrap${edges.prev ? " can-prev" : ""}${edges.next ? " can-next" : ""}`}>
+          {edges.prev && (
+            <button className="ucpnb-icon-btn ucpnb-carousel-nav is-prev" onClick={() => scrollCarousel(-1)} aria-label="Previous notices">
+              <Icon name="chevronLeft" />
+            </button>
+          )}
+          <div className="ucpnb-carousel" ref={carouselRef} onScroll={updateEdges}>
             {filtered.map((notice) => (
               <NoticeCard key={notice.id} notice={notice} onView={handleView} onDismiss={handleDismiss} imageWidth={CARD_IMAGE_WIDTH} />
             ))}
           </div>
-          <button className="ucpnb-icon-btn ucpnb-carousel-nav is-next" onClick={() => scrollCarousel(1)} aria-label="More notices">
-            <Icon name="chevronRight" />
-          </button>
+          {edges.next && (
+            <button className="ucpnb-icon-btn ucpnb-carousel-nav is-next" onClick={() => scrollCarousel(1)} aria-label="More notices">
+              <Icon name="chevronRight" />
+            </button>
+          )}
         </div>
       )}
 

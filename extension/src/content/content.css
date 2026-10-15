@@ -178,9 +178,28 @@
   padding: 4px 22px 10px;
   scroll-snap-type: x mandatory;
   scroll-padding: 0 22px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--nb-border-strong) transparent;
+  scrollbar-width: none;
   overscroll-behavior-x: contain;
+}
+
+.ucpnb-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* A soft fade on a side with more notices, instead of a scrollbar. */
+.ucpnb-carousel-wrap.can-next .ucpnb-carousel {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent);
+}
+
+.ucpnb-carousel-wrap.can-prev .ucpnb-carousel {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 64px);
+  mask-image: linear-gradient(to right, transparent, #000 64px);
+}
+
+.ucpnb-carousel-wrap.can-prev.can-next .ucpnb-carousel {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 64px, #000 calc(100% - 64px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 64px, #000 calc(100% - 64px), transparent);
 }
 
 .ucpnb-carousel > .ucpnb-card {
