@@ -156,6 +156,10 @@ Do it in one sitting.
    project. The test website can be deleted too (and removed from
    `Cors__AllowedOrigins`).
 
+Before step 3, if `Pwa__BaseUrl` in `production.env` still points at the
+test website (set while testing, so shared links open it), put it back to
+`https://ucp-noticeboard.msndev.workers.dev`.
+
 **If something goes wrong** before step 7: revert the merge on GitHub (the
 PWA goes back to Railway by itself) and don't publish the extension;
 Railway still has everything.
