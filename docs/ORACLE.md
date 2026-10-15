@@ -102,6 +102,13 @@ way the production one was made):
 - build command: `cd pwa && npm ci && npm run build:staging`
 - output / assets directory: `pwa/dist-staging`
 - build variable: `VITE_API_BASE_URL` = `https://ucpnb-api.duckdns.org`
+- Path (root directory): `/pwa`
+
+Cloudflare's create form doesn't ask for a branch, so the first build runs
+on `main` and fails with *Missing script: "build:staging"*; that's
+harmless. Set Settings → Build → Branch control → production branch to
+`staging`. "Retry build" repeats the same `main` commit, so the next push
+to `staging` is what produces the first working build.
 
 Note its address (e.g. `https://ucp-noticeboard-staging.<you>.workers.dev`)
 and add it to the end of `Cors__AllowedOrigins` in `production.env`
