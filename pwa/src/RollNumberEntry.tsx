@@ -3,14 +3,19 @@ import { Icon } from "@shared/components/Icon";
 
 interface Props {
   onSubmit: (rollNumber: string, name: string, university: string, department: string) => void;
+  /** Why the server turned the last roll number down. */
+  serverError?: string | null;
 }
 
-export function RollNumberEntry({ onSubmit }: Props) {
+/** The server's own check (AuthController): campus letter(s), batch, programme, number. */
+const ROLL_NUMBER_FORMAT = /^[A-Za-z]{1,2}\d[A-Za-z]\d{2}[A-Za-z]{2,8}\d{3,6}$/;
+
+export function RollNumberEntry({ onSubmit, serverError }: Props) {
   const [rollNumber, setRollNumber] = useState("");
   const [name, setName] = useState("");
   const [university, setUniversity] = useState("");
   const [department, setDepartment] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(serverError ?? null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +24,11 @@ export function RollNumberEntry({ onSubmit }: Props) {
       setError("Please enter your Roll Number or Student ID.");
       return;
     }
-    onSubmit(trimmedRollNumber, name.trim(), university.trim(), department.trim());
+    if (!ROLL_NUMBER_FORMAT.test(trimmedRollNumber.replace(/[\s-]/g, ""))) {
+      setError(`"${trimmedRollNumber}" isn't a valid Roll Number. It should look like L1F23BSCS0285, with no spaces.`);
+      return;
+    }
+    onSubmit(trimmedRollNumber.replace(/[\s-]/g, "").toUpperCase(), name.trim(), university.trim(), department.trim());
   };
 
   return (

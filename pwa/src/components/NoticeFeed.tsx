@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBackToClose } from "../backLayers";
+import { coachDone, coachDue, coachShown } from "../coach";
 import { useReveal } from "../reveal";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
@@ -26,7 +27,6 @@ interface Props {
 export type ViewMode = "card" | "list";
 const VIEW_MODE_KEY = "ucpnb_viewMode";
 
-const SWIPE_DEMO_KEY = "ucpnb_swipeDemoSeen";
 
 /**
  * The view someone last picked; until they pick one, phones get the list
@@ -57,12 +57,12 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
 
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState<number | "all">("all");
-  // First time in the list: the top row slides aside once to show that
-  // swiping right archives a notice.
-  const [swipeDemoSeen, setSwipeDemoSeen] = useState(() => localStorage.getItem(SWIPE_DEMO_KEY) === "1");
-  const markSwipeDemoSeen = () => {
-    localStorage.setItem(SWIPE_DEMO_KEY, "1");
-    setSwipeDemoSeen(true);
+  // The first few times the app is opened, the top row slides aside to
+  // show that swiping right archives a notice (see coach.ts).
+  const [swipeDemoDue, setSwipeDemoDue] = useState(() => coachDue("archive"));
+  const swipeDemoPlayed = () => {
+    coachShown("archive");
+    setSwipeDemoDue(false);
   };
 
   const [showArchive, setShowArchive] = useState(false);
@@ -88,8 +88,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
           setCategories(categoriesResult);
         }
       })
-      .catch(() => {
-        if (!cancelled) setError("Could not load notices.");
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -134,6 +134,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   };
 
   const handleDismiss = (notice: Notice) => {
+    coachDone("archive"); // they know how now
     setNotices((prev) => prev.filter((n) => n.id !== notice.id));
     api.dismissNotice(notice.id, token).catch(() => {
       /* if this fails, it just reappears on the next reload — not critical */
@@ -165,7 +166,7 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   if (error) {
     return (
       <EmptyState icon="inbox" title="Couldn't load notices">
-        Check your connection and pull to refresh.
+        {error}
       </EmptyState>
     );
   }
@@ -263,11 +264,8 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
               key={notice.id}
               notice={notice}
               onView={handleView}
-              onDismiss={(n) => {
-                markSwipeDemoSeen();
-                handleDismiss(n);
-              }}
-              onSwipeDemoDone={i === 0 && !swipeDemoSeen ? markSwipeDemoSeen : undefined}
+              onDismiss={handleDismiss}
+              onSwipeDemoDone={i === 0 && swipeDemoDue ? swipeDemoPlayed : undefined}
             />
           ))}
         </div>

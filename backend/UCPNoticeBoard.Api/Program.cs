@@ -122,6 +122,11 @@ builder.Services.AddResponseCompression(options =>
     options.EnableForHttps = true;
 });
 
+// Limits are per IP address, and a whole campus Wi-Fi (or a mobile
+// network's carrier-grade NAT) can reach the server from one address:
+// they're sized for hundreds of students behind one address, not one
+// person. Guessing a PIN is stopped by the per-account lockout in
+// PinService, not by these.
 builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(context =>
@@ -129,7 +134,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 60,
+                PermitLimit = 1200,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -144,7 +149,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 10,
+                PermitLimit = 300,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -162,7 +167,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
             {
-                PermitLimit = 20,
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));

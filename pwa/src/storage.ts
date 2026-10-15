@@ -1,3 +1,5 @@
+import type { AuthUser, Category, Notice } from "@shared/types";
+
 const ROLL_NUMBER_KEY = "ucpnb_rollNumber";
 const NAME_KEY = "ucpnb_name";
 const UNIVERSITY_KEY = "ucpnb_university";
@@ -46,4 +48,38 @@ export function clearIdentity(): void {
   localStorage.removeItem(NAME_KEY);
   localStorage.removeItem(UNIVERSITY_KEY);
   localStorage.removeItem(DEPARTMENT_KEY);
+}
+
+const LAST_FEED_KEY = "ucpnb_lastFeed";
+
+/** The last notices this device loaded, so the app still has something to show offline. */
+export interface SavedFeed {
+  rollNumber: string;
+  user: Omit<AuthUser, "token">;
+  logoUrl: string | null;
+  notices: Notice[];
+  categories: Category[];
+  savedAt: string;
+}
+
+export function saveLastFeed(feed: Omit<SavedFeed, "savedAt">): void {
+  try {
+    localStorage.setItem(LAST_FEED_KEY, JSON.stringify({ ...feed, savedAt: new Date().toISOString() }));
+  } catch {
+    // Storage full or blocked: offline reading just isn't available then.
+  }
+}
+
+/** The saved notices, only if they were saved for this roll number. */
+export function getLastFeed(rollNumber: string): SavedFeed | null {
+  try {
+    const feed = JSON.parse(localStorage.getItem(LAST_FEED_KEY) ?? "null") as SavedFeed | null;
+    return feed && feed.rollNumber.toUpperCase() === rollNumber.toUpperCase() ? feed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearLastFeed(): void {
+  localStorage.removeItem(LAST_FEED_KEY);
 }
