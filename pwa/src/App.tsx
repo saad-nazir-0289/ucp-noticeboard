@@ -20,6 +20,7 @@ import { ManageNotices } from "./components/ManageNotices";
 import { UnlockPrompt } from "./components/UnlockPrompt";
 import { InstallBanner } from "./components/InstallBanner";
 import { getThemePreference, setThemePreference, type ThemePreference } from "./theme";
+import { useBackToClose } from "./backLayers";
 import { Icon } from "@shared/components/Icon";
 import { Avatar } from "@shared/components/Tags";
 import { EmptyState } from "@shared/components/EmptyState";
@@ -62,6 +63,12 @@ export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showAccount, setShowAccount] = useState(false);
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getThemePreference);
+  // Back gesture closes these instead of leaving the app.
+  useBackToClose(showAccount, () => setShowAccount(false));
+  useBackToClose(showCategoryPrefs, () => setShowCategoryPrefs(false));
+  useBackToClose(showUnlock, () => setShowUnlock(false));
+  useBackToClose(showManage, () => setShowManage(false));
+  useBackToClose(editor !== null, () => setEditor(null));
   const [myLogoUrl, setMyLogoUrl] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
 
@@ -453,9 +460,8 @@ export function App() {
       </main>
 
       {canPublish && (
-        <button className="ucpnb-fab" onClick={() => openEditor()} aria-label="New notice">
-          <Icon name="plus" size={22} strokeWidth={2.4} />
-          <span>New notice</span>
+        <button className="ucpnb-fab" onClick={() => openEditor()} aria-label="New notice" title="New notice">
+          <Icon name="plus" size={26} strokeWidth={2.4} />
         </button>
       )}
 

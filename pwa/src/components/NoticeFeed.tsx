@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useBackToClose } from "../backLayers";
 import { api } from "@shared/api/client";
 import type { Category, Notice } from "@shared/types";
 import { NoticeCard } from "@shared/components/NoticeCard";
@@ -53,6 +54,9 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   };
 
   const [showArchive, setShowArchive] = useState(false);
+  // Back gesture closes these instead of leaving the app.
+  useBackToClose(selected !== null, () => setSelected(null));
+  useBackToClose(showArchive, () => setShowArchive(false));
   const [dismissedNotices, setDismissedNotices] = useState<Notice[]>([]);
   const [dismissedLoading, setDismissedLoading] = useState(false);
 

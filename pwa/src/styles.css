@@ -435,9 +435,10 @@ textarea {
   z-index: 45;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  height: 54px;
-  padding: 0 22px 0 18px;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
   border: none;
   border-radius: var(--nb-r-full);
   background: var(--nb-primary);
