@@ -18,6 +18,30 @@ public class DeadlineReminderService : BackgroundService
 {
     private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(15);
     private static readonly TimeSpan ReminderWindow = TimeSpan.FromHours(24);
+    /// <summary>
+    /// The "new notice" push comes first and stays on its own for at least
+    /// this long: the reminder replaces it on the phone (same notification),
+    /// so one sent minutes after posting would hide the notice itself.
+    /// </summary>
+    public static readonly TimeSpan QuietAfterPosting = TimeSpan.FromHours(6);
+
+    /// <summary>
+    /// Due once the deadline is less than a day away, but never within
+    /// <see cref="QuietAfterPosting"/> of the notice going up. A notice posted
+    /// with only a few hours left gets just its "new notice" push.
+    /// </summary>
+    public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now) =>
+        deadline > now && deadline - now <= ReminderWindow && now - createdAt >= QuietAfterPosting;
+
+    /// <summary>"Less than a day left.", "About 5 hours left.", "Less than an hour left."</summary>
+    public static string ReminderBody(DateTime deadline, DateTime now)
+    {
+        var left = deadline - now;
+        if (left > TimeSpan.FromHours(20)) return "Less than a day left.";
+        if (left < TimeSpan.FromHours(1)) return "Less than an hour left.";
+        var hours = (int)Math.Round(left.TotalHours);
+        return hours == 1 ? "About an hour left." : $"About {hours} hours left.";
+    }
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<DeadlineReminderService> _logger;
@@ -61,12 +85,14 @@ public class DeadlineReminderService : BackgroundService
         var windowEnd = now + ReminderWindow;
 
         // Notices whose deadline falls within the next 24 hours, haven't
-        // already been reminded about, and haven't passed yet (a deadline
-        // that's already gone doesn't need a "24 hours left" push).
+        // already been reminded about, haven't passed yet, and went up at
+        // least QuietAfterPosting ago (the same rule as IsReminderDue).
+        var quietUntil = now - QuietAfterPosting;
         var dueNotices = await db.Notices
             .Where(n => n.Deadline != null
                         && n.Deadline > now
                         && n.Deadline <= windowEnd
+                        && n.CreatedAt <= quietUntil
                         && !n.ReminderSent)
             .ToListAsync(cancellationToken);
 
@@ -76,7 +102,7 @@ public class DeadlineReminderService : BackgroundService
             {
                 await pushService.NotifyAllAsync(
                     $"Deadline soon: {notice.Title}",
-                    "Less than 24 hours left.",
+                    ReminderBody(notice.Deadline!.Value, now),
                     url: Controllers.NoticesController.NoticeLink(notice.Id),
                     imageUrl: notice.ImageUrl,
                     categoryId: notice.CategoryId

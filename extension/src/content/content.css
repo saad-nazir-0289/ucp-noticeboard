@@ -640,6 +640,9 @@ select.ucpnb-input-sm {
 
 .ucpnb-brand-text strong {
   font-size: var(--nb-text-md);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--nb-text);
 }
 
 .ucpnb-panel-root .ucpnb-tabs {

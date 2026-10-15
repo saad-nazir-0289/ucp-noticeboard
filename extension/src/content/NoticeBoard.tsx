@@ -272,9 +272,6 @@ function PanelHeader({ children }: { children?: React.ReactNode }) {
   return (
     <div className="ucpnb-panel-header">
       <div className="ucpnb-brand">
-        <span className="ucpnb-logo">
-          <Icon name="megaphone" size={17} />
-        </span>
         <div className="ucpnb-brand-text">
           <strong>NoticeBoard</strong>
         </div>
