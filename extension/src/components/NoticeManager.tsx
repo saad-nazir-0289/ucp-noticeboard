@@ -8,6 +8,7 @@ import { timeAgo } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
+import { parseSharedContent } from "@shared/shareParser";
 
 interface Props {
   user: AuthUser;
@@ -31,6 +32,8 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [isPinned, setIsPinned] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What pasting filled in, shown above the form so it gets a quick check.
+  const [pasteNote, setPasteNote] = useState<string[] | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -61,6 +64,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     setDeadline("");
     setIsPinned(false);
     setError(null);
+    setPasteNote(null);
   };
 
   const startCreate = () => {
@@ -85,8 +89,52 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow selecting the same file again later
-    if (!file) return;
+    if (file) await uploadPoster(file);
+  };
 
+  /**
+   * Pasting into the form (anywhere but a field you're typing in): a copied
+   * WhatsApp message, email or caption fills the fields it can (title,
+   * details, link, deadline, category), and a copied image becomes the
+   * poster. Same reading as sharing into the app; nothing leaves the browser
+   * except the poster upload.
+   */
+  const handlePaste = (e: React.ClipboardEvent<HTMLFormElement>) => {
+    const target = e.target as HTMLElement;
+    const image = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+    const typingInField = target.matches("input, textarea, select") && !target.classList.contains("ucpnb-paste-box");
+    // Into a field, a paste behaves normally, except an image into the poster field.
+    if (typingInField && !(image && target.classList.contains("ucpnb-poster-input"))) return;
+
+    const text = e.clipboardData.getData("text/plain").trim();
+    if (!image && !text) return;
+    e.preventDefault();
+
+    const notes: string[] = [];
+    if (text) {
+      const parsed = parseSharedContent({ text }, categories);
+      if (parsed.title) setTitle(parsed.title);
+      if (parsed.description) setDescription(parsed.description);
+      if (parsed.linkUrl) setLinkUrl(parsed.linkUrl);
+      if (parsed.deadline) setDeadline(toDatetimeLocalValue(parsed.deadline));
+      if (parsed.categoryId) setCategoryId(parsed.categoryId);
+      notes.push("Filled in from what you pasted. Check it before posting.", ...parsed.hints);
+    }
+    if (image) {
+      void uploadPoster(image);
+      notes.push(text ? "The image is the poster." : "Poster added. Paste the message text too, and the rest fills in.");
+    }
+    setPasteNote(notes);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    const image = Array.from(e.dataTransfer.files).find((f) => f.type.startsWith("image/"));
+    if (!image) return;
+    e.preventDefault();
+    void uploadPoster(image);
+  };
+
+  const uploadPoster = async (file: File) => {
     setUploading(true);
     setError(null);
     try {
@@ -156,13 +204,33 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
       </div>
 
       {(creating || editing) && (
-        <form className="ucpnb-form-card" onSubmit={handleSubmit}>
+        <form className="ucpnb-form-card" onSubmit={handleSubmit} onPaste={handlePaste}>
           <div className="ucpnb-form-card-header">
             <h4>{editing ? "Edit notice" : "New notice"}</h4>
             <button type="button" className="ucpnb-icon-btn ucpnb-icon-btn-sm" onClick={resetForm} aria-label="Cancel">
               <Icon name="x" size={18} />
             </button>
           </div>
+
+          {!editing && (
+            <textarea
+              className="ucpnb-paste-box"
+              aria-label="Paste a message or poster to fill the form"
+              placeholder="Paste here (Ctrl+V) a WhatsApp message, an email or a poster image, and the form fills itself."
+              value=""
+              onChange={() => {}}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleDrop}
+              rows={2}
+            />
+          )}
+          {pasteNote && (
+            <div className="ucpnb-paste-note" role="status">
+              {pasteNote.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </div>
+          )}
 
           <div className="ucpnb-form-grid">
             <label className="ucpnb-field ucpnb-span-2">
@@ -197,7 +265,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
             <div className="ucpnb-field ucpnb-span-2">
               <span className="ucpnb-field-label">Poster</span>
               <div className="ucpnb-upload-row">
-                <input className="ucpnb-input" type="text" placeholder="Paste an image URL, or upload one" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+                <input className="ucpnb-input ucpnb-poster-input" type="text" placeholder="Paste an image or its URL, or upload one" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
                 <label className="ucpnb-btn ucpnb-btn-secondary">
                   {uploading ? <span className="ucpnb-spinner" /> : <Icon name="image" size={16} />}
                   {uploading ? "Uploading" : "Upload"}
