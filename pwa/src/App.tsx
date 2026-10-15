@@ -394,7 +394,11 @@ export function App() {
   }
 
   const canPublish = user.role !== "Student";
-  const displayName = getSavedIdentity()?.name || user.name;
+  // The account's name wins (the portal's, or one the Admin set); the name
+  // typed when first opening the app only fills in for an account that has
+  // none yet (named after its Roll Number).
+  const hasRealName = user.name.trim() !== "" && user.name.toUpperCase() !== user.rollNumber.toUpperCase();
+  const displayName = hasRealName ? user.name : getSavedIdentity()?.name || user.name;
   const notificationsOn = pushState === "subscribed";
 
   return (
