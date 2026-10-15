@@ -1,11 +1,13 @@
 # Nightly database backup, encrypted, kept for 30 days as a workflow
-# artifact. Off until both repository secrets exist (Settings → Secrets
-# and variables → Actions):
-#   BACKUP_DATABASE_URL  postgres://… connection string of the production
-#                        database (on Railway: the Postgres service's
-#                        DATABASE_PUBLIC_URL)
+# artifact (the Oracle server also keeps its own 14 days). Off until the
+# repository secrets exist (Settings → Secrets and variables → Actions):
 #   BACKUP_PASSPHRASE    a long random passphrase; keep a copy somewhere
 #                        safe — without it the backups can't be opened
+# and either
+#   ORACLE_HOST + ORACLE_SSH_KEY  (the Oracle server; see docs/ORACLE.md)
+# or
+#   BACKUP_DATABASE_URL  a postgres:// URL the internet can reach (Railway's
+#                        DATABASE_PUBLIC_URL, while production is there)
 # Restoring: see docs/BACKUPS.md.
 name: Database backup
 
@@ -25,27 +27,44 @@ jobs:
         id: config
         env:
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          HOST: ${{ secrets.ORACLE_HOST }}
+          KEY: ${{ secrets.ORACLE_SSH_KEY }}
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
-          if [ -z "$DATABASE_URL" ] || [ -z "$PASSPHRASE" ]; then
-            echo "::notice::Backups are off: set the BACKUP_DATABASE_URL and BACKUP_PASSPHRASE secrets to turn them on."
+          if [ -z "$PASSPHRASE" ]; then source=""
+          elif [ -n "$HOST" ] && [ -n "$KEY" ]; then source=oracle
+          elif [ -n "$DATABASE_URL" ]; then source=url
+          else source=""; fi
+          if [ -z "$source" ]; then
+            echo "::notice::Backups are off: set BACKUP_PASSPHRASE plus the Oracle secrets (or BACKUP_DATABASE_URL) to turn them on."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "source=$source" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Dump and encrypt
         if: steps.config.outputs.enabled == 'true'
         env:
+          SOURCE: ${{ steps.config.outputs.source }}
           DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          HOST: ${{ secrets.ORACLE_HOST }}
+          KEY: ${{ secrets.ORACLE_SSH_KEY }}
           PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
           file="ucp-noticeboard-$(date -u +%Y-%m-%d).dump.gpg"
-          # A newer pg_dump can read any older server, so the client
-          # version never has to match Railway's.
-          docker run --rm -e DATABASE_URL postgres:17 sh -c 'pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL"' \
-            | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase-fd 3 3<<<"$PASSPHRASE" --output "$file"
+          dump() {
+            if [ "$SOURCE" = oracle ]; then
+              mkdir -p ~/.ssh && printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+              # The key's forced command on the server streams a production dump.
+              ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "ubuntu@$HOST" backup
+            else
+              # A newer pg_dump can read any older server.
+              docker run --rm -e DATABASE_URL postgres:17 sh -c 'pg_dump --format=custom --no-owner --no-acl "$DATABASE_URL"'
+            fi
+          }
+          dump | gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase-fd 3 3<<<"$PASSPHRASE" --output "$file"
           test "$(stat -c %s "$file")" -gt 1000
           echo "FILE=$file" >> "$GITHUB_ENV"
 

@@ -5,9 +5,7 @@
   "description": "Injects a live NoticeBoard into the UCP Student Portal dashboard.",
   "permissions": [],
   "host_permissions": [
-    "https://horizon.ucp.edu.pk/*",
-    "https://ucp-noticeboard-api-production.up.railway.app/*",
-    "https://api.cloudinary.com/*"
+    "https://horizon.ucp.edu.pk/*"
   ],
   "content_scripts": [
     {

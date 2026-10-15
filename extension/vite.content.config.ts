@@ -55,10 +55,16 @@ const outDirFor = (mode: string) =>
   mode === "production" ? "dist" : `dist-${MODE_LABELS[mode]?.toLowerCase() ?? mode}`;
 
 // Writes dist/manifest.json and the icon. Production gets manifest.json
-// verbatim. Any other mode is renamed (so it's obvious which one is
-// loaded in chrome://extensions) and its host_permissions point at that
-// mode's API instead of production's.
-function extensionManifest(mode: string, apiBaseUrl: string, outDir: string): Plugin {
+// verbatim; any other mode is renamed, so it's obvious which one is loaded
+// in chrome://extensions.
+//
+// The manifest deliberately has no permission for the API or Cloudinary:
+// the content script's requests are ordinary cross-origin requests from
+// the portal page, allowed by the API's CORS settings (and Cloudinary's).
+// A host permission there would only tie the extension to one API address:
+// changing it in an update makes Chrome disable the extension until each
+// student re-approves it.
+function extensionManifest(mode: string, outDir: string): Plugin {
   return {
     name: "extension-manifest",
     closeBundle() {
@@ -71,9 +77,6 @@ function extensionManifest(mode: string, apiBaseUrl: string, outDir: string): Pl
       } else {
         const manifest = JSON.parse(readFileSync(resolve(root, "manifest.json"), "utf8"));
         manifest.name = `${manifest.name} (${MODE_LABELS[mode] ?? mode})`;
-        manifest.host_permissions = manifest.host_permissions.map((permission: string) =>
-          permission.startsWith(PRODUCTION.VITE_API_BASE_URL) ? `${apiBaseUrl}/*` : permission
-        );
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
@@ -88,7 +91,7 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, urls);
 
   return {
-    plugins: [react(), extensionManifest(mode, urls.VITE_API_BASE_URL, outDir)],
+    plugins: [react(), extensionManifest(mode, outDir)],
     ...sharedConfig,
     build: {
       outDir,

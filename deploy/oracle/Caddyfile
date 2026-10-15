@@ -1,0 +1,11 @@
+# HTTPS for both APIs; Caddy fetches and renews the certificates itself.
+
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy api-production:8080
+}
+
+{$STAGING_API_DOMAIN} {
+	encode gzip
+	reverse_proxy api-staging:8080
+}

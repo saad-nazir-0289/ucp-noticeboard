@@ -87,7 +87,7 @@ flowchart LR
 **Backend** — ASP.NET Core 8 Web API · Entity Framework Core · JWT authentication · in-memory response caching
 **Database** — PostgreSQL
 **Image hosting** — Cloudinary (direct browser upload, zero backend cost)
-**Deployment** — Docker · Railway (backend), Cloudflare Pages (PWA)
+**Deployment** — Docker · Oracle Cloud Always Free server with Caddy (backend and database, see [`docs/ORACLE.md`](./docs/ORACLE.md)), Cloudflare (PWA)
 
 ## Getting started
 
@@ -187,7 +187,7 @@ UCP-NoticeBoard/
 
 ## Roadmap
 
-- [ ] Migrate backend + database off Railway to a VPS (Rabisu, Karachi — closer to the actual user base, cheaper, and removes the public-database-proxy workaround entirely)
+- [ ] Move backend + database off Railway to the free Oracle server (kit and steps ready: [`docs/ORACLE.md`](./docs/ORACLE.md))
 - [ ] Direct Publisher outreach to campus clubs and societies
 - [ ] Evaluate a "past papers" module — paused pending institutional sign-off, since exam content carries real copyright/institutional questions this project takes seriously rather than building around
 

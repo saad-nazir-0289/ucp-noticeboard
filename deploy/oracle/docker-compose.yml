@@ -1,0 +1,72 @@
+# NoticeBoard on one server: Postgres, the production and staging APIs,
+# and Caddy in front (HTTPS certificates are automatic). Run through
+# deploy.sh / setup.sh, which pass the right files; by hand:
+#   docker compose -f docker-compose.yml --env-file /opt/ucpnb/config/stack.env ...
+# Nothing but Caddy is reachable from the internet.
+name: ucpnb
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in stack.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Small server, small database: modest memory settings.
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "max_connections=60"]
+
+  api-production:
+    image: ucpnb-api:production
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: /opt/ucpnb/config/production.env
+        required: false
+    environment:
+      PORT: "8080"
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_production;Username=postgres;Password=${POSTGRES_PASSWORD}"
+    profiles: ["production"]
+
+  api-staging:
+    image: ucpnb-api:staging
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: /opt/ucpnb/config/staging.env
+        required: false
+    environment:
+      PORT: "8080"
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_staging;Username=postgres;Password=${POSTGRES_PASSWORD}"
+    profiles: ["staging"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set in stack.env}
+      STAGING_API_DOMAIN: ${STAGING_API_DOMAIN:?set in stack.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

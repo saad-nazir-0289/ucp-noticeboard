@@ -1,5 +1,10 @@
 # Staging environment
 
+> **Hosting has moved to Oracle Cloud.** Setting up the staging backend and
+> database is now covered by [`ORACLE.md`](./ORACLE.md) (section D). The
+> Railway steps below are kept for reference only. The flow, the PWA's
+> Cloudflare Worker and the staging extension work the same way.
+
 Staging is a complete second copy of UCP NoticeBoard (backend, database, PWA
 and extension) that you can click through on your own phone and laptop
 before anything reaches real students. It shares nothing with production
@@ -8,8 +13,8 @@ except the code.
 |  | Production | Staging |
 |---|---|---|
 | Git branch | `main` | `staging` |
-| Backend | Railway, existing service | Railway, separate service/environment |
-| Database | production Postgres | its own Postgres, filled with demo data |
+| Backend | Oracle server, `api-production` | Oracle server, `api-staging` |
+| Database | `ucpnb_production` on the server | `ucpnb_staging`, filled with demo data |
 | PWA | https://ucp-noticeboard.msndev.workers.dev | https://ucp-noticeboard-staging.msndev.workers.dev |
 | Extension | Chrome Web Store | unpacked build, "UCP NoticeBoard (Staging)" |
 

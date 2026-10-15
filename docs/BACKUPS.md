@@ -16,7 +16,7 @@ the backup is unreadable without the passphrase.
 
 | Secret | Value |
 |---|---|
-| `BACKUP_DATABASE_URL` | The database's public connection string. On Railway: Postgres service → *Variables* → `DATABASE_PUBLIC_URL`. |
+| `BACKUP_DATABASE_URL` | Only while on Railway: Postgres service → *Variables* → `DATABASE_PUBLIC_URL`. On the Oracle server, set `ORACLE_HOST` and `ORACLE_SSH_KEY` instead (see `ORACLE.md`, section E); the backup then streams over SSH and the database stays private. |
 | `BACKUP_PASSPHRASE` | A long random passphrase. **Save a copy in your password manager** — without it no backup can be opened. |
 
 Then run it once by hand: **Actions → Database backup → Run workflow**,
