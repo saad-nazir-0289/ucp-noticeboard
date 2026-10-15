@@ -24,9 +24,11 @@ data (F) → move production (G) → switch Railway off.
 1. **Compute → Instances → Create instance.**
    - **Image:** Canonical **Ubuntu 24.04**.
    - **Shape:** *Ampere* → **VM.Standard.A1.Flex**, 1–2 OCPUs and 6–12 GB
-     memory (all inside Always Free). If Oracle says *out of capacity*, try
-     again later or pick **VM.Standard.E2.1.Micro** (AMD, 1 GB, also Always
-     Free; the setup adds swap so it copes).
+     memory (all inside Always Free). If Oracle says *out of capacity*
+     (common in Mumbai on free accounts), pick **Specialty and previous
+     generation → VM.Standard.E2.1.Micro** instead (AMD, 1 GB, also Always
+     Free). The setup adds 3 GB of swap and the APIs run with a small memory
+     footprint, so both fit; deploys just take longer.
    - **Networking:** keep "Assign a public IPv4 address" on.
    - **SSH keys:** "Generate a key pair for me" → **download the private
      key** and keep it safe; it's how you log in.

@@ -54,7 +54,7 @@ main() {
 
     step "Swap (helps the 1 GB servers)"
     if [ "$(free -m | awk '/Mem:/ {print $2}')" -lt 3000 ] && ! swapon --show | grep -q /swapfile; then
-      fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+      fallocate -l 3G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
       grep -q /swapfile /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
     fi
 

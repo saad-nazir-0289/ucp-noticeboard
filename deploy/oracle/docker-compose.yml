@@ -34,6 +34,9 @@ services:
     environment:
       PORT: "8080"
       ASPNETCORE_ENVIRONMENT: Production
+      # Small heap, returned to the OS when idle: two APIs fit on a 1 GB server.
+      DOTNET_gcServer: "0"
+      DOTNET_GCConserveMemory: "7"
       ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_production;Username=postgres;Password=${POSTGRES_PASSWORD}"
     profiles: ["production"]
 
@@ -49,6 +52,9 @@ services:
     environment:
       PORT: "8080"
       ASPNETCORE_ENVIRONMENT: Production
+      # Small heap, returned to the OS when idle: two APIs fit on a 1 GB server.
+      DOTNET_gcServer: "0"
+      DOTNET_GCConserveMemory: "7"
       ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_staging;Username=postgres;Password=${POSTGRES_PASSWORD}"
     profiles: ["staging"]
 
