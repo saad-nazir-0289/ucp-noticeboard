@@ -736,31 +736,6 @@ textarea {
   color: var(--nb-danger);
 }
 
-.ucpnb-segmented {
-  display: inline-flex;
-  flex-shrink: 0;
-  padding: 3px;
-  border-radius: var(--nb-r-full);
-  background: var(--nb-surface-3);
-}
-
-.ucpnb-segmented button {
-  min-height: 30px;
-  padding: 0 12px;
-  border: none;
-  border-radius: var(--nb-r-full);
-  background: transparent;
-  color: var(--nb-text-2);
-  font: 600 var(--nb-text-sm) / 1 var(--nb-font);
-  cursor: pointer;
-}
-
-.ucpnb-segmented button.is-active {
-  background: var(--nb-surface);
-  color: var(--nb-text);
-  box-shadow: var(--nb-shadow-1);
-}
-
 .ucpnb-switch {
   position: relative;
   flex-shrink: 0;
