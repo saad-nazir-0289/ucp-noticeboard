@@ -620,6 +620,7 @@ export function App() {
                   <span>Switch account</span>
                 </button>
               </div>
+              <p className="ucpnb-app-version">Version {__APP_VERSION__}</p>
             </div>
           </div>
         </div>

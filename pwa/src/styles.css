@@ -1175,3 +1175,11 @@ textarea {
   opacity: 1;
   translate: 0 0;
 }
+
+/* Which version this is, quietly, under the account menu. */
+.ucpnb-app-version {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--nb-text-xs);
+  color: var(--nb-text-3);
+}

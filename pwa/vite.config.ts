@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
+import { execSync } from "child_process";
 
 // Code in ../shared is compiled into this app (see shared/README.md).
 // dedupe makes its `react` imports resolve from this app's node_modules,
@@ -32,6 +33,19 @@ function resolveApiUrl(mode: string): string {
   );
 }
 
+// The commit being built, shown in the account menu so anyone can tell
+// which version a phone is running. Cloudflare's builds name it in an
+// environment variable; elsewhere git knows.
+function appVersion(): string {
+  const fromCi = process.env.WORKERS_CI_COMMIT_SHA ?? process.env.CF_PAGES_COMMIT_SHA ?? process.env.GITHUB_SHA;
+  if (fromCi) return fromCi.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return "dev";
+  }
+}
+
 // A plain static build — this is a real standalone site (not injected
 // into any host page like the extension), so a standard Vite React app
 // is all that's needed. Deploys as-is to Cloudflare Pages/Netlify/Vercel.
@@ -44,6 +58,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     ...sharedConfig,
+    define: { __APP_VERSION__: JSON.stringify(appVersion()) },
     // The dev server only serves files inside the project by default.
     server: { fs: { allow: [__dirname, resolve(__dirname, "../shared")] } },
     build: {
