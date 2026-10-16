@@ -1,0 +1,23 @@
+name: Diagnose share preview
+on:
+  push:
+    branches: [claude/happy-mayer-9oduvh]
+    paths: [.github/workflows/diag-share.yml]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          UA="WhatsApp/2.23.20.0 A"
+          for id in 55 54 50; do
+            echo "=== notice $id"
+            curl -s -A "$UA" "https://ucpnb-api.duckdns.org/share/notice/$id?d=$RANDOM" > page.html
+            grep -o '<meta[^>]*og:[^>]*>' page.html
+            IMG=$(grep -o 'og:image" content="[^"]*' page.html | head -1 | sed 's/.*content="//; s/&amp;/\&/g')
+            echo "image: $IMG"
+            for try in 1 2; do
+              curl -s -A "$UA" -o img.bin -D hdr.txt -w "status=%{http_code} bytes=%{size_download} time=%{time_total}s\n" "$IMG"
+              grep -i '^content-type\|^x-cld-error' hdr.txt
+            done
+            file img.bin; python3 -c "import struct,sys;d=open('img.bin','rb').read();print('first bytes',d[:4])"
+          done
