@@ -8,16 +8,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          UA="WhatsApp/2.23.20.0 A"
-          for id in 55 54 50; do
-            echo "=== notice $id"
-            curl -s -A "$UA" "https://ucpnb-api.duckdns.org/share/notice/$id?d=$RANDOM" > page.html
-            grep -o '<meta[^>]*og:[^>]*>' page.html
-            IMG=$(grep -o 'og:image" content="[^"]*' page.html | head -1 | sed 's/.*content="//; s/&amp;/\&/g')
-            echo "image: $IMG"
-            for try in 1 2; do
-              curl -s -A "$UA" -o img.bin -D hdr.txt -w "status=%{http_code} bytes=%{size_download} time=%{time_total}s\n" "$IMG"
-              grep -i '^content-type\|^x-cld-error' hdr.txt
-            done
-            file img.bin; python3 -c "import struct,sys;d=open('img.bin','rb').read();print('first bytes',d[:4])"
+          BASE="https://res.cloudinary.com/yehmyd3g/image/upload"
+          IMG="v1792134647/tx9lsglh9etvtvh4ists.jpg"
+          PID="tx9lsglh9etvtvh4ists"
+          for t in \
+            "w_1200,h_630,c_pad,b_auto,q_auto,f_jpg" \
+            "w_1200,h_630,c_pad,b_auto:predominant,q_auto,f_jpg" \
+            "w_1200,h_630,c_pad,b_blurred,q_auto,f_jpg" \
+            "w_1200,h_630,c_pad,b_blurred:400,q_auto,f_jpg" \
+            "w_1200,h_630,c_fill,e_blur:2000,b_black/l_${PID},w_1200,h_630,c_fit/fl_layer_apply/q_auto,f_jpg" ; do
+            curl -s -o img.bin -D hdr.txt -w "status=%{http_code} bytes=%{size_download} time=%{time_total}s  $t\n" "$BASE/$t/$IMG"
+            grep -i '^x-cld-error' hdr.txt || true
+            python3 -c "d=open('img.bin','rb').read(); import struct; i=d.find(b'\xff\xc0'); print('  jpeg size', struct.unpack('>HH', d[i+5:i+9])[::-1] if i>0 else None)" || true
           done
