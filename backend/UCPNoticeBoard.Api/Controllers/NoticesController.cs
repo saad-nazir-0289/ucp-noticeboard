@@ -156,6 +156,7 @@ public class NoticesController : ControllerBase
         _db.Notices.Add(notice);
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
+        SharePreviewImage.PrepareInBackground(notice.ImageUrl);
 
         await _db.Entry(notice).Reference(n => n.CreatedByUser).LoadAsync();
         if (notice.CategoryId is not null)
@@ -240,6 +241,7 @@ public class NoticesController : ControllerBase
 
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
+        SharePreviewImage.PrepareInBackground(notice.ImageUrl);
         await _db.Entry(notice).Reference(n => n.Category).LoadAsync();
 
         return Ok(ToDto(notice));
