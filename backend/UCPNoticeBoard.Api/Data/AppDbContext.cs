@@ -53,6 +53,10 @@ public class AppDbContext : DbContext
                   .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(n => n.CreatedAt);
+            entity.HasIndex(n => n.DeletedAt);
+            // A notice in the bin is invisible to every query; the bin and
+            // restore ask for it with IgnoreQueryFilters().
+            entity.HasQueryFilter(n => n.DeletedAt == null);
         });
 
         modelBuilder.Entity<NoticeDismissal>(entity =>

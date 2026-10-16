@@ -77,6 +77,9 @@ public record UpdateLogoRequest(string? LogoUrl, string? Pin);
 public record DeleteNoticesRequest(List<int> Ids, string? Pin);
 public record DeleteNoticesResponse(int Deleted);
 
+/// <summary>A notice in the bin: who deleted it, when, and when it goes for good.</summary>
+public record BinNoticeDto(int Id, string Title, string CreatedByName, DateTime CreatedAt, DateTime DeletedAt, string DeletedByName, DateTime PurgeAt);
+
 public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
 
 public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
