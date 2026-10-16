@@ -265,7 +265,74 @@ public class NoticesController : ControllerBase
         var pinCheck = await _pins.AuthorizeAsync(currentUser, pin);
         if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
-        _db.Notices.Remove(notice);
+        MoveToBin(notice);
+        await _db.SaveChangesAsync();
+        _noticeQuery.InvalidateNoticesCache();
+
+        return NoContent();
+    }
+
+    /// <summary>How long a deleted notice can still be restored.</summary>
+    public static readonly TimeSpan BinRetention = TimeSpan.FromDays(30);
+
+    private void MoveToBin(Notice notice)
+    {
+        notice.DeletedAt = DateTime.UtcNow;
+        notice.DeletedByUserId = CurrentUserId;
+    }
+
+    /// <summary>
+    /// Deleted notices that can still be restored: everyone's for the
+    /// Admin, a Publisher's own otherwise. Newest deletion first.
+    /// </summary>
+    [HttpGet("bin")]
+    [Authorize(Roles = "Publisher,Admin")]
+    public async Task<ActionResult<List<BinNoticeDto>>> GetBin()
+    {
+        var isAdmin = User.IsInRole("Admin");
+        var me = CurrentUserId;
+        var binned = await _db.Notices
+            .IgnoreQueryFilters()
+            .Include(n => n.CreatedByUser)
+            .Where(n => n.DeletedAt != null && (isAdmin || n.CreatedByUserId == me))
+            .OrderByDescending(n => n.DeletedAt)
+            .ToListAsync();
+
+        var deleterIds = binned.Select(n => n.DeletedByUserId ?? 0).Distinct().ToList();
+        var deleters = await _db.Users.Where(u => deleterIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.Name);
+
+        return Ok(binned.Select(n => new BinNoticeDto(
+            n.Id,
+            n.Title,
+            n.CreatedByUser?.Name ?? "Unknown",
+            n.CreatedAt,
+            n.DeletedAt!.Value,
+            n.DeletedByUserId is int by && deleters.TryGetValue(by, out var name) ? name : "Unknown",
+            n.DeletedAt!.Value + BinRetention)).ToList());
+    }
+
+    /// <summary>Puts a deleted notice back exactly as it was. Same rules as deleting it.</summary>
+    [HttpPost("{id}/restore")]
+    [Authorize(Roles = "Publisher,Admin")]
+    [EnableRateLimiting("pin-check")]
+    public async Task<IActionResult> RestoreNotice(int id, [FromQuery] string? pin)
+    {
+        var notice = await _db.Notices.IgnoreQueryFilters().FirstOrDefaultAsync(n => n.Id == id && n.DeletedAt != null);
+        if (notice is null) return NotFound("That notice isn't in the bin any more.");
+
+        if (!User.IsInRole("Admin") && notice.CreatedByUserId != CurrentUserId)
+        {
+            return Forbid();
+        }
+
+        var currentUser = await _db.Users.FindAsync(CurrentUserId);
+        if (currentUser is null) return Unauthorized();
+
+        var pinCheck = await _pins.AuthorizeAsync(currentUser, pin);
+        if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
+
+        notice.DeletedAt = null;
+        notice.DeletedByUserId = null;
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
 
@@ -301,7 +368,7 @@ public class NoticesController : ControllerBase
         var pinCheck = await _pins.AuthorizeAsync(currentUser, request.Pin);
         if (!pinCheck.Succeeded) return pinCheck.ToActionResult();
 
-        _db.Notices.RemoveRange(notices);
+        foreach (var notice in notices) MoveToBin(notice);
         await _db.SaveChangesAsync();
         _noticeQuery.InvalidateNoticesCache();
 

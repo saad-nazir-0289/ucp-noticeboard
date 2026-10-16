@@ -111,6 +111,12 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.Property<DateTime?>("Deadline")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DeletedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(4000)
@@ -148,6 +154,8 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DeletedAt");
 
                     b.ToTable("Notices");
                 });

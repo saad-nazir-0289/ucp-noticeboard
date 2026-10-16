@@ -6,6 +6,7 @@ import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 import { CategoryTag, PinnedBadge } from "@shared/components/Tags";
 import { timeAgo } from "@shared/format";
+import { NoticeBin } from "@shared/components/NoticeBin";
 
 interface Props {
   user: AuthUser;
@@ -28,13 +29,14 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showBin, setShowBin] = useState(false);
   const isAdmin = user.role === "Admin";
 
   useEffect(() => {
     api
       .getNotices(user.token, true, true)
       .then((all) => setNotices(isAdmin ? all : all.filter((n) => n.createdByUserId === user.id)))
-      .catch(() => setError("Could not load your notices."));
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
   }, [user, refreshKey, isAdmin]);
 
   const handleDelete = async (notice: Notice) => {
@@ -42,7 +44,7 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
       onNeedsUnlock();
       return;
     }
-    if (!confirm(`Delete "${notice.title}"? Students will no longer see it, and this can't be undone.`)) return;
+    if (!confirm(`Delete "${notice.title}"? Students will no longer see it. You can restore it from Recently deleted for 30 days.`)) return;
     setDeletingId(notice.id);
     setError(null);
     try {
@@ -74,6 +76,27 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
         </div>
 
         <div className="ucpnb-sheet-content">
+          <div className="ucpnb-segmented ucpnb-manage-tabs" role="tablist">
+            <button role="tab" aria-selected={!showBin} className={showBin ? "" : "is-active"} onClick={() => setShowBin(false)}>
+              {isAdmin ? "All notices" : "My notices"}
+            </button>
+            <button role="tab" aria-selected={showBin} className={showBin ? "is-active" : ""} onClick={() => setShowBin(true)}>
+              Recently deleted
+            </button>
+          </div>
+          {showBin ? (
+            <NoticeBin
+              token={user.token}
+              showOwner={isAdmin}
+              ensureUnlocked={() => {
+                if (hasDeviceToken()) return true;
+                onNeedsUnlock();
+                return false;
+              }}
+              onRestored={onDeleted}
+            />
+          ) : (
+          <>
           {error && <p className="ucpnb-form-error">{error}</p>}
           {!notices && !error && (
             <div className="ucpnb-manage-list">
@@ -129,6 +152,8 @@ export function ManageNotices({ user, refreshKey, onNew, onEdit, onDeleted, onNe
                 );
               })}
             </ul>
+          )}
+          </>
           )}
         </div>
 

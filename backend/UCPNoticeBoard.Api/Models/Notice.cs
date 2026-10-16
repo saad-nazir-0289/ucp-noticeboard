@@ -30,6 +30,12 @@ public class Notice
     // usual 7 days — it stays until it's unpinned (or its deadline passes).
     public bool IsPinned { get; set; } = false;
 
+    // Deleting a notice moves it to the bin rather than erasing it: hidden
+    // everywhere (see the query filter in AppDbContext), restorable for
+    // BinRetention, then removed for good by NoticeBinService.
+    public DateTime? DeletedAt { get; set; }
+    public int? DeletedByUserId { get; set; }
+
     public User? CreatedByUser { get; set; }
     public Category? Category { get; set; }
 }

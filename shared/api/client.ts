@@ -1,4 +1,4 @@
-import type { AddUserResult, AnalyticsSummary, AuthUser, Category, DeviceSession, LoginResult, Notice, PagedResult, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
+import type { AddUserResult, AnalyticsSummary, BinNotice, AuthUser, Category, DeviceSession, LoginResult, Notice, PagedResult, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -194,6 +194,13 @@ export const api = {
   /** Deletes several notices at once; `pin` isn't needed when this device is unlocked. */
   deleteNotices: (ids: number[], pin: string | null, token: string) =>
     request<{ deleted: number }>("/notices/delete", { method: "POST", body: JSON.stringify({ ids, pin }) }, token),
+
+  /** Deleted notices that can still be restored (an Admin's: everyone's). */
+  getBin: (token: string) => request<BinNotice[]>("/notices/bin", {}, token),
+
+  /** Puts a deleted notice back; `pin` isn't needed when this device is unlocked. */
+  restoreDeletedNotice: (id: number, pin: string | null, token: string) =>
+    request<void>(pin ? `/notices/${id}/restore?pin=${encodeURIComponent(pin)}` : `/notices/${id}/restore`, { method: "POST" }, token),
 
   dismissNotice: (id: number, token: string) =>
     request<void>(`/notices/${id}/dismiss`, { method: "POST" }, token),

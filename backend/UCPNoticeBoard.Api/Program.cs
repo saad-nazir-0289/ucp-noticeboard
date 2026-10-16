@@ -53,6 +53,7 @@ builder.Services.AddScoped<IPinService, PinService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHostedService<DeadlineReminderService>();
+builder.Services.AddHostedService<NoticeBinService>();
 
 // --- Auth ---
 var jwtSettings = builder.Configuration.GetSection("Jwt");

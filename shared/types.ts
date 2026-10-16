@@ -20,6 +20,17 @@ export interface LoginResult extends AuthUser {
   hasPin?: boolean;
 }
 
+/** A deleted notice, restorable until `purgeAt`. */
+export interface BinNotice {
+  id: number;
+  title: string;
+  createdByName: string;
+  createdAt: string;
+  deletedAt: string;
+  deletedByName: string;
+  purgeAt: string;
+}
+
 export interface Notice {
   id: number;
   title: string;

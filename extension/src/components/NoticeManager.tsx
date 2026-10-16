@@ -7,6 +7,7 @@ import { optimizeImageUrl } from "@shared/imageOptimize";
 import { timeAgo } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
+import { NoticeBin } from "@shared/components/NoticeBin";
 import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
 import { parseSharedContent } from "@shared/shareParser";
 import { posterFrom } from "@shared/posterCrop";
@@ -37,6 +38,8 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // "Recently deleted" instead of the list (see NoticeBin).
+  const [showBin, setShowBin] = useState(false);
   // What pasting filled in, shown above the form so it gets a quick check.
   const [pasteNote, setPasteNote] = useState<string[] | null>(null);
   // A pasted screenshot cropped to its poster keeps the original, to switch back.
@@ -55,7 +58,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
         setCategories(cats);
         setSelected(new Set());
       })
-      .catch(() => setError("Could not load notices."))
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
   };
 
@@ -207,7 +210,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const handleBulkDelete = async () => {
     const ids = [...selected];
     if (ids.length === 0) return;
-    if (!confirm(`Permanently delete ${ids.length} ${ids.length === 1 ? "notice" : "notices"}? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${ids.length} ${ids.length === 1 ? "notice" : "notices"}? Students will no longer see ${ids.length === 1 ? "it" : "them"}. You can restore ${ids.length === 1 ? "it" : "them"} from Recently deleted for 30 days.`)) return;
     if (!(await ensureUnlocked())) return;
     setBulkBusy(true);
     setError(null);
@@ -223,7 +226,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Permanently delete this notice? This cannot be undone.")) return;
+    if (!confirm("Delete this notice? Students will no longer see it. You can restore it from Recently deleted for 30 days.")) return;
     if (!(await ensureUnlocked())) return;
     try {
       await api.deleteNotice(id, null, user.token);
@@ -241,12 +244,24 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
           <p>Everything you've posted, including notices students no longer see.</p>
         </div>
         {!(creating || editing) && (
-          <button className="ucpnb-btn ucpnb-btn-primary" onClick={startCreate}>
-            <Icon name="plus" size={16} />
-            New notice
-          </button>
+          <div className="ucpnb-section-actions">
+            <button className="ucpnb-btn ucpnb-btn-ghost" onClick={() => setShowBin((v) => !v)}>
+              <Icon name={showBin ? "chevronLeft" : "trash"} size={15} />
+              {showBin ? "Back to notices" : "Recently deleted"}
+            </button>
+            {!showBin && (
+              <button className="ucpnb-btn ucpnb-btn-primary" onClick={startCreate}>
+                <Icon name="plus" size={16} />
+                New notice
+              </button>
+            )}
+          </div>
         )}
       </div>
+
+      {showBin && !(creating || editing) && (
+        <NoticeBin token={user.token} showOwner={scope === "all"} ensureUnlocked={ensureUnlocked} onRestored={load} />
+      )}
 
       {(creating || editing) && (
         <form className="ucpnb-form-card" onSubmit={handleSubmit} onPaste={handlePaste}>
@@ -354,7 +369,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
         </form>
       )}
 
-      {loading ? (
+      {showBin && !(creating || editing) ? null : loading ? (
         <div className="ucpnb-skeleton" style={{ height: 160, borderRadius: 16 }} />
       ) : notices.length === 0 ? (
         <EmptyState icon="megaphone" title={scope === "mine" ? "You haven't posted yet" : "No notices yet"}>

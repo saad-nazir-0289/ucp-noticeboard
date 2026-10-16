@@ -808,7 +808,7 @@ export function App() {
           onEdit={(n) => openEditor(n)}
           onDeleted={() => {
             setRefreshKey((k) => k + 1);
-            showToast("Notice deleted");
+            showToast("Deleted. You can restore it from Recently deleted.");
           }}
           onNeedsUnlock={() => setShowUnlock(true)}
           onLockPhone={lockThisPhone}
