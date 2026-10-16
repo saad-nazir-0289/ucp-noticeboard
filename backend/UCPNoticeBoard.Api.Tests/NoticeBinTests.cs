@@ -39,7 +39,8 @@ public class NoticeBinTests : IClassFixture<ApiFactory>
 
         var back = Assert.Single(await Everything(client), n => n.Id == notice.Id);
         Assert.Equal(notice.Title, back.Title);
-        Assert.Equal(notice.CreatedAt, back.CreatedAt);
+        // The database keeps microseconds, .NET finer ticks: equal to the millisecond.
+        Assert.Equal(notice.CreatedAt, back.CreatedAt, TimeSpan.FromMilliseconds(1));
         Assert.DoesNotContain((await client.GetFromJsonAsync<List<BinNoticeDto>>("/notices/bin"))!, n => n.Id == notice.Id);
     }
 
