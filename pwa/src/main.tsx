@@ -9,6 +9,12 @@ import { watchForInstall } from "./install";
 import { startTheme } from "./theme";
 import { keepUpToDate } from "./autoUpdate";
 
+// Opening a link in a tab Chrome reuses, or reloading into a new version,
+// would otherwise put back the old scroll position before the notices have
+// loaded, leaving the feed part-way down. The app always opens at the top.
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+window.scrollTo(0, 0);
+
 // Before the first render, so a phone in Chrome's desktop mode never shows the computer layout.
 keepPhoneLayout();
 startTheme();
