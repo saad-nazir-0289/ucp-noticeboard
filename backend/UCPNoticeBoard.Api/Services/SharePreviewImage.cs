@@ -6,11 +6,21 @@ namespace UCPNoticeBoard.Api.Services;
 /// blurred copy of itself. WhatsApp sizes the message to the picture's
 /// shape, so a tall poster as it is makes a narrow message. A JPEG, since
 /// WhatsApp skips large or unusual images.
+///
+/// The blurred backdrop is the poster filled and blurred, with the poster
+/// itself laid over it. (Cloudinary's own "b_blurred" padding is rejected
+/// on this account with "Invalid color name", which left every preview
+/// without a picture.) A poster whose address can't be read that way is
+/// padded with its main colour instead.
 /// </summary>
 public static class SharePreviewImage
 {
     private const string Marker = "/upload/";
-    private const string Transform = "w_1200,h_630,c_pad,b_blurred:400:15,q_auto,f_jpg/";
+    private const string PlainTransform = "w_1200,h_630,c_pad,b_auto,q_auto,f_jpg/";
+
+    // v1234/folder/name.jpg: the version, then the public id, then the format.
+    private static readonly System.Text.RegularExpressions.Regex Stored =
+        new(@"^v\d+/(?<id>[^,]+)\.[A-Za-z0-9]+$");
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(60) };
 
@@ -19,7 +29,16 @@ public static class SharePreviewImage
     {
         if (string.IsNullOrWhiteSpace(imageUrl) || !imageUrl.Contains("res.cloudinary.com")) return null;
         var at = imageUrl.IndexOf(Marker, StringComparison.Ordinal);
-        return at < 0 ? null : imageUrl.Insert(at + Marker.Length, Transform);
+        if (at < 0) return null;
+        var start = at + Marker.Length;
+        var match = Stored.Match(imageUrl[start..]);
+        if (!match.Success) return imageUrl.Insert(start, PlainTransform);
+        // In a layer, folders in the public id are separated by colons.
+        var layerId = match.Groups["id"].Value.Replace('/', ':');
+        return imageUrl.Insert(start,
+            "w_1200,h_630,c_fill,e_blur:2000/" +
+            $"l_{layerId},w_1200,h_630,c_fit/fl_layer_apply/" +
+            "q_auto,f_jpg/");
     }
 
     /// <summary>
