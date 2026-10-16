@@ -115,8 +115,8 @@ export function NoticeEditor({ user, categories, notice, draft, shared, onSaved,
       applyParsed({ ...parsed, hints: [] }, "the screenshot");
     } catch (e) {
       // The reason, briefly: what to look into if it keeps happening.
-      const reason = e instanceof Error ? e.message : String(e);
-      setHints([`Couldn't read the image (${reason.slice(0, 120) || "unknown error"}). Fill in the details by hand, or try again.`]);
+      const reason = e instanceof Error ? e.message : `the text reader stopped unexpectedly (code ${String(e)})`;
+      setHints([`Couldn't read the image: ${reason.slice(0, 220) || "unknown error"}. Fill in the details by hand, or try again.`]);
     } finally {
       setReading(null);
     }
