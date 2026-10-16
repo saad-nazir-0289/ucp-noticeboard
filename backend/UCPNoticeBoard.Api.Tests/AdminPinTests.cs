@@ -91,7 +91,8 @@ public class AdminPinTests : IClassFixture<ApiFactory>
         // A malformed PIN is refused without counting toward the account
         // lock, so any 429 here comes from the per-IP limiter.
         var statuses = new List<HttpStatusCode>();
-        for (var i = 0; i < 25; i++)
+        // (The limit is sized for a whole campus behind one address.)
+        for (var i = 0; i < 125; i++)
         {
             statuses.Add((await client.SendAsync(Get("/users", "not-a-pin"))).StatusCode);
         }

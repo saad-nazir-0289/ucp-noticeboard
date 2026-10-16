@@ -3,11 +3,53 @@ import type { AddUserResult, AnalyticsSummary, AuthUser, Category, DeviceSession
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-class ApiError extends Error {
+/**
+ * A request that didn't succeed, with a message a person can act on.
+ * `status` is the HTTP status, or 0 when the server couldn't be reached
+ * at all (offline, server down, blocked).
+ */
+export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
     super(message);
+    this.name = "ApiError";
     this.status = status;
+  }
+}
+
+/** Why the server couldn't be reached, as precisely as the browser lets us tell. */
+function unreachableMessage(): string {
+  return typeof navigator !== "undefined" && navigator.onLine === false
+    ? "You're offline. Connect to the internet and try again."
+    : "Couldn't connect to the NoticeBoard server. It may be down, or this network may be blocking it.";
+}
+
+/** What went wrong for a status the server gave no explanation for. */
+function statusMessage(status: number): string {
+  if (status === 401) return "Your sign-in has expired. Close and reopen the app to sign in again.";
+  if (status === 403) return "Your account isn't allowed to do that.";
+  if (status === 404) return "That no longer exists. It may have been deleted.";
+  if (status === 413) return "That file is too large to upload.";
+  if (status === 429) return "Too many requests from your network right now. Wait a minute and try again.";
+  if (status === 502 || status === 503 || status === 504) {
+    return `The NoticeBoard server isn't responding (error ${status}). It may be restarting; try again in a minute.`;
+  }
+  if (status >= 500) return `The NoticeBoard server ran into a problem (error ${status}). Try again in a few minutes.`;
+  return `The request was refused (error ${status}).`;
+}
+
+/** The server's own explanation: plain text, or the message inside a JSON error. */
+function serverMessage(body: string): string | null {
+  const text = body.trim();
+  if (!text) return null;
+  if (!text.startsWith("{") && !text.startsWith("[") && !text.startsWith('"')) return text.length <= 300 ? text : null;
+  try {
+    const json = JSON.parse(text);
+    if (typeof json === "string") return json;
+    const errors = json?.errors && typeof json.errors === "object" ? Object.values(json.errors).flat().filter((e) => typeof e === "string") : [];
+    return (json?.message ?? json?.detail ?? (errors as string[])[0] ?? json?.title ?? null) || null;
+  } catch {
+    return null;
   }
 }
 
@@ -48,10 +90,15 @@ async function request<T>(
     headers[DEVICE_TOKEN_HEADER] = deviceToken;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new ApiError(0, unreachableMessage());
+  }
 
   if (deviceToken && response.headers.get("X-Device-Token-Status") === "invalid") {
     deviceToken = null;
@@ -60,7 +107,10 @@ async function request<T>(
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    throw new ApiError(response.status, text || `Request failed (${response.status})`);
+    // The proxy in front of the server answers with a page of its own,
+    // not an explanation; the rate limiter answers with nothing.
+    const own = response.status >= 502 ? null : serverMessage(text);
+    throw new ApiError(response.status, own ?? statusMessage(response.status));
   }
 
   if (response.status === 204) {
@@ -242,4 +292,3 @@ export const api = {
     ),
 };
 
-export { ApiError };

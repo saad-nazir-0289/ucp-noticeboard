@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AuthUser, Category, Notice } from "@shared/types";
-import { api, setDeviceToken } from "@shared/api/client";
+import { ApiError, api, setDeviceToken } from "@shared/api/client";
 import { ImageUploadError, uploadImage } from "@shared/api/imageUpload";
-import { getSavedIdentity, saveIdentity, clearIdentity } from "./storage";
+import { clearIdentity, clearLastFeed, getLastFeed, getSavedIdentity, saveIdentity, saveLastFeed } from "./storage";
 import { clearDeviceToken, getSavedDeviceToken, saveDeviceToken } from "./deviceUnlock";
 import { takeSharedPayload, type SharedPayload } from "./shareInbox";
 import {
@@ -21,6 +21,7 @@ import { UnlockPrompt } from "./components/UnlockPrompt";
 import { InstallBanner } from "./components/InstallBanner";
 import { getThemePreference, setThemePreference, type ThemePreference } from "./theme";
 import { useBackToClose } from "./backLayers";
+import { coachDone, coachDue, coachShown } from "./coach";
 import { Icon } from "@shared/components/Icon";
 import { Avatar } from "@shared/components/Tags";
 import { EmptyState } from "@shared/components/EmptyState";
@@ -38,10 +39,19 @@ const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
 
 export function App() {
   const [status, setStatus] = useState<Status>("loading");
+  // Why signing in failed, in words that say what's wrong.
+  const [loginError, setLoginError] = useState<string | null>(null);
+  // A rejected roll number, shown on the entry screen.
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  // Showing the notices saved on this device because the server couldn't be reached.
+  const [offline, setOffline] = useState<{ reason: string; savedAt: string } | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [bootstrapNotices, setBootstrapNotices] = useState<Notice[]>([]);
   const [bootstrapCategories, setBootstrapCategories] = useState<Category[]>([]);
   const [pushState, setPushState] = useState<PushState>("not-subscribed");
+  // "Turn on notifications" tip by the bell (see coach.ts); the number is where its arrow points.
+  const bellRef = useRef<HTMLButtonElement>(null);
+  const [notificationsTip, setNotificationsTip] = useState<number | null>(null);
   const [deepLinkNoticeId, setDeepLinkNoticeId] = useState<number | undefined>(undefined);
   const [autoEnableNotifications, setAutoEnableNotifications] = useState(false);
   const [urlActivationCode, setUrlActivationCode] = useState<string | undefined>(undefined);
@@ -140,8 +150,9 @@ export function App() {
     setUnlocked(false);
   };
 
-  const login = async (rollNumber: string) => {
-    setStatus("loading");
+  /** `quiet`: retrying behind saved notices, without the loading screen. */
+  const login = async (rollNumber: string, quiet = false) => {
+    if (!quiet) setStatus("loading");
     try {
       // Name is deliberately not sent here — the backend only ever uses a
       // client-supplied name at the moment an account is first created,
@@ -164,6 +175,16 @@ export function App() {
       setMyLogoUrl(result.logoUrl ?? null);
       setBootstrapNotices(result.notices);
       setBootstrapCategories(result.categories);
+      saveLastFeed({
+        rollNumber,
+        user: { id: result.id, name: result.name, rollNumber: result.rollNumber, role: result.role },
+        logoUrl: result.logoUrl ?? null,
+        notices: result.notices,
+        categories: result.categories,
+      });
+      if (quiet) setRefreshKey((k) => k + 1); // fresh notices replace the saved ones
+      setOffline(null);
+      setLoginError(null);
       setStatus("ready");
 
       api.recordVisit(result.token).catch(() => {
@@ -173,10 +194,74 @@ export function App() {
       getPushSubscriptionState().then((state) => {
         setPushState(state);
       });
-    } catch {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const httpStatus = err instanceof ApiError ? err.status : 0;
+      // The server turned this roll number down: ask for it again, saying why.
+      if (httpStatus === 400) {
+        clearIdentity();
+        clearLastFeed();
+        setIdentityError(message);
+        setStatus("needs-identity");
+        return;
+      }
+      // Couldn't sign in right now: show what this device saved last time, if anything.
+      const saved = getLastFeed(rollNumber);
+      if (saved) {
+        if (!quiet) {
+          setUser({ ...saved.user, token: "" });
+          setMyLogoUrl(saved.logoUrl);
+          setBootstrapNotices(saved.notices);
+          setBootstrapCategories(saved.categories);
+        }
+        setOffline({ reason: message, savedAt: saved.savedAt });
+        setStatus("ready");
+        return;
+      }
+      setLoginError(message);
       setStatus("error");
     }
   };
+
+  // The first few times the app is opened with notifications off: a
+  // moment after the notices appear (and after the swipe demo), the bell
+  // rings and a card under it says what turning them on gets you.
+  useEffect(() => {
+    if (status !== "ready" || offline || pushState !== "not-subscribed" || !coachDue("notifications")) return;
+    const timer = window.setTimeout(() => {
+      const bell = bellRef.current?.getBoundingClientRect();
+      // Not over something the person has open.
+      if (!bell || document.querySelector(".ucpnb-overlay")) return;
+      coachShown("notifications");
+      setNotificationsTip(Math.max(16, window.innerWidth - 12 - (bell.left + bell.width / 2) - 6));
+    }, 5500);
+    return () => window.clearTimeout(timer);
+  }, [status, offline, pushState]);
+
+  useEffect(() => {
+    if (pushState === "subscribed") {
+      coachDone("notifications");
+      setNotificationsTip(null);
+    }
+  }, [pushState]);
+
+  // Back online (or back in the app): try again behind the saved notices.
+  useEffect(() => {
+    if (!offline) return;
+    const retry = () => {
+      const saved = getSavedIdentity();
+      if (saved && document.visibilityState === "visible") login(saved.rollNumber, true);
+    };
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", retry);
+    const timer = window.setInterval(retry, 60_000);
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", retry);
+      window.clearInterval(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offline]);
 
   useEffect(() => {
     const saved = getSavedIdentity();
@@ -189,12 +274,16 @@ export function App() {
   }, []);
 
   const handleOnboardingSubmit = (rollNumber: string, name: string, university: string, department: string) => {
+    setIdentityError(null);
     saveIdentity(rollNumber, name, university, department);
     login(rollNumber);
   };
 
   const handleChangeIdentity = () => {
     clearIdentity();
+    clearLastFeed();
+    setOffline(null);
+    setLoginError(null);
     clearDeviceToken();
     setDeviceToken(null);
     setUnlocked(false);
@@ -385,7 +474,7 @@ export function App() {
   }
 
   if (status === "needs-identity") {
-    return <RollNumberEntry onSubmit={handleOnboardingSubmit} />;
+    return <RollNumberEntry onSubmit={handleOnboardingSubmit} serverError={identityError} />;
   }
 
   if (status === "error" || !user) {
@@ -393,13 +482,16 @@ export function App() {
       <div className="ucpnb-app">
         {appBar()}
         <main className="ucpnb-main">
-          <EmptyState icon="inbox" title="Can't reach NoticeBoard">
-            Check your connection and try again.
+          <EmptyState icon="inbox" title="Couldn't open NoticeBoard">
+            {loginError ?? "Signing in didn't finish. Try again."}
           </EmptyState>
-          <div className="ucpnb-center">
+          <div className="ucpnb-center ucpnb-error-actions">
             <button className="ucpnb-btn ucpnb-btn-primary" onClick={() => window.location.reload()}>
               <Icon name="restore" size={16} />
               Try again
+            </button>
+            <button className="ucpnb-btn ucpnb-btn-ghost" onClick={handleChangeIdentity}>
+              Use a different roll number
             </button>
           </div>
         </main>
@@ -438,8 +530,12 @@ export function App() {
           )}
           {pushState !== "unsupported" && (
             <button
-              className={notificationsOn ? "ucpnb-icon-btn is-active" : "ucpnb-icon-btn"}
-              onClick={handleToggleNotifications}
+              ref={bellRef}
+              className={`ucpnb-icon-btn${notificationsOn ? " is-active" : ""}${notificationsTip !== null ? " is-calling" : ""}`}
+              onClick={() => {
+                setNotificationsTip(null);
+                handleToggleNotifications();
+              }}
               disabled={pushState === "working"}
               aria-label={notificationsOn ? "Turn off notifications" : "Turn on notifications"}
               title={notificationsOn ? "Notifications are on. Tap to turn them off." : "Turn on notifications"}
@@ -453,7 +549,49 @@ export function App() {
         </>
       )}
 
+      {notificationsTip !== null && pushState === "not-subscribed" && (
+        <div
+          className="ucpnb-coach"
+          role="dialog"
+          aria-label="Turn on notifications"
+          style={{ "--ucpnb-coach-arrow": `${notificationsTip}px` } as React.CSSProperties}
+        >
+          <strong>Never miss a notice</strong>
+          <p>Turn on notifications to hear about new notices, and get a reminder before a deadline, even when the app is closed.</p>
+          <div className="ucpnb-coach-actions">
+            <button className="ucpnb-btn ucpnb-btn-ghost ucpnb-btn-sm" onClick={() => setNotificationsTip(null)}>
+              Not now
+            </button>
+            <button
+              className="ucpnb-btn ucpnb-btn-primary ucpnb-btn-sm"
+              onClick={() => {
+                setNotificationsTip(null);
+                handleToggleNotifications();
+              }}
+            >
+              <Icon name="bell" size={15} />
+              Turn on
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="ucpnb-main">
+        {offline && (
+          <div className="ucpnb-offline" role="status">
+            <Icon name="alertCircle" size={18} />
+            <div>
+              <strong>{offline.reason}</strong>
+              <span>
+                Showing the notices saved on this phone on{" "}
+                {new Date(offline.savedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}.
+              </span>
+            </div>
+            <button className="ucpnb-btn ucpnb-btn-secondary ucpnb-btn-sm" onClick={() => getSavedIdentity() && login(getSavedIdentity()!.rollNumber, true)}>
+              Retry
+            </button>
+          </div>
+        )}
         <InstallBanner onInstalled={() => showToast("NoticeBoard installed. Open it from your home screen.")} />
         <NoticeFeed
           key={refreshKey}
