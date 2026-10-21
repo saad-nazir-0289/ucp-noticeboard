@@ -110,8 +110,20 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
       (l) => /[\p{L}\p{N}]/u.test(l.replace(URL_PATTERN, "")) && !isHandle(l) && !isGreeting(l) && !isEmailBanner(l)
     );
     if (firstIndex >= 0) {
-      title = stripEmailPrefix(lines[firstIndex].replace(URL_PATTERN, "").trim());
-      bodyLines = lines.slice(firstIndex + 1);
+      const first = stripEmailPrefix(lines[firstIndex].replace(URL_PATTERN, "").trim());
+      if (isHeadline(first)) {
+        title = first;
+        bodyLines = lines.slice(firstIndex + 1);
+      } else {
+        // The message opens with a paragraph, not a heading ("A Strong Body,
+        // A Smarter Entrepreneur is an interactive wellness session…"). Its
+        // first words aren't a title, and the paragraph is part of the
+        // details: keep it there. Take the name it defines if it has one,
+        // and otherwise leave the title for the person to write rather than
+        // making one up.
+        title = definedName(first) ?? "";
+        bodyLines = lines.slice(firstIndex);
+      }
     }
   }
   title = shortenTitle(titleCase(stripDecoration(title)));
@@ -127,6 +139,9 @@ export function parseSharedContent(input: SharedContent, categories: Category[],
   if (description === title) description = "";
 
   const hints: string[] = [];
+  if (!title && prose && source !== "instagram") {
+    hints.push("The message has no clear title, so it was left empty. Add a short one, such as the event's name.");
+  }
   if (!linkUrl && /\b(registration link|link below|following link|fill in (the )?form|click here|form link|apply here|register here)\b/i.test(prose)) {
     hints.push("The message mentions a link, but its address wasn't included when it was copied. Copy the link itself and paste it into the Link field.");
   }
@@ -431,6 +446,34 @@ function withoutSignOff(lines: string[]): string[] {
     (l, i) => i >= lines.length - 6 && /^(regards|best regards|kind regards|warm regards|sincerely|yours sincerely|thanks|thank you|many thanks|best wishes)[,.!]?$/i.test(l)
   );
   return signOff >= 0 ? lines.slice(0, signOff) : lines;
+}
+
+/**
+ * A line that reads as a heading ("Hackathon registrations close tomorrow")
+ * rather than a paragraph: short, and not running on into a second sentence.
+ */
+function isHeadline(line: string): boolean {
+  const words = line.split(/\s+/).length;
+  if (words > 14 || line.length > TITLE_MAX) return false;
+  if (/[.!?]\s+\S/.test(line)) return false;
+  // A full sentence with a full stop is a sentence, unless it's short.
+  return !(/\.$/.test(line) && words > 8);
+}
+
+/**
+ * The name a paragraph opens by defining: "A Strong Body, A Smarter
+ * Entrepreneur is an interactive wellness session…" → "A Strong Body, A
+ * Smarter Entrepreneur". Not "This is a reminder…" or "We are a team…".
+ */
+function definedName(paragraph: string): string | undefined {
+  const m = paragraph.match(/^(.{4,80}?)\s+(?:is|are|was|will be)\s+(?:an?|the|our|your)\s/i);
+  if (!m) return undefined;
+  const name = m[1].trim();
+  if (/^(this|that|these|those|it|there|here|we|our|you|your|today|tomorrow|he|she|they|i)\b/i.test(name)) return undefined;
+  // A name is mostly capitalised words, not the start of a sentence.
+  const words = name.split(/\s+/);
+  const capitalised = words.filter((w) => /^[\p{Lu}\p{N}"'“‘(]/u.test(w)).length;
+  return capitalised / words.length >= 0.5 ? name : undefined;
 }
 
 function firstSentence(value: string): string {

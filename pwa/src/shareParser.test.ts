@@ -72,19 +72,49 @@ describe("parseSharedContent", () => {
     expect(parsed.title).toBe("Fee submission reminder");
   });
 
-  it("shortens a long first line into a title", () => {
+  it("leaves the title empty when the message opens with a paragraph", () => {
+    const text =
+      "The Computing Society is looking for enthusiastic members to join the organizing team for this semester's workshops and contests. Apply now!";
+    const parsed = parseSharedContent({ text }, categories, NOW);
+
+    // Not a made-up title cut from the paragraph, and the paragraph stays in the details.
+    expect(parsed.title).toBe("");
+    expect(parsed.description).toBe(text);
+    expect(parsed.hints[0]).toMatch(/no clear title/i);
+    // A society looking for members: Societies, though it mentions events too.
+    expect(parsed.categoryId).toBe(cat("Societies"));
+  });
+
+  it("takes the name a paragraph defines, keeping the paragraph in the details", () => {
+    const text = [
+      "A Strong Body, A Smarter Entrepreneur is an interactive wellness session hosted by the Innovation and Entrepreneurship Club (IEC). The workshop explores actionable brainpower hacks, founder stamina, and healthy eating on a budget through hands-on activities.   ",
+      "",
+      "☝🏻🧠",
+      "When: Thursday, 22 October | 3:00 PM – 5:00 PM  ",
+      "Where: Takhleeq Basement ",
+      "",
+      "Register through the form!! Limited slots only.",
+      "",
+      "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=syGyEmQEI0KJ5YiINXeLWNFWy0HPsPFGmy0A02NG-pdUNUZNME5ZVDVLTzRPQjVNNFlLOFBEWUk3MS4u",
+    ].join("\n");
+    const parsed = parseSharedContent({ text }, categories, NOW);
+
+    expect(parsed.title).toBe("A Strong Body, A Smarter Entrepreneur");
+    expect(parsed.description.startsWith("A Strong Body, A Smarter Entrepreneur is an interactive wellness session")).toBe(true);
+    expect(parsed.description).toContain("Where: Takhleeq Basement");
+    expect(parsed.linkUrl).toMatch(/^https:\/\/forms\.cloud\.microsoft\//);
+    expect(parsed.hints.some((h) => /no clear title/i.test(h))).toBe(false);
+  });
+
+  it("still uses a short heading line as the title", () => {
     const parsed = parseSharedContent(
-      {
-        text: "The Computing Society is looking for enthusiastic members to join the organizing team for this semester's workshops and contests. Apply now!",
-      },
+      { text: "Football trials this Saturday\nAll students welcome at the main ground, 9 AM." },
       categories,
       NOW
     );
 
-    expect(parsed.title.length).toBeLessThanOrEqual(90);
-    expect(parsed.title.endsWith("…")).toBe(true);
-    // A society looking for members: Societies, though it mentions events too.
-    expect(parsed.categoryId).toBe(cat("Societies"));
+    expect(parsed.title).toBe("Football trials this Saturday");
+    expect(parsed.description).toBe("All students welcome at the main ground, 9 AM.");
   });
 });
 
