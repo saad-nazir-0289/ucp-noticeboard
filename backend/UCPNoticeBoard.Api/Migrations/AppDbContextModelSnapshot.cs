@@ -129,11 +129,17 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("LastCallSent")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("LinkUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("ReminderSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SendLastCall")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Title")

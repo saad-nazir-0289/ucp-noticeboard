@@ -61,7 +61,9 @@ public record NoticeDto(
     // Admin only — null for everyone else (NoticeQueryService.ForViewer).
     int? ViewCount,
     bool IsPinned,
-    string? CreatedByLogoUrl
+    string? CreatedByLogoUrl,
+    // The publisher asked for a last-call push an hour before the deadline.
+    bool SendLastCall
 );
 
 // Null or empty clears the logo. Pin as for notices (not needed on an
@@ -73,6 +75,8 @@ public record UpdateLogoRequest(string? LogoUrl, string? Pin);
 // account has no PIN yet, whatever is supplied here becomes their PIN
 // going forward (first-use-sets-it) — otherwise it must match exactly.
 // IsPinned is only honoured for the Admin; null leaves it unchanged on update.
+// SendLastCall asks for a last-call push before the deadline; null leaves it
+// unchanged on update (and means no on create).
 /// <summary>Several notices deleted at once (the management lists' "Delete selected").</summary>
 public record DeleteNoticesRequest(List<int> Ids, string? Pin);
 public record DeleteNoticesResponse(int Deleted);
@@ -80,9 +84,9 @@ public record DeleteNoticesResponse(int Deleted);
 /// <summary>A notice in the bin: who deleted it, when, and when it goes for good.</summary>
 public record BinNoticeDto(int Id, string Title, string CreatedByName, DateTime CreatedAt, DateTime DeletedAt, string DeletedByName, DateTime PurgeAt);
 
-public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
+public record CreateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null, bool? SendLastCall = null);
 
-public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null);
+public record UpdateNoticeRequest(string Title, string Description, string? ImageUrl, string? LinkUrl, int? CategoryId, DateTime? Deadline, string? Pin, bool? IsPinned = null, bool? SendLastCall = null);
 
 public record CategoryDto(int Id, string Name);
 

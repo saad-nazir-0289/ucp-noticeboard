@@ -44,6 +44,19 @@ export function PinToggle({ checked, onChange }: { checked: boolean; onChange: (
   );
 }
 
+/** The publisher's "last call" switch in the notice forms, shown once a deadline is set. */
+export function LastCallToggle({ checked, onChange }: { checked: boolean; onChange: (checked: boolean) => void }) {
+  return (
+    <label className="ucpnb-toggle-row">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <strong>Last-call reminder</strong>
+        <span>Notify students again about an hour before the deadline.</span>
+      </span>
+    </label>
+  );
+}
+
 /** Whoever posted a notice: their logo if they've set one, otherwise their initials. */
 export function Avatar({ name, size = "sm", imageUrl }: { name: string; size?: "sm" | "md"; imageUrl?: string | null }) {
   if (imageUrl) {

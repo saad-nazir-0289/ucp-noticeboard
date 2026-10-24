@@ -16,8 +16,16 @@ namespace UCPNoticeBoard.Api.Services;
 /// </summary>
 public class DeadlineReminderService : BackgroundService
 {
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(15);
+    // Often enough that the last call goes out 55 to 60 minutes before.
+    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ReminderWindow = TimeSpan.FromHours(24);
+    /// <summary>The last call goes out once the deadline is this close.</summary>
+    public static readonly TimeSpan LastCallWindow = TimeSpan.FromHours(1);
+    /// <summary>
+    /// A notice posted less than this long before its last call doesn't get
+    /// one: its "new notice" push is still fresh.
+    /// </summary>
+    public static readonly TimeSpan QuietBeforeLastCall = TimeSpan.FromHours(1);
     /// <summary>
     /// The "new notice" push comes first and stays on its own for at least
     /// this long: the reminder replaces it on the phone (same notification),
@@ -30,8 +38,29 @@ public class DeadlineReminderService : BackgroundService
     /// <see cref="QuietAfterPosting"/> of the notice going up. A notice posted
     /// with only a few hours left gets just its "new notice" push.
     /// </summary>
-    public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now) =>
-        deadline > now && deadline - now <= ReminderWindow && now - createdAt >= QuietAfterPosting;
+    /// <param name="lastCall">The notice gets a last call, which takes over the final hour.</param>
+    public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now, bool lastCall = false) =>
+        deadline > now && deadline - now <= ReminderWindow && (!lastCall || deadline - now > LastCallWindow)
+        && now - createdAt >= QuietAfterPosting;
+
+    /// <summary>
+    /// For a notice whose publisher ticked "last call" (SendLastCall):
+    /// due in the last <see cref="LastCallWindow"/> before the deadline,
+    /// unless the notice went up within <see cref="QuietBeforeLastCall"/>.
+    /// It takes the place of a day-before reminder that hasn't gone out yet,
+    /// so the two never arrive together.
+    /// </summary>
+    public static bool IsLastCallDue(DateTime createdAt, DateTime deadline, DateTime now) =>
+        deadline > now && deadline - now <= LastCallWindow && now - createdAt >= QuietBeforeLastCall;
+
+    /// <summary>"About an hour left. Closes at 11:59 PM." (Pakistan time)</summary>
+    public static string LastCallBody(DateTime deadline, DateTime now)
+    {
+        var minutes = Math.Max(5, (int)Math.Round((deadline - now).TotalMinutes / 5) * 5);
+        var closes = DateTime.SpecifyKind(deadline, DateTimeKind.Utc).AddHours(5);
+        var left = minutes >= 50 ? "About an hour left." : $"About {minutes} minutes left.";
+        return $"{left} Closes at {closes:h:mm tt}.";
+    }
 
     /// <summary>"Less than a day left.", "About 5 hours left.", "Less than an hour left."</summary>
     public static string ReminderBody(DateTime deadline, DateTime now)
@@ -84,13 +113,54 @@ public class DeadlineReminderService : BackgroundService
         var now = DateTime.UtcNow;
         var windowEnd = now + ReminderWindow;
 
-        // Notices whose deadline falls within the next 24 hours, haven't
-        // already been reminded about, haven't passed yet, and went up at
-        // least QuietAfterPosting ago (the same rule as IsReminderDue).
+        // Last calls first, for notices that asked for one: the same rule as IsLastCallDue.
+        var lastCallFrom = now + LastCallWindow;
+        var lastCallQuiet = now - QuietBeforeLastCall;
+        var lastCalls = await db.Notices
+            .Where(n => n.SendLastCall
+                        && n.Deadline != null
+                        && n.Deadline > now
+                        && n.Deadline <= lastCallFrom
+                        && n.CreatedAt <= lastCallQuiet
+                        && !n.LastCallSent)
+            .ToListAsync(cancellationToken);
+
+        foreach (var notice in lastCalls)
+        {
+            try
+            {
+                await pushService.NotifyAllAsync(
+                    $"Last call: {notice.Title}",
+                    LastCallBody(notice.Deadline!.Value, now),
+                    url: Controllers.NoticesController.NoticeLink(notice.Id),
+                    imageUrl: notice.ImageUrl,
+                    categoryId: notice.CategoryId
+                );
+
+                notice.LastCallSent = true;
+                // Too late for the day-before reminder now.
+                notice.ReminderSent = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send last call for notice {Id}", notice.Id);
+            }
+        }
+
+        if (lastCalls.Count > 0)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        // Notices whose deadline falls within the next 24 hours (for one with a
+        // last call, more than LastCallWindow away: the last call covers the
+        // rest), haven't already been reminded about, and went up at least
+        // QuietAfterPosting ago (the same rule as IsReminderDue).
         var quietUntil = now - QuietAfterPosting;
         var dueNotices = await db.Notices
             .Where(n => n.Deadline != null
                         && n.Deadline > now
+                        && (!n.SendLastCall || n.Deadline > lastCallFrom)
                         && n.Deadline <= windowEnd
                         && n.CreatedAt <= quietUntil
                         && !n.ReminderSent)

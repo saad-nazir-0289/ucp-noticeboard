@@ -25,6 +25,14 @@ public class Notice
     // Meaningless for notices with no Deadline.
     public bool ReminderSent { get; set; } = false;
 
+    // Ticked by the publisher: send a "last call" push about an hour
+    // before the deadline. Off unless they ask for it.
+    public bool SendLastCall { get; set; } = false;
+
+    // Set once that last call has gone out. Like ReminderSent, cleared when
+    // the deadline is changed.
+    public bool LastCallSent { get; set; } = false;
+
     // Set by the Admin only. Pinned notices sit above everything else in
     // every feed, and one without a deadline doesn't expire after the
     // usual 7 days — it stays until it's unpinned (or its deadline passes).
