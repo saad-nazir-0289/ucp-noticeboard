@@ -38,12 +38,14 @@ public class DeadlineReminderService : BackgroundService
     /// <see cref="QuietAfterPosting"/> of the notice going up. A notice posted
     /// with only a few hours left gets just its "new notice" push.
     /// </summary>
-    public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now) =>
-        deadline > now && deadline - now <= ReminderWindow && deadline - now > LastCallWindow
+    /// <param name="lastCall">The notice gets a last call, which takes over the final half hour.</param>
+    public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now, bool lastCall = false) =>
+        deadline > now && deadline - now <= ReminderWindow && (!lastCall || deadline - now > LastCallWindow)
         && now - createdAt >= QuietAfterPosting;
 
     /// <summary>
-    /// Due in the last <see cref="LastCallWindow"/> before the deadline,
+    /// For a notice whose publisher ticked "last call" (SendLastCall):
+    /// due in the last <see cref="LastCallWindow"/> before the deadline,
     /// unless the notice went up within <see cref="QuietBeforeLastCall"/>.
     /// It takes the place of a day-before reminder that hasn't gone out yet,
     /// so the two never arrive together.
@@ -110,11 +112,12 @@ public class DeadlineReminderService : BackgroundService
         var now = DateTime.UtcNow;
         var windowEnd = now + ReminderWindow;
 
-        // Last calls first: the same rule as IsLastCallDue.
+        // Last calls first, for notices that asked for one: the same rule as IsLastCallDue.
         var lastCallFrom = now + LastCallWindow;
         var lastCallQuiet = now - QuietBeforeLastCall;
         var lastCalls = await db.Notices
-            .Where(n => n.Deadline != null
+            .Where(n => n.SendLastCall
+                        && n.Deadline != null
                         && n.Deadline > now
                         && n.Deadline <= lastCallFrom
                         && n.CreatedAt <= lastCallQuiet
@@ -148,14 +151,15 @@ public class DeadlineReminderService : BackgroundService
             await db.SaveChangesAsync(cancellationToken);
         }
 
-        // Notices whose deadline falls within the next 24 hours but more than
-        // LastCallWindow away (closer than that, the last call covers it),
-        // haven't already been reminded about, and went up at least
+        // Notices whose deadline falls within the next 24 hours (for one with a
+        // last call, more than LastCallWindow away: the last call covers the
+        // rest), haven't already been reminded about, and went up at least
         // QuietAfterPosting ago (the same rule as IsReminderDue).
         var quietUntil = now - QuietAfterPosting;
         var dueNotices = await db.Notices
             .Where(n => n.Deadline != null
-                        && n.Deadline > lastCallFrom
+                        && n.Deadline > now
+                        && (!n.SendLastCall || n.Deadline > lastCallFrom)
                         && n.Deadline <= windowEnd
                         && n.CreatedAt <= quietUntil
                         && !n.ReminderSent)

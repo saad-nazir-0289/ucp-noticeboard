@@ -12,7 +12,7 @@ using UCPNoticeBoard.Api.Data;
 namespace UCPNoticeBoard.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261024114820_AddLastCallReminder")]
+    [Migration("20261024115151_AddLastCallReminder")]
     partial class AddLastCallReminder
     {
         /// <inheritdoc />
@@ -140,6 +140,9 @@ namespace UCPNoticeBoard.Api.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("ReminderSent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("SendLastCall")
                         .HasColumnType("boolean");
 
                     b.Property<string>("Title")

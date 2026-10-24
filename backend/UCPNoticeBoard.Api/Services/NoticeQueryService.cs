@@ -57,7 +57,8 @@ public class NoticeQueryService : INoticeQueryService
         n.UpdatedAt,
         n.ViewCount,
         n.IsPinned,
-        n.CreatedByUser?.LogoUrl
+        n.CreatedByUser?.LogoUrl,
+        n.SendLastCall
     );
 
     /// <summary>

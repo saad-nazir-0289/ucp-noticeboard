@@ -25,8 +25,12 @@ public class Notice
     // Meaningless for notices with no Deadline.
     public bool ReminderSent { get; set; } = false;
 
-    // Set once the "last call" push, about 30 minutes before the deadline,
-    // has gone out. Like ReminderSent, cleared when the deadline is changed.
+    // Ticked by the publisher: send a "last call" push about 30 minutes
+    // before the deadline. Off unless they ask for it.
+    public bool SendLastCall { get; set; } = false;
+
+    // Set once that last call has gone out. Like ReminderSent, cleared when
+    // the deadline is changed.
     public bool LastCallSent { get; set; } = false;
 
     // Set by the Admin only. Pinned notices sit above everything else in

@@ -17,6 +17,7 @@ const notice = (deadline: string | null, description = "Teams of 2-4.\nPrizes fo
   updatedAt: "2026-10-14T10:00:00Z",
   viewCount: null,
   isPinned: false,
+  sendLastCall: false,
   createdByLogoUrl: null,
 });
 

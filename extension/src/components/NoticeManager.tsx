@@ -8,7 +8,7 @@ import { timeAgo } from "@shared/format";
 import { Icon } from "@shared/components/Icon";
 import { EmptyState } from "@shared/components/EmptyState";
 import { NoticeBin } from "@shared/components/NoticeBin";
-import { CategoryTag, PinnedBadge, PinToggle } from "@shared/components/Tags";
+import { CategoryTag, LastCallToggle, PinnedBadge, PinToggle } from "@shared/components/Tags";
 import { parseSharedContent } from "@shared/shareParser";
 import { posterFrom } from "@shared/posterCrop";
 
@@ -32,6 +32,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [deadline, setDeadline] = useState("");
   const [isPinned, setIsPinned] = useState(false);
+  const [sendLastCall, setSendLastCall] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Notices ticked for "Delete selected".
@@ -74,6 +75,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     setCategoryId("");
     setDeadline("");
     setIsPinned(false);
+    setSendLastCall(false);
     setError(null);
     setPasteNote(null);
     setUncropped(null);
@@ -94,6 +96,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
     setCategoryId(notice.categoryId ?? "");
     setDeadline(toDatetimeLocalValue(notice.deadline));
     setIsPinned(notice.isPinned);
+    setSendLastCall(notice.sendLastCall);
   };
 
   const canManage = (notice: Notice) => user.role === "Admin" || notice.createdByUserId === user.id;
@@ -181,6 +184,7 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
       categoryId: categoryId === "" ? null : categoryId,
       deadline: fromDatetimeLocalValue(deadline),
       ...(user.role === "Admin" ? { isPinned } : {}),
+      sendLastCall: Boolean(deadline) && sendLastCall,
     };
     try {
       if (editing) {
@@ -317,6 +321,11 @@ export function NoticeManager({ user, scope, ensureUnlocked }: Props) {
               <input className="ucpnb-input" type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
               <span className="ucpnb-field-hint">Leave empty to show it for 7 days.</span>
             </label>
+            {deadline && (
+              <div className="ucpnb-span-2">
+                <LastCallToggle checked={sendLastCall} onChange={setSendLastCall} />
+              </div>
+            )}
             {user.role === "Admin" && (
               <div className="ucpnb-span-2">
                 <PinToggle checked={isPinned} onChange={setIsPinned} />

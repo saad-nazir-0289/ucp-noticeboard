@@ -35,7 +35,7 @@ public class NoticesController : ControllerBase
     private NoticeDto ToDto(Notice n) => NoticeQueryService.ForViewer(new(
         n.Id, n.Title, n.Description, n.ImageUrl, n.LinkUrl,
         n.CategoryId, n.Category?.Name, n.Deadline, n.CreatedByUserId,
-        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned, n.CreatedByUser?.LogoUrl), CanSeeViews);
+        n.CreatedByUser?.Name ?? "Unknown", n.CreatedAt, n.UpdatedAt, n.ViewCount, n.IsPinned, n.CreatedByUser?.LogoUrl, n.SendLastCall), CanSeeViews);
 
     [HttpGet]
     public async Task<ActionResult<List<NoticeDto>>> GetNotices(
@@ -150,7 +150,8 @@ public class NoticesController : ControllerBase
             CreatedByUserId = CurrentUserId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
-            IsPinned = User.IsInRole("Admin") && request.IsPinned == true
+            IsPinned = User.IsInRole("Admin") && request.IsPinned == true,
+            SendLastCall = request.SendLastCall == true
         };
 
         _db.Notices.Add(notice);
@@ -241,6 +242,12 @@ public class NoticesController : ControllerBase
         }
         notice.Deadline = deadline;
         notice.UpdatedAt = DateTime.UtcNow;
+        if (request.SendLastCall is bool lastCall && lastCall != notice.SendLastCall)
+        {
+            notice.SendLastCall = lastCall;
+            notice.LastCallSent = false;
+        }
+
         if (isAdmin && request.IsPinned is bool pinned)
         {
             notice.IsPinned = pinned;

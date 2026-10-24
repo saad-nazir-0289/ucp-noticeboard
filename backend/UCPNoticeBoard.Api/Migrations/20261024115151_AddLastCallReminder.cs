@@ -16,6 +16,13 @@ namespace UCPNoticeBoard.Api.Migrations
                 type: "boolean",
                 nullable: false,
                 defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "SendLastCall",
+                table: "Notices",
+                type: "boolean",
+                nullable: false,
+                defaultValue: false);
         }
 
         /// <inheritdoc />
@@ -23,6 +30,10 @@ namespace UCPNoticeBoard.Api.Migrations
         {
             migrationBuilder.DropColumn(
                 name: "LastCallSent",
+                table: "Notices");
+
+            migrationBuilder.DropColumn(
+                name: "SendLastCall",
                 table: "Notices");
         }
     }

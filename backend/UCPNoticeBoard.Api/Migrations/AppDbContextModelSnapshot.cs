@@ -139,6 +139,9 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.Property<bool>("ReminderSent")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("SendLastCall")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)

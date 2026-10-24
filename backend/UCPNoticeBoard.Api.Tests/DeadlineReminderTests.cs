@@ -65,8 +65,15 @@ public class DeadlineReminderTests
     {
         // In the final half hour only the last call is due, never both.
         var created = Now.AddHours(-7);
-        Assert.False(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(20), Now));
+        Assert.False(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(20), Now, lastCall: true));
         Assert.True(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(20), Now));
+    }
+
+    [Fact]
+    public void WithoutALastCall_TheDayBeforeReminderStillCoversTheFinalHalfHour()
+    {
+        var created = Now.AddHours(-7);
+        Assert.True(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(20), Now));
     }
 
     [Fact]
