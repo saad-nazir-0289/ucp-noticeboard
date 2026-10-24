@@ -62,7 +62,7 @@ public record NoticeDto(
     int? ViewCount,
     bool IsPinned,
     string? CreatedByLogoUrl,
-    // The publisher asked for a last-call push 30 minutes before the deadline.
+    // The publisher asked for a last-call push an hour before the deadline.
     bool SendLastCall
 );
 

@@ -45,11 +45,11 @@ public class DeadlineReminderTests
     }
 
     [Fact]
-    public void LastCall_InTheFinalHalfHour()
+    public void LastCall_InTheFinalHour()
     {
         var created = Now.AddDays(-2);
-        Assert.False(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(45), Now));
-        Assert.True(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(28), Now));
+        Assert.False(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(75), Now));
+        Assert.True(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(58), Now));
         Assert.False(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(-1), Now));
     }
 
@@ -57,23 +57,23 @@ public class DeadlineReminderTests
     public void LastCall_NotForANoticeJustPosted()
     {
         // Its "new notice" push went out 20 minutes ago.
-        Assert.False(DeadlineReminderService.IsLastCallDue(Now.AddMinutes(-20), Now.AddMinutes(25), Now));
+        Assert.False(DeadlineReminderService.IsLastCallDue(Now.AddMinutes(-20), Now.AddMinutes(55), Now));
     }
 
     [Fact]
     public void LastCall_TakesOverFromTheDayBeforeReminder()
     {
-        // In the final half hour only the last call is due, never both.
+        // In the final hour only the last call is due, never both.
         var created = Now.AddHours(-7);
-        Assert.False(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(20), Now, lastCall: true));
-        Assert.True(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(20), Now));
+        Assert.False(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(45), Now, lastCall: true));
+        Assert.True(DeadlineReminderService.IsLastCallDue(created, Now.AddMinutes(45), Now));
     }
 
     [Fact]
-    public void WithoutALastCall_TheDayBeforeReminderStillCoversTheFinalHalfHour()
+    public void WithoutALastCall_TheDayBeforeReminderStillCoversTheFinalHour()
     {
         var created = Now.AddHours(-7);
-        Assert.True(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(20), Now));
+        Assert.True(DeadlineReminderService.IsReminderDue(created, Now.AddMinutes(45), Now));
     }
 
     [Fact]
@@ -81,6 +81,7 @@ public class DeadlineReminderTests
     {
         // 18:59 UTC is 11:59 PM in Pakistan.
         var deadline = new DateTime(2026, 10, 24, 18, 59, 0, DateTimeKind.Utc);
+        Assert.Equal("About an hour left. Closes at 11:59 PM.", DeadlineReminderService.LastCallBody(deadline, deadline.AddMinutes(-57)));
         Assert.Equal("About 25 minutes left. Closes at 11:59 PM.", DeadlineReminderService.LastCallBody(deadline, deadline.AddMinutes(-26)));
     }
 }

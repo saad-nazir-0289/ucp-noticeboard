@@ -16,11 +16,11 @@ namespace UCPNoticeBoard.Api.Services;
 /// </summary>
 public class DeadlineReminderService : BackgroundService
 {
-    // Often enough that the last call goes out 25 to 30 minutes before.
+    // Often enough that the last call goes out 55 to 60 minutes before.
     private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ReminderWindow = TimeSpan.FromHours(24);
     /// <summary>The last call goes out once the deadline is this close.</summary>
-    public static readonly TimeSpan LastCallWindow = TimeSpan.FromMinutes(30);
+    public static readonly TimeSpan LastCallWindow = TimeSpan.FromHours(1);
     /// <summary>
     /// A notice posted less than this long before its last call doesn't get
     /// one: its "new notice" push is still fresh.
@@ -38,7 +38,7 @@ public class DeadlineReminderService : BackgroundService
     /// <see cref="QuietAfterPosting"/> of the notice going up. A notice posted
     /// with only a few hours left gets just its "new notice" push.
     /// </summary>
-    /// <param name="lastCall">The notice gets a last call, which takes over the final half hour.</param>
+    /// <param name="lastCall">The notice gets a last call, which takes over the final hour.</param>
     public static bool IsReminderDue(DateTime createdAt, DateTime deadline, DateTime now, bool lastCall = false) =>
         deadline > now && deadline - now <= ReminderWindow && (!lastCall || deadline - now > LastCallWindow)
         && now - createdAt >= QuietAfterPosting;
@@ -53,12 +53,13 @@ public class DeadlineReminderService : BackgroundService
     public static bool IsLastCallDue(DateTime createdAt, DateTime deadline, DateTime now) =>
         deadline > now && deadline - now <= LastCallWindow && now - createdAt >= QuietBeforeLastCall;
 
-    /// <summary>"About 25 minutes left. Closes at 11:59 PM." (Pakistan time)</summary>
+    /// <summary>"About an hour left. Closes at 11:59 PM." (Pakistan time)</summary>
     public static string LastCallBody(DateTime deadline, DateTime now)
     {
         var minutes = Math.Max(5, (int)Math.Round((deadline - now).TotalMinutes / 5) * 5);
         var closes = DateTime.SpecifyKind(deadline, DateTimeKind.Utc).AddHours(5);
-        return $"About {minutes} minutes left. Closes at {closes:h:mm tt}.";
+        var left = minutes >= 50 ? "About an hour left." : $"About {minutes} minutes left.";
+        return $"{left} Closes at {closes:h:mm tt}.";
     }
 
     /// <summary>"Less than a day left.", "About 5 hours left.", "Less than an hour left."</summary>

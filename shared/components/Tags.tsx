@@ -51,7 +51,7 @@ export function LastCallToggle({ checked, onChange }: { checked: boolean; onChan
       <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>
         <strong>Last-call reminder</strong>
-        <span>Notify students again about 30 minutes before the deadline.</span>
+        <span>Notify students again about an hour before the deadline.</span>
       </span>
     </label>
   );

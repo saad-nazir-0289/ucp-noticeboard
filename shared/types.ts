@@ -50,7 +50,7 @@ export interface Notice {
   isPinned: boolean;
   /** The publisher's logo, shown instead of their initials. */
   createdByLogoUrl: string | null;
-  /** The publisher asked for a "last call" push 30 minutes before the deadline. */
+  /** The publisher asked for a "last call" push an hour before the deadline. */
   sendLastCall: boolean;
 }
 

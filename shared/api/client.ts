@@ -156,7 +156,7 @@ export const api = {
       pin?: string;
       /** Admin only (ignored for anyone else); leave out to keep it as is. */
       isPinned?: boolean;
-      /** A "last call" push 30 minutes before the deadline; leave out to keep it as is. */
+      /** A "last call" push an hour before the deadline; leave out to keep it as is. */
       sendLastCall?: boolean;
     },
     token: string
@@ -180,7 +180,7 @@ export const api = {
       pin?: string;
       /** Admin only (ignored for anyone else); leave out to keep it as is. */
       isPinned?: boolean;
-      /** A "last call" push 30 minutes before the deadline; leave out to keep it as is. */
+      /** A "last call" push an hour before the deadline; leave out to keep it as is. */
       sendLastCall?: boolean;
     },
     token: string

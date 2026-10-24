@@ -25,7 +25,7 @@ public class Notice
     // Meaningless for notices with no Deadline.
     public bool ReminderSent { get; set; } = false;
 
-    // Ticked by the publisher: send a "last call" push about 30 minutes
+    // Ticked by the publisher: send a "last call" push about an hour
     // before the deadline. Off unless they ask for it.
     public bool SendLastCall { get; set; } = false;
 
