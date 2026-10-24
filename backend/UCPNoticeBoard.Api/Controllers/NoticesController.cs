@@ -232,7 +232,14 @@ public class NoticesController : ControllerBase
         notice.ImageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? null : request.ImageUrl.Trim();
         notice.LinkUrl = string.IsNullOrWhiteSpace(request.LinkUrl) ? null : request.LinkUrl.Trim();
         notice.CategoryId = request.CategoryId;
-        notice.Deadline = request.Deadline?.ToUniversalTime();
+        var deadline = request.Deadline?.ToUniversalTime();
+        if (deadline != notice.Deadline)
+        {
+            // A moved deadline gets its reminders again, for the new time.
+            notice.ReminderSent = false;
+            notice.LastCallSent = false;
+        }
+        notice.Deadline = deadline;
         notice.UpdatedAt = DateTime.UtcNow;
         if (isAdmin && request.IsPinned is bool pinned)
         {
