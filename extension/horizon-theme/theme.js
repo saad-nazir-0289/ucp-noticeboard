@@ -25,7 +25,13 @@
   const deviceDark = window.matchMedia("(prefers-color-scheme: dark)");
   let preference = "light";
   let style = "noticeboard";
-  let active = false; // the recolouring below (Original style, dark)
+  let active = false; // the recolouring below
+  // "original": Original style in dark, every light colour turned dark.
+  // "skin": NoticeBoard style in dark, a safety net for what skin.css
+  // doesn't cover (pages it hasn't seen): only near-white backgrounds and
+  // text too dark to read are changed; skin.css's own colours are already
+  // dark and stay as they are.
+  let mode = "original";
   // Every property set on each element, so switching back can undo it.
   const changed = new Map();
 
@@ -78,11 +84,16 @@
     el.style.setProperty(prop, value, "important");
   }
 
+  // The NoticeBoard dark surface, for a leftover white box.
+  function skinBackground(c) {
+    return toHsl(c).l > 0.86 ? hsl(218, 0.32, 0.16, c.a) : null;
+  }
+
   function recolour(el) {
     if (SKIP.has(el.tagName.toUpperCase()) || el.closest(PANEL) || el.closest("svg")) return;
     const style = getComputedStyle(el);
     const bg = parse(style.backgroundColor);
-    if (bg && bg.a > 0) set(el, "background-color", darkBackground(bg));
+    if (bg && bg.a > 0) set(el, "background-color", mode === "skin" ? skinBackground(bg) : darkBackground(bg));
     const fg = parse(style.color);
     if (fg) set(el, "color", lightText(fg));
     for (const side of ["top", "right", "bottom", "left"]) {
@@ -113,8 +124,10 @@
     });
   });
 
-  function turnOn() {
-    if (active) return;
+  function turnOn(newMode) {
+    if (active && mode === newMode) return;
+    if (active) turnOff();
+    mode = newMode;
     active = true;
     const start = () => {
       recolourAll(document.body);
@@ -144,12 +157,22 @@
     changed.clear();
   }
 
+  // Horizon's own scripts rewrite <html class="..."> after loading (feature
+  // and web-font detection), which would drop these and put the original
+  // look back: put them back whenever that happens.
+  let wanted = { skin: false, dark: false };
+  function keepClasses() {
+    if (html.classList.contains("ucpnb-skin") !== wanted.skin) html.classList.toggle("ucpnb-skin", wanted.skin);
+    if (html.classList.contains("ucpnb-dark") !== wanted.dark) html.classList.toggle("ucpnb-dark", wanted.dark); // also the panel's dark colours
+  }
+  new MutationObserver(keepClasses).observe(html, { attributes: true, attributeFilter: ["class"] });
+
   const apply = () => {
     const dark = preference === "dark" || (preference === "system" && deviceDark.matches);
     const skin = style !== "original";
-    html.classList.toggle("ucpnb-skin", skin);
-    html.classList.toggle("ucpnb-dark", dark); // also the panel's dark colours
-    dark && !skin ? turnOn() : turnOff();
+    wanted = { skin, dark };
+    keepClasses();
+    dark ? turnOn(skin ? "skin" : "original") : turnOff();
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ preference, style }));
     } catch {

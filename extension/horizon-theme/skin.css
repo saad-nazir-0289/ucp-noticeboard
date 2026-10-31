@@ -82,7 +82,7 @@ html.ucpnb-skin #page_content,
 html.ucpnb-skin #page_content_inner {
   background: transparent !important;
 }
-html.ucpnb-skin #page_content a {
+html.ucpnb-skin #page_content a:not(.md-btn):not(.uk-button):not(.btn):not([class*="md-bg-"]) {
   color: var(--sk-primary);
 }
 html.ucpnb-skin :is(.uk-text-muted, .sub-heading, [class*="md-color-blue-grey"], [class*="md-color-grey"]) {
@@ -309,11 +309,11 @@ html.ucpnb-skin .user_heading_dash .uk-badge:nth-of-type(2n) {
 }
 
 /* ---------- Course cards ---------- */
-html.ucpnb-skin .hierarchical_show a,
-html.ucpnb-skin .hierarchical_show a * {
+html.ucpnb-skin #page_content_inner a:has(> .card),
+html.ucpnb-skin #page_content_inner a:has(> .card) * {
   text-decoration: none !important;
 }
-html.ucpnb-skin .hierarchical_show .card {
+html.ucpnb-skin #page_content_inner .card {
   background: var(--sk-surface) !important;
   border: 1px solid var(--sk-border) !important;
   border-radius: 16px !important;
@@ -321,44 +321,44 @@ html.ucpnb-skin .hierarchical_show .card {
   box-shadow: var(--sk-shadow-1) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-html.ucpnb-skin .hierarchical_show a:hover .card {
+html.ucpnb-skin #page_content_inner a:hover > .card {
   transform: translateY(-4px);
   box-shadow: var(--sk-shadow-2) !important;
 }
-html.ucpnb-skin .hierarchical_show .card-header {
+html.ucpnb-skin #page_content_inner .card .card-header {
   background: var(--sk-c1) !important;
   color: #fff !important;
   border: 0 !important;
   padding: 14px 16px !important;
   font-weight: 650;
 }
-html.ucpnb-skin .hierarchical_show .card-header * {
+html.ucpnb-skin #page_content_inner .card .card-header * {
   color: #fff !important;
 }
-html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 2) .card-header { background: var(--sk-c2) !important; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 3) .card-header { background: var(--sk-c3) !important; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 4) .card-header { background: var(--sk-c4) !important; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 5) .card-header { background: var(--sk-c5) !important; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 6) .card-header { background: var(--sk-c6) !important; }
-html.ucpnb-skin .hierarchical_show .card-body {
+html.ucpnb-skin .uk-grid > :nth-child(6n + 2) .card .card-header { background: var(--sk-c2) !important; }
+html.ucpnb-skin .uk-grid > :nth-child(6n + 3) .card .card-header { background: var(--sk-c3) !important; }
+html.ucpnb-skin .uk-grid > :nth-child(6n + 4) .card .card-header { background: var(--sk-c4) !important; }
+html.ucpnb-skin .uk-grid > :nth-child(6n + 5) .card .card-header { background: var(--sk-c5) !important; }
+html.ucpnb-skin .uk-grid > :nth-child(6n + 6) .card .card-header { background: var(--sk-c6) !important; }
+html.ucpnb-skin #page_content_inner .card .card-body {
   background: transparent !important;
   color: var(--sk-text-2) !important;
 }
-html.ucpnb-skin .hierarchical_show .card-title {
+html.ucpnb-skin #page_content_inner .card .card-title {
   color: var(--sk-text) !important;
   font-weight: 600 !important;
 }
-html.ucpnb-skin .hierarchical_show .card-body :is(span, b, div) {
+html.ucpnb-skin #page_content_inner .card .card-body :is(span, b, div, h6) {
   color: var(--sk-text-2) !important;
 }
-html.ucpnb-skin .hierarchical_show > div {
+html.ucpnb-skin #page_content_inner .uk-grid > * {
   animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
-html.ucpnb-skin .hierarchical_show > div:nth-child(2) { animation-delay: 0.05s; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(3) { animation-delay: 0.1s; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(4) { animation-delay: 0.15s; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(5) { animation-delay: 0.2s; }
-html.ucpnb-skin .hierarchical_show > div:nth-child(n + 6) { animation-delay: 0.25s; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(2) { animation-delay: 0.05s; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(3) { animation-delay: 0.1s; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(4) { animation-delay: 0.15s; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(5) { animation-delay: 0.2s; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(n + 6) { animation-delay: 0.25s; }
 
 /* Attendance bars. */
 html.ucpnb-skin .uk-progress {
@@ -427,6 +427,20 @@ html.ucpnb-skin .md-btn {
 html.ucpnb-skin :is(.md-btn-primary, .md-btn-flat-primary.md-btn-wave-light, .btn-primary) {
   background: var(--sk-primary) !important;
   color: #fff !important;
+}
+/* Plain buttons (course pages' section tabs): a surface, not white. */
+html.ucpnb-skin :is(.md-btn, .uk-button, .btn):not(.md-btn-flat):not([class*="md-bg-"]):not(.btn-primary):not(.md-btn-primary):not(.md-btn-success):not(.btn-success) {
+  background: var(--sk-surface) !important;
+  color: var(--sk-text) !important;
+  border: 1px solid var(--sk-border) !important;
+}
+html.ucpnb-skin :is(.md-btn, .uk-button, .btn):hover {
+  filter: brightness(1.06);
+}
+/* The selected one keeps its colour, with readable text on it. */
+html.ucpnb-skin :is(.md-btn-success, .btn-success, [class*="md-bg-light-green"], [class*="md-bg-green"]) {
+  color: #fff !important;
+  border-color: transparent !important;
 }
 html.ucpnb-skin .md-btn-flat {
   background: transparent !important;
