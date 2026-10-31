@@ -71,6 +71,10 @@ export interface AnalyticsSummary {
   topNotices: NoticeActivity[];
   /** Every Publisher (and the Admin, if they post), most recently active first. */
   publishers: PublisherActivity[];
+  /** Why people removed the extension, last 90 days, most common first. */
+  uninstallReasons: { reason: string; count: number }[];
+  /** The latest written comments from the same page, newest first. */
+  uninstallComments: { reason: string; comment: string; extensionVersion: string | null; createdAt: string }[];
 }
 
 export interface NoticeActivity {

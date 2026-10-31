@@ -102,8 +102,19 @@ public record AnalyticsSummaryDto(
     // The most-opened notices posted in the last 30 days.
     List<NoticeActivityDto> TopNotices,
     // Every Publisher (and the Admin, if they post), most recently active first.
-    List<PublisherActivityDto> Publishers
+    List<PublisherActivityDto> Publishers,
+    // Why people removed the extension, last 90 days: most common first.
+    List<UninstallReasonCountDto> UninstallReasons,
+    // The latest written comments from the same page, newest first.
+    List<UninstallCommentDto> UninstallComments
 );
+
+public record UninstallReasonCountDto(string Reason, int Count);
+
+public record UninstallCommentDto(string Reason, string Comment, string? ExtensionVersion, DateTime CreatedAt);
+
+/// <summary>An answer from the page shown after the extension is removed.</summary>
+public record UninstallFeedbackRequest(string Reason, string? Comment, string? ExtensionVersion);
 
 public record NoticeActivityDto(int Id, string Title, string CreatedByName, DateTime CreatedAt, int ViewCount, bool IsPinned);
 

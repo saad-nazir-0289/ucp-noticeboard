@@ -157,6 +157,18 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
+    // The anonymous "why did you remove it?" answers: a person sends one,
+    // so a few a minute from one address is plenty.
+    options.AddPolicy("feedback", context =>
+        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
     // Every endpoint that checks a PIN (notice create/edit/delete and all
     // Admin actions) shares this bucket — a
     // 4-6 digit PIN has low enough entropy that even the general 60/min

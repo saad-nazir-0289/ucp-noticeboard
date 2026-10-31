@@ -234,6 +234,32 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.ToTable("PushSubscriptions");
                 });
 
+            modelBuilder.Entity("UCPNoticeBoard.Api.Models.UninstallFeedback", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExtensionVersion")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UninstallFeedback");
+                });
+
             modelBuilder.Entity("UCPNoticeBoard.Api.Models.User", b =>
                 {
                     b.Property<int>("Id")

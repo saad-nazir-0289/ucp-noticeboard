@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<NoticeDismissal> NoticeDismissals => Set<NoticeDismissal>();
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<DeviceSession> DeviceSessions => Set<DeviceSession>();
+    public DbSet<UninstallFeedback> UninstallFeedback => Set<UninstallFeedback>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -64,7 +64,12 @@ const outDirFor = (mode: string) =>
 // A host permission there would only tie the extension to one API address:
 // changing it in an update makes Chrome disable the extension until each
 // student re-approves it.
-function extensionManifest(mode: string, outDir: string): Plugin {
+//
+// It also writes background.js: all it does is tell Chrome which page to
+// open when the extension is removed (the PWA's one-question "why?" page),
+// which needs no permission. Generated here so it carries this build's PWA
+// address.
+function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Plugin {
   return {
     name: "extension-manifest",
     closeBundle() {
@@ -80,6 +85,15 @@ function extensionManifest(mode: string, outDir: string): Plugin {
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
+      writeFileSync(
+        resolve(dist, "background.js"),
+        `// Written by vite.content.config.ts. When NoticeBoard is removed, Chrome opens
+// a one-question page asking why (anonymous: only the reason and this version).
+chrome.runtime.setUninstallURL(
+  ${JSON.stringify(`${pwaBaseUrl}/?uninstalled=1&v=`)} + encodeURIComponent(chrome.runtime.getManifest().version)
+);
+`
+      );
     },
   };
 }
@@ -91,7 +105,7 @@ export default defineConfig(({ mode }) => {
   Object.assign(process.env, urls);
 
   return {
-    plugins: [react(), extensionManifest(mode, outDir)],
+    plugins: [react(), extensionManifest(mode, outDir, urls.VITE_PWA_BASE_URL)],
     ...sharedConfig,
     build: {
       outDir,

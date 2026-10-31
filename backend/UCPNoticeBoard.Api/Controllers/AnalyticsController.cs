@@ -86,6 +86,22 @@ public class AnalyticsController : ControllerBase
             .ThenBy(p => p.Name)
             .ToList();
 
+        var feedbackCutoff = now.AddDays(-90);
+        var feedback = await _db.UninstallFeedback
+            .Where(f => f.CreatedAt >= feedbackCutoff)
+            .OrderByDescending(f => f.CreatedAt)
+            .ToListAsync();
+        var uninstallReasons = feedback
+            .GroupBy(f => f.Reason)
+            .Select(g => new UninstallReasonCountDto(g.Key, g.Count()))
+            .OrderByDescending(r => r.Count)
+            .ToList();
+        var uninstallComments = feedback
+            .Where(f => !string.IsNullOrWhiteSpace(f.Comment))
+            .Take(10)
+            .Select(f => new UninstallCommentDto(f.Reason, f.Comment!, f.ExtensionVersion, f.CreatedAt))
+            .ToList();
+
         var summary = new AnalyticsSummaryDto(
             TotalUsers: users.Count,
             TotalStudents: users.Count(u => u.Role == UserRole.Student),
@@ -95,7 +111,9 @@ public class AnalyticsController : ControllerBase
             ActiveLast7Days: users.Count(u => u.LastSeenAt.HasValue && u.LastSeenAt.Value >= activeCutoff),
             NoticesLast30Days: recent.Count,
             TopNotices: topNotices,
-            Publishers: publishers
+            Publishers: publishers,
+            UninstallReasons: uninstallReasons,
+            UninstallComments: uninstallComments
         );
 
         return Ok(summary);
