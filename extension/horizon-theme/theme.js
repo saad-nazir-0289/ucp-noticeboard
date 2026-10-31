@@ -1,5 +1,9 @@
-// Dark mode for Horizon itself, chosen under Theme in the toolbar menu
-// (popup/popup.js). Runs on every Horizon page before it draws.
+// Horizon's look, from the toolbar menu (popup/popup.js): Style
+// (NoticeBoard or Original) and Theme (Light, Dark or Auto). Runs on every
+// Horizon page before it draws.
+//
+// NoticeBoard style is skin.css on html.ucpnb-skin, light or dark
+// (html.ucpnb-dark). Original style in dark recolours Horizon's own look:
 //
 // Horizon has no dark mode of its own, so this recolours the page as it
 // is: every light background becomes a dark one and every dark text a
@@ -10,12 +14,18 @@
 // own dark colours (shared/styles/tokens.css).
 (() => {
   const KEY = "ucpnb_theme"; // "light" (the default), "dark" or "system"
+  const STYLE_KEY = "ucpnb_style"; // "noticeboard" (the default) or "original"
+  // A copy in the page's own storage, read synchronously, so the right look
+  // is on before Horizon draws instead of after the extension's storage
+  // answers (no flash of the original page).
+  const CACHE_KEY = "ucpnb_look";
   const PANEL = "#ucp-noticeboard-root";
   const SKIP = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS", "SVG", "IFRAME", "SCRIPT", "STYLE", "LINK", "META", "NOSCRIPT", "BR"]);
   const html = document.documentElement;
   const deviceDark = window.matchMedia("(prefers-color-scheme: dark)");
   let preference = "light";
-  let active = false;
+  let style = "noticeboard";
+  let active = false; // the recolouring below (Original style, dark)
   // Every property set on each element, so switching back can undo it.
   const changed = new Map();
 
@@ -106,7 +116,6 @@
   function turnOn() {
     if (active) return;
     active = true;
-    html.classList.add("ucpnb-dark");
     const start = () => {
       recolourAll(document.body);
       html.classList.remove("ucpnb-dark-pending");
@@ -125,7 +134,7 @@
     if (!active) return;
     active = false;
     observer.disconnect();
-    html.classList.remove("ucpnb-dark", "ucpnb-dark-pending");
+    html.classList.remove("ucpnb-dark-pending");
     for (const [el, props] of changed) {
       for (const [prop, [value, priority]] of props) {
         if (value) el.style.setProperty(prop, value, priority);
@@ -137,16 +146,36 @@
 
   const apply = () => {
     const dark = preference === "dark" || (preference === "system" && deviceDark.matches);
-    dark ? turnOn() : turnOff();
+    const skin = style !== "original";
+    html.classList.toggle("ucpnb-skin", skin);
+    html.classList.toggle("ucpnb-dark", dark); // also the panel's dark colours
+    dark && !skin ? turnOn() : turnOff();
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ preference, style }));
+    } catch {
+      // Not remembered for the next page: it waits for the extension's storage.
+    }
   };
 
-  chrome.storage.local.get(KEY).then((saved) => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
+    if (cached) {
+      preference = cached.preference ?? preference;
+      style = cached.style ?? style;
+      apply();
+    }
+  } catch {
+    // Nothing usable cached.
+  }
+  chrome.storage.local.get([KEY, STYLE_KEY]).then((saved) => {
     preference = saved[KEY] ?? "light";
+    style = saved[STYLE_KEY] ?? "noticeboard";
     apply();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !(KEY in changes)) return;
-    preference = changes[KEY].newValue ?? "light";
+    if (area !== "local" || !(KEY in changes || STYLE_KEY in changes)) return;
+    if (KEY in changes) preference = changes[KEY].newValue ?? "light";
+    if (STYLE_KEY in changes) style = changes[STYLE_KEY].newValue ?? "noticeboard";
     apply();
   });
   deviceDark.addEventListener("change", apply);

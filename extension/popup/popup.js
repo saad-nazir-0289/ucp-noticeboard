@@ -1,6 +1,7 @@
 // The menu shown when NoticeBoard is clicked in Chrome's toolbar.
 // popup-config.js (written at build time) sets window.UCPNB_PWA_URL.
 const ENABLED_KEY = "ucpnb_enabled"; // read by the content script (src/content/index.tsx)
+const STYLE_KEY = "ucpnb_style"; // "noticeboard" (default) or "original": Horizon's look (horizon-theme/)
 const THEME_KEY = "ucpnb_theme"; // "light", "dark" or "system": Horizon and the panel (this menu is always dark)
 const STORE_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg";
 const REPO_URL = "https://github.com/saad-nazir-0289/ucp-noticeboard";
@@ -49,9 +50,25 @@ for (const choice of choices) {
   });
 }
 
-chrome.storage.local.get([ENABLED_KEY, THEME_KEY]).then((saved) => {
+// Horizon style.
+const styleChoices = document.querySelectorAll("[data-style-choice]");
+let style = "noticeboard";
+const showStyle = () => {
+  for (const choice of styleChoices) choice.setAttribute("aria-checked", String(choice.dataset.styleChoice === style));
+};
+for (const choice of styleChoices) {
+  choice.addEventListener("click", () => {
+    style = choice.dataset.styleChoice;
+    chrome.storage.local.set({ [STYLE_KEY]: style });
+    showStyle();
+  });
+}
+
+chrome.storage.local.get([ENABLED_KEY, THEME_KEY, STYLE_KEY]).then((saved) => {
   toggle.checked = saved[ENABLED_KEY] !== false;
   showNote(toggle.checked);
   theme = saved[THEME_KEY] ?? "light";
   showTheme();
+  style = saved[STYLE_KEY] ?? "noticeboard";
+  showStyle();
 });

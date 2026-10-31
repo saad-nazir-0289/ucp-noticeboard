@@ -92,8 +92,8 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
       for (const file of ["popup.html", "popup.css", "popup.js"]) {
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
-      // Dark mode for Horizon's own pages (horizon-theme/theme.js).
-      for (const file of ["theme.js", "theme.css"]) {
+      // Horizon's look (horizon-theme/): NoticeBoard style and dark mode.
+      for (const file of ["theme.js", "theme.css", "skin.css"]) {
         copyFileSync(resolve(root, "horizon-theme", file), resolve(dist, `horizon-${file}`));
       }
       writeFileSync(
