@@ -101,7 +101,9 @@ export function NoticeFeed({ token, initialNotices, initialCategories, deepLinkN
   }, [token]);
 
   useEffect(() => {
-    if (!deepLinkNoticeId) return;
+    // Not yet signed in (saved notices shown while signing in): the feed
+    // remounts with a token in a moment and opens it then.
+    if (!deepLinkNoticeId || !token) return;
     api
       .getNotice(deepLinkNoticeId, token)
       .then(setSelected)

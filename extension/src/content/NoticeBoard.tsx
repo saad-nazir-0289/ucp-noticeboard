@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AuthUser, Category, LoginResult, Notice } from "@shared/types";
 import { api, setDeviceToken } from "@shared/api/client";
 import { clearDeviceToken, loadDeviceToken, saveDeviceToken } from "./deviceUnlock";
+import { loadSavedFeed, saveFeed } from "./savedFeed";
 import { AdminPinPrompt } from "../components/AdminPinPrompt";
 import { findStudentIdentity } from "./studentIdentity";
 import { PWA_BASE_URL } from "./pwaUrl";
@@ -33,6 +34,9 @@ export function NoticeBoard() {
   // first paint without waiting on a second network round trip.
   const [bootstrapNotices, setBootstrapNotices] = useState<Notice[]>([]);
   const [bootstrapCategories, setBootstrapCategories] = useState<Category[]>([]);
+  // Bumped when sign-in brings fresh notices to replace the saved ones shown
+  // at first: the feed starts over with them.
+  const [feedVersion, setFeedVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,14 +59,30 @@ export function NoticeBoard() {
         window.history.replaceState({}, "", cleanUrl);
       }
 
+      // Show what this Chrome saw last time right away; sign in behind it.
+      const saved = await loadSavedFeed(identity.rollNumber);
+      if (saved && !cancelled) {
+        setBootstrapNotices(saved.notices);
+        setBootstrapCategories(saved.categories);
+        setUser({ ...saved.user, token: "" });
+        setStatus("ready");
+      }
+
       let loggedInUser: LoginResult;
       try {
         const result = await api.login(identity.rollNumber, identity.name, activationCode);
         loggedInUser = result;
         setBootstrapNotices(result.notices);
         setBootstrapCategories(result.categories);
+        if (saved) setFeedVersion((v) => v + 1);
+        saveFeed({
+          user: { id: result.id, name: result.name, rollNumber: result.rollNumber, role: result.role },
+          notices: result.notices,
+          categories: result.categories,
+        });
       } catch {
-        if (!cancelled) setStatus("error");
+        // With saved notices on screen, keep showing them.
+        if (!cancelled && !saved) setStatus("error");
         return;
       }
 
@@ -171,10 +191,12 @@ export function NoticeBoard() {
     );
   }
 
+  // The other tabs wait for sign-in: until then only saved notices are on screen.
+  const signedIn = user.token !== "";
   const tabs: { id: Tab; label: string }[] = [
     { id: "feed", label: "Notices" },
-    ...(user.role === "Publisher" ? [{ id: "myNotices" as Tab, label: "My notices" }] : []),
-    ...(user.role === "Admin"
+    ...(signedIn && user.role === "Publisher" ? [{ id: "myNotices" as Tab, label: "My notices" }] : []),
+    ...(signedIn && user.role === "Admin"
       ? [
           { id: "allNotices" as Tab, label: "All notices" },
           { id: "users" as Tab, label: "Users" },
@@ -214,7 +236,7 @@ export function NoticeBoard() {
       </PanelHeader>
 
       {tab === "feed" && (
-        <NoticeFeed token={user.token} initialNotices={bootstrapNotices} initialCategories={bootstrapCategories} />
+        <NoticeFeed key={feedVersion} token={user.token} initialNotices={bootstrapNotices} initialCategories={bootstrapCategories} />
       )}
       {tab === "myNotices" && user.role === "Publisher" && <NoticeManager user={user} scope="mine" ensureUnlocked={ensureUnlocked} />}
       {tab === "allNotices" && user.role === "Admin" && <NoticeManager user={user} scope="all" ensureUnlocked={ensureUnlocked} />}
