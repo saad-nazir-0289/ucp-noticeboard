@@ -10,6 +10,21 @@ const SECTION_HEADING_TEXT = "Classes, Grades and Attendance";
 // Anything but an explicit false means shown.
 const ENABLED_KEY = "ucpnb_enabled";
 
+// The toolbar menu's Theme: "light" (default), "dark" or "system". In dark
+// mode the panel uses the shared dark colours (shared/styles/tokens.css);
+// horizon-theme/ darkens the rest of the page.
+const THEME_KEY = "ucpnb_theme";
+const deviceDark = window.matchMedia("(prefers-color-scheme: dark)");
+let themePreference = "light";
+
+function applyTheme() {
+  const container = document.getElementById(CONTAINER_ID);
+  if (!container) return;
+  const dark = themePreference === "dark" || (themePreference === "system" && deviceDark.matches);
+  if (dark) container.dataset.ucpnbTheme = "dark";
+  else delete container.dataset.ucpnbTheme;
+}
+
 let root: Root | null = null;
 
 function findInjectionAnchor(): Element | null {
@@ -40,6 +55,7 @@ function inject() {
 
   root = createRoot(container);
   root.render(<NoticeBoard />);
+  applyTheme();
 }
 
 function remove() {
@@ -55,15 +71,23 @@ const storage = typeof chrome !== "undefined" ? chrome.storage?.local : undefine
 async function start() {
   let enabled = true;
   try {
-    enabled = (await storage?.get(ENABLED_KEY))?.[ENABLED_KEY] !== false;
+    const saved = await storage?.get([ENABLED_KEY, THEME_KEY]);
+    enabled = saved?.[ENABLED_KEY] !== false;
+    themePreference = (saved?.[THEME_KEY] as string | undefined) ?? "light";
   } catch {
-    // Can't read the switch: show it, as before there was one.
+    // Can't read the settings: shown, light, as before there were any.
   }
   if (enabled) inject();
+  deviceDark.addEventListener("change", applyTheme);
 
   // Flipping the switch takes effect on an open dashboard straight away.
   chrome?.storage?.onChanged?.addListener((changes, area) => {
-    if (area !== "local" || !(ENABLED_KEY in changes)) return;
+    if (area !== "local") return;
+    if (THEME_KEY in changes) {
+      themePreference = (changes[THEME_KEY].newValue as string | undefined) ?? "light";
+      applyTheme();
+    }
+    if (!(ENABLED_KEY in changes)) return;
     if (changes[ENABLED_KEY].newValue === false) remove();
     else inject();
   });

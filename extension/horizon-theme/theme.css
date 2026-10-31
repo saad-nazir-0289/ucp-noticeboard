@@ -1,0 +1,22 @@
+/* Dark mode for Horizon (theme.js): the page's colours inverted, with
+   pictures, video and the NoticeBoard panel inverted back to normal. */
+html.ucpnb-dark {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+html.ucpnb-dark img,
+html.ucpnb-dark video,
+html.ucpnb-dark picture,
+html.ucpnb-dark canvas,
+html.ucpnb-dark iframe,
+html.ucpnb-dark [style*="background-image"],
+html.ucpnb-dark #ucp-noticeboard-root {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Inside the panel, already turned back: leave pictures alone. */
+html.ucpnb-dark #ucp-noticeboard-root img,
+html.ucpnb-dark #ucp-noticeboard-root video,
+html.ucpnb-dark #ucp-noticeboard-root canvas,
+html.ucpnb-dark #ucp-noticeboard-root [style*="background-image"] {
+  filter: none;
+}
