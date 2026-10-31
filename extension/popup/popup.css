@@ -171,3 +171,49 @@ footer button { padding: 0; border: 0; background: none; color: var(--muted); te
 .avatar-link button { flex: none; background: var(--accent); color: #0a1424; border: 0; }
 .avatar-link .cancel { background: var(--hover); color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; }
 #avatar-note.error { color: #ff8a80; }
+
+/* ---------- Introduction after installing or updating ---------- */
+.intro {
+  position: fixed; inset: 0; z-index: 10;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(5, 9, 16, 0.72); backdrop-filter: blur(6px);
+  animation: intro-fade 0.25s ease both;
+}
+.intro.closing { animation: intro-fade 0.25s ease reverse both; }
+.intro-card {
+  position: relative; overflow: hidden;
+  width: 100%; max-width: 440px; padding: 24px 22px 20px; text-align: center;
+  border: 1px solid var(--line); border-radius: 22px;
+  background: radial-gradient(120% 70% at 50% 0%, rgba(107, 151, 255, 0.22), transparent 60%), var(--card);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  animation: intro-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1.2) both;
+}
+.intro-logo { border-radius: 14px; box-shadow: 0 8px 24px rgba(36, 87, 214, 0.45); animation: intro-bob 2.4s ease-in-out 0.5s infinite; }
+.intro h2 { margin: 2px 0 14px; font-size: 19px; letter-spacing: -0.01em; }
+.intro .eyebrow { display: block; margin-top: 12px; }
+.intro ul { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 8px; text-align: left; }
+.intro li {
+  display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--hover);
+  animation: intro-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.intro li > span:last-child { display: grid; }
+.intro li small { color: var(--muted); font-size: 12px; }
+.intro-icon {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px;
+  border-radius: 11px; background: var(--accent-soft); font-size: 18px;
+}
+#intro-done {
+  width: 100%; padding: 11px; border: 0; border-radius: 999px;
+  background: linear-gradient(135deg, #2457d6, #6d5cf6); color: #fff; font-weight: 700;
+  box-shadow: 0 10px 24px rgba(36, 87, 214, 0.4);
+  animation: intro-rise 0.4s ease 0.55s both;
+}
+#intro-done:hover { filter: brightness(1.08); }
+@keyframes intro-fade { from { opacity: 0; } }
+@keyframes intro-pop { from { opacity: 0; transform: translateY(16px) scale(0.94); } }
+@keyframes intro-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes intro-bob { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .intro, .intro *, .intro-card { animation: none !important; }
+}

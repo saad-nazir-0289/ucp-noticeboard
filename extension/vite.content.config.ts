@@ -69,9 +69,10 @@ const outDirFor = (mode: string) =>
 // It also copies the toolbar menu (popup/), writing popup-config.js with
 // this build's PWA address and qr-notifications.svg (the QR code students
 // scan with their phone to turn on notifications, drawn here so the menu
-// loads nothing from the internet), and writes background.js: all it does is tell Chrome which page to
+// loads nothing from the internet), and writes background.js: it tells Chrome which page to
 // open when the extension is removed (the PWA's one-question "why?" page),
-// which needs no permission. Generated here so it carries this build's PWA
+// and marks installs and updates for the introduction; neither needs a
+// permission. Generated here so it carries this build's PWA
 // address.
 function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Plugin {
   return {
@@ -89,7 +90,7 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
-      for (const file of ["popup.html", "popup.css", "popup.js"]) {
+      for (const file of ["popup.html", "popup.css", "popup.js", "whatsnew.js"]) {
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
       // Horizon's look (horizon-theme/): NoticeBoard style and dark mode.
@@ -116,6 +117,28 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
 chrome.runtime.setUninstallURL(
   ${JSON.stringify(`${pwaBaseUrl}/?uninstalled=1&v=`)} + encodeURIComponent(chrome.runtime.getManifest().version)
 );
+
+// After installing or updating: "NEW" on the toolbar icon, and an
+// introduction the first time Horizon or the menu opens (popup.js and
+// horizon-theme/theme.js show it, then remove ucpnb_tour).
+const TOUR_KEY = "ucpnb_tour";
+const showBadge = (on) => {
+  chrome.action.setBadgeText({ text: on ? "NEW" : "" });
+  if (on) chrome.action.setBadgeBackgroundColor({ color: "#6d5cf6" });
+};
+chrome.runtime.onInstalled.addListener(({ reason, previousVersion }) => {
+  const version = chrome.runtime.getManifest().version;
+  if (reason !== "install" && !(reason === "update" && previousVersion !== version)) return;
+  chrome.storage.local.set({ [TOUR_KEY]: { reason, version } });
+  showBadge(true);
+});
+// Chrome forgets the badge when it restarts.
+chrome.runtime.onStartup.addListener(() => {
+  chrome.storage.local.get(TOUR_KEY).then((saved) => showBadge(Boolean(saved[TOUR_KEY])));
+});
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && TOUR_KEY in changes && !changes[TOUR_KEY].newValue) showBadge(false);
+});
 `
       );
     },

@@ -13,7 +13,7 @@
 // NoticeBoard panel isn't touched here: on html.ucpnb-dark it uses its
 // own dark colours (shared/styles/tokens.css).
 (() => {
-  const KEY = "ucpnb_theme"; // "light" (the default), "dark" or "system"
+  const KEY = "ucpnb_theme"; // "dark" (the default), "light" or "system"
   const STYLE_KEY = "ucpnb_style"; // "noticeboard" (the default) or "original"
   // A copy in the page's own storage, read synchronously, so the right look
   // is on before Horizon draws instead of after the extension's storage
@@ -27,7 +27,7 @@
   const SKIP = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS", "SVG", "IFRAME", "SCRIPT", "STYLE", "LINK", "META", "NOSCRIPT", "BR"]);
   const html = document.documentElement;
   const deviceDark = window.matchMedia("(prefers-color-scheme: dark)");
-  let preference = "light";
+  let preference = "dark";
   let style = "noticeboard";
   let active = false; // the recolouring below
   // "original": Original style in dark, every light colour turned dark.
@@ -244,6 +244,12 @@
   // fixed sizes Horizon writes on each class are cleared (they're set
   // "important" on the element itself, which no stylesheet can override).
   const PARTS = ["ucpnb-teacher", "ucpnb-course", "ucpnb-section", "ucpnb-room"];
+  function twelveHour(text) {
+    const m = text.trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const hour = Number(m[1]);
+    return `${hour % 12 || 12}:${m[2]} ${hour < 12 ? "AM" : "PM"}`;
+  }
   const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   function tuneSchedule() {
     const events = document.querySelectorAll(".cd-schedule__event");
@@ -253,7 +259,19 @@
         el.setAttribute("style", el.dataset.ucpnbStyle);
         delete el.dataset.ucpnbStyle;
       }
+      for (const el of document.querySelectorAll("[data-ucpnb-text]")) {
+        el.textContent = el.dataset.ucpnbText;
+        delete el.dataset.ucpnbText;
+      }
       return;
+    }
+    // 12-hour times: the hours down the side and each class's own time.
+    for (const label of document.querySelectorAll(".cd-schedule__timeline li > span")) {
+      if ("ucpnbText" in label.dataset) continue;
+      const time = twelveHour(label.textContent);
+      if (!time) continue;
+      label.dataset.ucpnbText = label.textContent;
+      label.textContent = time;
     }
     const tones = new Map();
     for (const event of events) {
@@ -269,6 +287,19 @@
           el.style.removeProperty("margin");
         }
       });
+      const link = event.querySelector("a");
+      if (link && !link.querySelector(".ucpnb-time")) {
+        const start = twelveHour(link.dataset.start ?? "");
+        const end = twelveHour(link.dataset.end ?? "");
+        if (start && end) {
+          const time = document.createElement("span");
+          time.className = "ucpnb-time";
+          // "1:00–1:55 PM", or "11:30 AM–12:25 PM" across noon.
+          const [startClock, startHalf] = start.split(" ");
+          time.textContent = startHalf === end.split(" ")[1] ? `${startClock}–${end}` : `${start}–${end}`;
+          link.append(time);
+        }
+      }
       const course = (names[1] ?? names[0])?.textContent.trim().toLowerCase() ?? "";
       if (!tones.has(course)) tones.set(course, (tones.size % 6) + 1);
       event.dataset.ucpnbTone = tones.get(course);
@@ -314,6 +345,67 @@
     if (area === "local" && AVATAR_KEY in changes) setAvatar(changes[AVATAR_KEY].newValue);
   });
 
+  // ---------- Introduction after installing or updating ----------
+  // A card at the top right, under Chrome's toolbar, with an arrow up to
+  // NoticeBoard's icon (marked "NEW" by background.js): what NoticeBoard
+  // does, or what's changed. Shown until dismissed here or the menu opens.
+  const TOUR_KEY = "ucpnb_tour";
+  function showIntro(tour) {
+    if (document.getElementById("ucpnb-intro") || !globalThis.UCPNB_WHATS_NEW) return;
+    const install = tour.reason === "install";
+    const items = install ? UCPNB_WHATS_NEW.install : UCPNB_WHATS_NEW.updates;
+    const el = (tag, className, text) => {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text;
+      return node;
+    };
+    const box = el("aside");
+    box.id = "ucpnb-intro";
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-label", install ? "Welcome to NoticeBoard" : "What's new in NoticeBoard");
+    const arrow = el("div", "ucpnb-intro-arrow");
+    arrow.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20V5M5 11l7-7 7 7"/></svg>';
+    const card = el("div", "ucpnb-intro-card");
+    card.append(
+      el("span", "ucpnb-intro-eyebrow", install ? "NoticeBoard is installed" : `NoticeBoard updated to v${tour.version}`),
+      el("strong", "ucpnb-intro-title", install ? "Here's what you get" : "What's new")
+    );
+    const list = el("ul");
+    items.forEach((item, i) => {
+      const li = el("li");
+      li.style.animationDelay = `${0.25 + i * 0.08}s`;
+      const text = el("span");
+      text.append(el("b", "", item.title), el("small", "", item.text));
+      li.append(el("span", "ucpnb-intro-icon", item.icon), text);
+      list.append(li);
+    });
+    const hint = el(
+      "p",
+      "ucpnb-intro-hint",
+      "Open NoticeBoard from Chrome's toolbar, up here. Can't see it? Click the puzzle piece and pin UCP NoticeBoard."
+    );
+    const done = el("button", "", "Got it");
+    done.type = "button";
+    done.addEventListener("click", () => {
+      chrome.storage.local.remove(TOUR_KEY);
+      box.classList.add("ucpnb-intro-closing");
+      setTimeout(() => box.remove(), 300);
+    });
+    card.append(list, hint, done);
+    box.append(arrow, card);
+    document.body.append(box);
+  }
+  const startIntro = () =>
+    chrome.storage.local.get(TOUR_KEY).then((saved) => {
+      if (saved[TOUR_KEY]) showIntro(saved[TOUR_KEY]);
+    });
+  if (document.body && document.readyState !== "loading") startIntro();
+  else document.addEventListener("DOMContentLoaded", startIntro, { once: true });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && TOUR_KEY in changes && !changes[TOUR_KEY].newValue) document.getElementById("ucpnb-intro")?.remove();
+  });
+
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");
     if (cached) {
@@ -325,13 +417,13 @@
     // Nothing usable cached.
   }
   chrome.storage.local.get([KEY, STYLE_KEY]).then((saved) => {
-    preference = saved[KEY] ?? "light";
+    preference = saved[KEY] ?? "dark";
     style = saved[STYLE_KEY] ?? "noticeboard";
     apply();
   });
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !(KEY in changes || STYLE_KEY in changes)) return;
-    if (KEY in changes) preference = changes[KEY].newValue ?? "light";
+    if (KEY in changes) preference = changes[KEY].newValue ?? "dark";
     if (STYLE_KEY in changes) style = changes[STYLE_KEY].newValue ?? "noticeboard";
     apply();
   });

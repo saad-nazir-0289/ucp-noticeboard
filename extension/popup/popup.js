@@ -2,7 +2,7 @@
 // popup-config.js (written at build time) sets window.UCPNB_PWA_URL.
 const ENABLED_KEY = "ucpnb_enabled"; // read by the content script (src/content/index.tsx)
 const STYLE_KEY = "ucpnb_style"; // "noticeboard" (default) or "original": Horizon's look (horizon-theme/)
-const THEME_KEY = "ucpnb_theme"; // "light", "dark" or "system": Horizon and the panel (this menu is always dark)
+const THEME_KEY = "ucpnb_theme"; // "dark" (default), "light" or "system": Horizon and the panel (this menu is always dark)
 const STORE_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg";
 const REPO_URL = "https://github.com/saad-nazir-0289/ucp-noticeboard";
 const WHATSAPP = "923254278463";
@@ -38,7 +38,7 @@ toggle.addEventListener("change", () => {
 
 // Theme.
 const choices = document.querySelectorAll("[data-theme-choice]");
-let theme = "light";
+let theme = "dark";
 const showTheme = () => {
   for (const choice of choices) choice.setAttribute("aria-checked", String(choice.dataset.themeChoice === theme));
 };
@@ -67,7 +67,7 @@ for (const choice of styleChoices) {
 chrome.storage.local.get([ENABLED_KEY, THEME_KEY, STYLE_KEY]).then((saved) => {
   toggle.checked = saved[ENABLED_KEY] !== false;
   showNote(toggle.checked);
-  theme = saved[THEME_KEY] ?? "light";
+  theme = saved[THEME_KEY] ?? "dark";
   showTheme();
   style = saved[STYLE_KEY] ?? "noticeboard";
   showStyle();
@@ -151,4 +151,43 @@ avatarReset.addEventListener("click", () => {
   chrome.storage.local.remove(AVATAR_KEY);
   showAvatar(null);
   sayAvatar(DEFAULT_NOTE);
+});
+
+// ---------- Introduction after installing or updating ----------
+// background.js marks a new install or update (ucpnb_tour) and puts "NEW" on
+// the toolbar icon; the first time the menu opens after that, it shows what
+// NoticeBoard does (install) or what changed (update), then clears both.
+const TOUR_KEY = "ucpnb_tour";
+chrome.storage.local.get(TOUR_KEY).then((saved) => {
+  const tour = saved[TOUR_KEY];
+  if (!tour) return;
+  const intro = document.getElementById("intro");
+  const install = tour.reason === "install";
+  document.getElementById("intro-eyebrow").textContent = install ? "Welcome" : `Updated to v${chrome.runtime.getManifest().version}`;
+  document.getElementById("intro-title").textContent = install ? "Here's what NoticeBoard does" : "What's new";
+  const list = document.getElementById("intro-list");
+  (install ? UCPNB_WHATS_NEW.install : UCPNB_WHATS_NEW.updates).forEach((item, i) => {
+    const li = document.createElement("li");
+    li.style.animationDelay = `${0.15 + i * 0.09}s`;
+    const icon = document.createElement("span");
+    icon.className = "intro-icon";
+    icon.textContent = item.icon;
+    const text = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = item.title;
+    const detail = document.createElement("small");
+    detail.textContent = item.text;
+    text.append(title, detail);
+    li.append(icon, text);
+    list.append(li);
+  });
+  intro.hidden = false;
+  const done = () => {
+    intro.classList.add("closing");
+    setTimeout(() => (intro.hidden = true), 250);
+  };
+  document.getElementById("intro-done").addEventListener("click", done);
+  // Seen: the toolbar badge and Horizon's introduction go away.
+  chrome.storage.local.remove(TOUR_KEY);
+  chrome.action.setBadgeText({ text: "" });
 });
