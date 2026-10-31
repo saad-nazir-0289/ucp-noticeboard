@@ -5,6 +5,7 @@ import { AdminPinPrompt } from "./AdminPinPrompt";
 import { Icon, type IconName } from "@shared/components/Icon";
 import { PinnedBadge } from "@shared/components/Tags";
 import { timeAgo } from "@shared/format";
+import { uninstallReasonLabel } from "@shared/uninstallReasons";
 
 interface Props {
   user: AuthUser;
@@ -91,6 +92,38 @@ export function AnalyticsPanel({ user, unlocked, onUnlock }: Props) {
             </li>
           ))}
         </ol>
+      )}
+
+      <div className="ucpnb-section-header">
+        <div>
+          <h4>Why people removed the extension</h4>
+          <p>Anonymous answers from the page Chrome opens after someone uninstalls it, last 90 days.</p>
+        </div>
+      </div>
+      {summary.uninstallReasons.length === 0 ? (
+        <p className="ucpnb-field-hint">No answers yet.</p>
+      ) : (
+        <ul className="ucpnb-manage-list">
+          {summary.uninstallReasons.map((r) => (
+            <li key={r.reason} className="ucpnb-manage-row">
+              <div className="ucpnb-manage-info">
+                <strong>{uninstallReasonLabel(r.reason)}</strong>
+              </div>
+              <span className="ucpnb-activity-count">{r.count}</span>
+            </li>
+          ))}
+          {summary.uninstallComments.map((c, i) => (
+            <li key={`c${i}`} className="ucpnb-manage-row">
+              <div className="ucpnb-manage-info">
+                <strong>"{c.comment}"</strong>
+                <span className="ucpnb-manage-meta">
+                  {uninstallReasonLabel(c.reason)} · {timeAgo(c.createdAt)}
+                  {c.extensionVersion ? ` · version ${c.extensionVersion}` : ""}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       <div className="ucpnb-section-header">

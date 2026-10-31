@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { Goodbye } from "./Goodbye";
 import "./fonts.css";
 import "@shared/styles/tokens.css";
 import "@shared/styles/components.css";
@@ -23,4 +24,9 @@ watchForInstall();
 // An app left open for days still gets new versions.
 keepUpToDate();
 
-createRoot(document.getElementById("root")!).render(<App />);
+// ?uninstalled=1 is where Chrome lands someone who just removed the
+// extension (extension/background.js): just the one question, no sign-in.
+const params = new URLSearchParams(window.location.search);
+createRoot(document.getElementById("root")!).render(
+  params.has("uninstalled") ? <Goodbye extensionVersion={params.get("v")} /> : <App />
+);

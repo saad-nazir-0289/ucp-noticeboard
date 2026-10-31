@@ -275,6 +275,10 @@ export const api = {
   recordVisit: (token: string) =>
     request<void>("/analytics/visit", { method: "POST" }, token),
 
+  /** From the page shown after the extension is removed: no sign-in, nothing identifying. */
+  sendUninstallFeedback: (reason: string, comment: string, extensionVersion: string | null) =>
+    request<void>("/feedback/uninstall", { method: "POST", body: JSON.stringify({ reason, comment, extensionVersion }) }),
+
   getAnalyticsSummary: (adminPin: string, token: string) =>
     request<AnalyticsSummary>("/analytics/summary", { headers: { "X-Admin-Pin": adminPin } }, token),
   getVapidPublicKey: (token: string) =>

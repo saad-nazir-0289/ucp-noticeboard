@@ -1321,3 +1321,10 @@ textarea {
     animation: none;
   }
 }
+
+/* The page after the extension is removed (Goodbye.tsx): its answers. */
+.ucpnb-goodbye-reasons {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
