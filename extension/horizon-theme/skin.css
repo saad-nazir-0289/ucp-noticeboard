@@ -1,0 +1,474 @@
+/*
+ * "Horizon style: NoticeBoard" (toolbar menu): Horizon restyled in
+ * NoticeBoard's look, on html.ucpnb-skin (theme.js). Only colour, type,
+ * spacing, corners, shadows and motion change: Horizon's layout and
+ * behaviour stay its own, so a page the rules don't know still works.
+ * Light by default; html.ucpnb-dark switches the same rules to dark.
+ *
+ * Horizon is built on the Altair admin template (UIkit + Material) with
+ * Bootstrap cards for the courses; the selectors below follow its markup.
+ */
+
+/* ---------- Colours ---------- */
+html.ucpnb-skin {
+  --sk-font: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sk-bg: #f4f6fb;
+  --sk-surface: #ffffff;
+  --sk-surface-2: #f1f4fa;
+  --sk-border: #e4e8f1;
+  --sk-text: #101828;
+  --sk-text-2: #475467;
+  --sk-text-3: #667085;
+  --sk-primary: #2457d6;
+  --sk-primary-soft: #edf2fe;
+  --sk-success: #067647;
+  --sk-success-soft: #ecfdf3;
+  --sk-danger: #b42318;
+  --sk-header: linear-gradient(115deg, #0b2545 0%, #163f9c 55%, #2457d6 100%);
+  --sk-shadow-1: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --sk-shadow-2: 0 10px 28px rgba(16, 24, 40, 0.1), 0 2px 6px rgba(16, 24, 40, 0.05);
+  --sk-radius: 18px;
+  /* Course card headers, one colour each in turn. */
+  --sk-c1: linear-gradient(135deg, #2457d6, #5b8cff);
+  --sk-c2: linear-gradient(135deg, #6d28d9, #a78bfa);
+  --sk-c3: linear-gradient(135deg, #c11574, #f472b6);
+  --sk-c4: linear-gradient(135deg, #0e7090, #22c3e6);
+  --sk-c5: linear-gradient(135deg, #c4320a, #fb923c);
+  --sk-c6: linear-gradient(135deg, #067647, #34d399);
+  color-scheme: light;
+}
+html.ucpnb-skin.ucpnb-dark {
+  --sk-bg: #0b111c;
+  --sk-surface: #131b29;
+  --sk-surface-2: #1b2535;
+  --sk-border: #233047;
+  --sk-text: #eef2f8;
+  --sk-text-2: #b2bdcf;
+  --sk-text-3: #8692a8;
+  --sk-primary: #7ea3ff;
+  --sk-primary-soft: rgba(107, 151, 255, 0.15);
+  --sk-success: #5fd99a;
+  --sk-success-soft: rgba(79, 209, 139, 0.14);
+  --sk-danger: #ff8a80;
+  --sk-header: linear-gradient(115deg, #08142b 0%, #10306f 60%, #1d4fd1 100%);
+  --sk-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --sk-shadow-2: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --sk-c1: linear-gradient(135deg, #1d47b8, #3f6fe8);
+  --sk-c2: linear-gradient(135deg, #5b21b6, #8b5cf6);
+  --sk-c3: linear-gradient(135deg, #9d174d, #db2777);
+  --sk-c4: linear-gradient(135deg, #0e5f78, #0ea5c6);
+  --sk-c5: linear-gradient(135deg, #a3300d, #ea6a1f);
+  --sk-c6: linear-gradient(135deg, #065f3c, #16a36a);
+  color-scheme: dark;
+}
+
+/* ---------- Page and type ---------- */
+html.ucpnb-skin,
+html.ucpnb-skin body {
+  background: var(--sk-bg) !important;
+}
+html.ucpnb-skin body {
+  color: var(--sk-text) !important;
+  font-family: var(--sk-font) !important;
+  -webkit-font-smoothing: antialiased;
+}
+html.ucpnb-skin body :is(h1, h2, h3, h4, h5, h6, p, span, div, li, td, th, label, b, strong, small, a) {
+  font-family: inherit;
+}
+html.ucpnb-skin .material-icons {
+  font-family: "Material Icons" !important;
+}
+html.ucpnb-skin #page_content,
+html.ucpnb-skin #page_content_inner {
+  background: transparent !important;
+}
+html.ucpnb-skin #page_content a {
+  color: var(--sk-primary);
+}
+html.ucpnb-skin :is(.uk-text-muted, .sub-heading, [class*="md-color-blue-grey"], [class*="md-color-grey"]) {
+  color: var(--sk-text-3) !important;
+}
+html.ucpnb-skin [class*="md-color-green"] {
+  color: var(--sk-success) !important;
+}
+html.ucpnb-skin [class*="md-color-red"] {
+  color: var(--sk-danger) !important;
+}
+
+/* ---------- Top bar ---------- */
+html.ucpnb-skin #header_main {
+  background: var(--sk-header) !important;
+  border: 0 !important;
+  box-shadow: 0 6px 24px rgba(11, 37, 69, 0.25) !important;
+}
+html.ucpnb-skin #header_main .uk-navbar,
+html.ucpnb-skin #header_main .user_action_icon,
+html.ucpnb-skin #header_main .top_menu_toggle {
+  background: transparent !important;
+}
+html.ucpnb-skin #header_main .sSwitchIcon,
+html.ucpnb-skin #header_main .sSwitchIcon::before,
+html.ucpnb-skin #header_main .sSwitchIcon::after {
+  background-color: #fff !important;
+}
+html.ucpnb-skin #header_main .user_action_icon .uk-badge {
+  background: #ff5a4f !important;
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+html.ucpnb-skin #header_main .user_heading_avatar .thumbnail {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7);
+}
+
+/* Dropdowns: top menu, notifications, profile. */
+html.ucpnb-skin .uk-dropdown {
+  background: var(--sk-surface) !important;
+  color: var(--sk-text) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--sk-shadow-2) !important;
+  animation: ucpnb-pop 0.18s ease both;
+}
+html.ucpnb-skin .uk-dropdown a {
+  color: var(--sk-text) !important;
+  background: transparent !important;
+  border-radius: 10px;
+}
+html.ucpnb-skin .uk-dropdown a:hover {
+  background: var(--sk-surface-2) !important;
+}
+html.ucpnb-skin .uk-dropdown .material-icons {
+  color: var(--sk-primary) !important;
+}
+html.ucpnb-skin .uk-dropdown .uk-nav-header {
+  color: var(--sk-text-3) !important;
+}
+html.ucpnb-skin .uk-dropdown .uk-tab > li > a {
+  color: var(--sk-text-2) !important;
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin .uk-dropdown .uk-tab > li.uk-active > a {
+  color: var(--sk-primary) !important;
+  border-bottom-color: var(--sk-primary) !important;
+}
+
+/* ---------- Sidebar ---------- */
+html.ucpnb-skin #sidebar_main {
+  background: var(--sk-surface) !important;
+  border-right: 1px solid var(--sk-border) !important;
+  box-shadow: none !important;
+}
+html.ucpnb-skin #sidebar_main .sidebar_main_header {
+  background: transparent !important;
+  border: 0 !important;
+  color: var(--sk-text) !important;
+}
+html.ucpnb-skin #sidebar_main .sidebar_main_header .uk-text-bold {
+  color: var(--sk-text) !important;
+  font-weight: 650 !important;
+}
+html.ucpnb-skin #sidebar_main .menu_section > ul > li > a {
+  margin: 2px 12px;
+  padding-left: 12px !important;
+  border-radius: 12px;
+  color: var(--sk-text-2) !important;
+  background: transparent !important;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+html.ucpnb-skin #sidebar_main .menu_section > ul > li > a:hover {
+  background: var(--sk-surface-2) !important;
+  color: var(--sk-text) !important;
+  transform: translateX(2px);
+}
+html.ucpnb-skin #sidebar_main .menu_section .menu_title {
+  color: inherit !important;
+  font-weight: 500;
+}
+html.ucpnb-skin #sidebar_main .menu_section .menu_icon .material-icons {
+  color: var(--sk-text-3) !important;
+}
+html.ucpnb-skin #sidebar_main .menu_section > ul > li.current_section > a {
+  background: var(--sk-primary-soft) !important;
+  color: var(--sk-primary) !important;
+}
+html.ucpnb-skin #sidebar_main .menu_section > ul > li.current_section > a .menu_title {
+  font-weight: 650;
+}
+html.ucpnb-skin #sidebar_main .menu_section > ul > li.current_section .menu_icon .material-icons {
+  color: var(--sk-primary) !important;
+}
+html.ucpnb-skin #sidebar_main .menu_section ul ul {
+  background: transparent !important;
+}
+html.ucpnb-skin #sidebar_main .menu_section ul ul a {
+  color: var(--sk-text-2) !important;
+  border-radius: 10px;
+  margin: 1px 12px 1px 36px;
+}
+html.ucpnb-skin #sidebar_main .menu_section ul ul a:hover {
+  background: var(--sk-surface-2) !important;
+  color: var(--sk-text) !important;
+}
+
+/* ---------- Breadcrumb bar ---------- */
+html.ucpnb-skin #top_bar {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html.ucpnb-skin #breadcrumbs,
+html.ucpnb-skin #breadcrumbs a {
+  background: transparent !important;
+  color: var(--sk-text-2) !important;
+  font-weight: 500;
+}
+html.ucpnb-skin #breadcrumbs li:last-child a {
+  color: var(--sk-text) !important;
+  font-weight: 650;
+}
+
+/* ---------- Cards ---------- */
+html.ucpnb-skin .md-card {
+  background: var(--sk-surface) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: var(--sk-radius) !important;
+  box-shadow: var(--sk-shadow-1) !important;
+  /* No overflow: hidden here: menus that open inside a card (the
+     NoticeBoard panel's among them) must not be cut off. */
+  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+html.ucpnb-skin .md-card .md-card-content,
+html.ucpnb-skin .md-card .md-card-toolbar {
+  background: transparent !important;
+  color: var(--sk-text) !important;
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin :is(.heading_a, .heading_b, .md-card-toolbar-heading-text, .uk-modal-title) {
+  color: var(--sk-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+html.ucpnb-skin .heading_a {
+  font-size: 19px !important;
+  border: 0 !important;
+  padding-bottom: 10px !important;
+  position: relative;
+}
+html.ucpnb-skin .heading_a::after {
+  /* A small colourful underline under each section title. */
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2457d6, #8b5cf6, #ec4899);
+}
+
+/* Profile: avatar, name, badges, standings. */
+html.ucpnb-skin .user_heading_content,
+html.ucpnb-skin .user_heading_content * {
+  color: var(--sk-text) !important;
+}
+html.ucpnb-skin .user_heading_content .sub-heading {
+  color: var(--sk-text-3) !important;
+}
+html.ucpnb-skin .user_heading_content [class*="md-color-green"] {
+  color: var(--sk-success) !important;
+  font-weight: 650;
+}
+html.ucpnb-skin .user_heading_content [class*="md-color-orange"] {
+  color: #dc6803 !important;
+  font-weight: 650;
+}
+html.ucpnb-skin .user_heading_avatar .thumbnail {
+  border-radius: 50% !important;
+  overflow: hidden;
+  background: var(--sk-surface) !important;
+  border: 3px solid var(--sk-surface) !important;
+  box-shadow: 0 0 0 3px var(--sk-primary-soft), var(--sk-shadow-1) !important;
+}
+html.ucpnb-skin .user_heading_avatar .thumbnail img {
+  border-radius: 50%;
+}
+html.ucpnb-skin .uk-badge {
+  border-radius: 999px !important;
+  padding: 2px 10px !important;
+  font-weight: 600 !important;
+  text-shadow: none !important;
+  border: 0 !important;
+}
+html.ucpnb-skin .user_heading_dash .uk-badge {
+  background: var(--sk-success-soft) !important;
+  color: var(--sk-success) !important;
+}
+html.ucpnb-skin .user_heading_dash .uk-badge:nth-of-type(2n) {
+  background: var(--sk-primary-soft) !important;
+  color: var(--sk-primary) !important;
+}
+
+/* ---------- Course cards ---------- */
+html.ucpnb-skin .hierarchical_show a,
+html.ucpnb-skin .hierarchical_show a * {
+  text-decoration: none !important;
+}
+html.ucpnb-skin .hierarchical_show .card {
+  background: var(--sk-surface) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: var(--sk-shadow-1) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+html.ucpnb-skin .hierarchical_show a:hover .card {
+  transform: translateY(-4px);
+  box-shadow: var(--sk-shadow-2) !important;
+}
+html.ucpnb-skin .hierarchical_show .card-header {
+  background: var(--sk-c1) !important;
+  color: #fff !important;
+  border: 0 !important;
+  padding: 14px 16px !important;
+  font-weight: 650;
+}
+html.ucpnb-skin .hierarchical_show .card-header * {
+  color: #fff !important;
+}
+html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 2) .card-header { background: var(--sk-c2) !important; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 3) .card-header { background: var(--sk-c3) !important; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 4) .card-header { background: var(--sk-c4) !important; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 5) .card-header { background: var(--sk-c5) !important; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(6n + 6) .card-header { background: var(--sk-c6) !important; }
+html.ucpnb-skin .hierarchical_show .card-body {
+  background: transparent !important;
+  color: var(--sk-text-2) !important;
+}
+html.ucpnb-skin .hierarchical_show .card-title {
+  color: var(--sk-text) !important;
+  font-weight: 600 !important;
+}
+html.ucpnb-skin .hierarchical_show .card-body :is(span, b, div) {
+  color: var(--sk-text-2) !important;
+}
+html.ucpnb-skin .hierarchical_show > div {
+  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+html.ucpnb-skin .hierarchical_show > div:nth-child(2) { animation-delay: 0.05s; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(3) { animation-delay: 0.1s; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(4) { animation-delay: 0.15s; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(5) { animation-delay: 0.2s; }
+html.ucpnb-skin .hierarchical_show > div:nth-child(n + 6) { animation-delay: 0.25s; }
+
+/* Attendance bars. */
+html.ucpnb-skin .uk-progress {
+  background: var(--sk-surface-2) !important;
+  border-radius: 999px !important;
+  box-shadow: none !important;
+  overflow: hidden;
+}
+html.ucpnb-skin .uk-progress .uk-progress-bar,
+html.ucpnb-skin .uk-progress-success .uk-progress-bar {
+  background: linear-gradient(90deg, #12b76a, #34d399) !important;
+}
+html.ucpnb-skin .uk-progress-danger .uk-progress-bar {
+  background: linear-gradient(90deg, #f04438, #fb923c) !important;
+}
+
+/* News slider. */
+html.ucpnb-skin .uk-slider .md-card img {
+  border-radius: 14px 14px 0 0;
+}
+
+/* ---------- Other Horizon pages: tables, lists, forms, buttons ---------- */
+html.ucpnb-skin :is(table, .uk-table) {
+  background: var(--sk-surface) !important;
+  color: var(--sk-text) !important;
+  border-collapse: separate !important;
+  border-spacing: 0;
+}
+html.ucpnb-skin :is(table, .uk-table) th {
+  background: var(--sk-surface-2) !important;
+  color: var(--sk-text-2) !important;
+  font-weight: 650 !important;
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin :is(table, .uk-table) td {
+  background: transparent !important;
+  color: var(--sk-text) !important;
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin .uk-table-hover tbody tr:hover td,
+html.ucpnb-skin :is(table, .uk-table) tbody tr:hover td {
+  background: var(--sk-surface-2) !important;
+}
+html.ucpnb-skin :is(.md-list > li, .uk-panel, .uk-alert, .uk-accordion-title, .uk-accordion-content) {
+  background: transparent !important;
+  color: var(--sk-text) !important;
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin :is(input, select, textarea, .md-input, .selectize-input) {
+  background: var(--sk-surface) !important;
+  color: var(--sk-text) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: 10px !important;
+}
+html.ucpnb-skin :is(input, select, textarea, .md-input):focus {
+  border-color: var(--sk-primary) !important;
+  box-shadow: 0 0 0 3px var(--sk-primary-soft) !important;
+  outline: none;
+}
+html.ucpnb-skin .md-btn {
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: none !important;
+}
+html.ucpnb-skin :is(.md-btn-primary, .md-btn-flat-primary.md-btn-wave-light, .btn-primary) {
+  background: var(--sk-primary) !important;
+  color: #fff !important;
+}
+html.ucpnb-skin .md-btn-flat {
+  background: transparent !important;
+  color: var(--sk-text-2) !important;
+}
+html.ucpnb-skin .md-btn-flat-primary {
+  color: var(--sk-primary) !important;
+}
+
+/* Session expiry dialog and other pop-ups. */
+html.ucpnb-skin .uk-modal {
+  background: rgba(11, 17, 28, 0.55) !important;
+  backdrop-filter: blur(3px);
+}
+html.ucpnb-skin .uk-modal-dialog {
+  background: var(--sk-surface) !important;
+  color: var(--sk-text) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--sk-shadow-2) !important;
+}
+html.ucpnb-skin .uk-modal-dialog :is(p, span, div) {
+  color: inherit;
+}
+
+/* Thin scrollbars in the page's colours. */
+html.ucpnb-skin * {
+  scrollbar-color: var(--sk-border) transparent;
+}
+
+/* ---------- Motion ---------- */
+@keyframes ucpnb-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ucpnb-pop {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.ucpnb-skin * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
