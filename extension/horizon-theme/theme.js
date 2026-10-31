@@ -19,6 +19,10 @@
   // is on before Horizon draws instead of after the extension's storage
   // answers (no flash of the original page).
   const CACHE_KEY = "ucpnb_look";
+  // The student's own picture (toolbar menu): an uploaded photo (data URL)
+  // or an image link, shown instead of Horizon's in the top bar, sidebar
+  // and dashboard. Only in this Chrome; Horizon itself is never changed.
+  const AVATAR_KEY = "ucpnb_avatar";
   const PANEL = "#ucp-noticeboard-root";
   const SKIP = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS", "SVG", "IFRAME", "SCRIPT", "STYLE", "LINK", "META", "NOSCRIPT", "BR"]);
   const html = document.documentElement;
@@ -179,6 +183,36 @@
       // Not remembered for the next page: it waits for the extension's storage.
     }
   };
+
+  // ---------- Own picture ----------
+  let avatar = null;
+  function applyAvatar(root = document) {
+    for (const img of root.querySelectorAll(".user_heading_avatar img")) {
+      if (img.closest(PANEL)) continue;
+      if (!("ucpnbOriginal" in img.dataset)) img.dataset.ucpnbOriginal = img.getAttribute("src") ?? "";
+      const src = avatar || img.dataset.ucpnbOriginal;
+      if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+      img.style.objectFit = avatar ? "cover" : "";
+    }
+  }
+  const avatarObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) for (const node of m.addedNodes) if (node.nodeType === 1) applyAvatar(node);
+  });
+  const watchAvatar = () => {
+    applyAvatar();
+    avatarObserver.observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.body && document.readyState !== "loading") watchAvatar();
+  else document.addEventListener("DOMContentLoaded", watchAvatar, { once: true });
+  chrome.storage.local.get(AVATAR_KEY).then((saved) => {
+    avatar = saved[AVATAR_KEY] ?? null;
+    if (document.body) applyAvatar();
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !(AVATAR_KEY in changes)) return;
+    avatar = changes[AVATAR_KEY].newValue ?? null;
+    applyAvatar();
+  });
 
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null");

@@ -28,6 +28,7 @@ svg {
   width: 20px; height: 20px; flex: none;
   fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
+[hidden] { display: none !important; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -59,7 +60,7 @@ main {
   display: grid; grid-template-columns: 236px 1fr; gap: 12px; align-items: stretch;
   padding: 0 14px; margin-top: -16px; position: relative;
 }
-.col-left, .col-right { display: grid; gap: 10px; align-content: start; }
+.col-left, .col-right { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; min-width: 0; }
 .col-left { align-content: stretch; }
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: 16px;
@@ -67,7 +68,7 @@ main {
 }
 
 /* ---------- QR ---------- */
-.qr-card { display: flex; flex-direction: column; gap: 14px; align-items: center; padding: 18px 16px; }
+.qr-card { display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 14px 16px; }
 .qr-text { width: 100%; }
 .qr-frame {
   flex: none; padding: 7px; border-radius: 14px; background: #fff;
@@ -146,3 +147,27 @@ footer {
   padding: 12px 12px 14px; color: var(--muted); font-size: 12px;
 }
 footer button { padding: 0; border: 0; background: none; color: var(--muted); text-decoration: underline; }
+
+/* ---------- Own picture on Horizon ---------- */
+.avatar-card { padding: 12px 14px; display: grid; gap: 10px; }
+.avatar-row { display: flex; align-items: center; gap: 10px; }
+.avatar-preview {
+  flex: none; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--hover) center / cover no-repeat;
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+.avatar-actions { display: flex; gap: 6px; }
+.avatar-actions button, .avatar-link button {
+  flex: 1; padding: 6px 8px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--hover); font-size: 12px; font-weight: 600;
+}
+.avatar-actions button:hover, .avatar-link button:hover { border-color: var(--accent); }
+.avatar-link { display: flex; gap: 6px; }
+.avatar-link input {
+  flex: 1; width: 0; min-width: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--bg); color: var(--text); font: inherit; font-size: 12px;
+}
+.avatar-link input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.avatar-link button { flex: none; background: var(--accent); color: #0a1424; border: 0; }
+.avatar-link .cancel { background: var(--hover); color: var(--muted); border: 1px solid var(--line); padding: 6px 10px; }
+#avatar-note.error { color: #ff8a80; }
