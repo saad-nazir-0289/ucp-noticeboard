@@ -1,0 +1,13 @@
+name: Check live web app
+on:
+  push:
+    branches: [claude/happy-mayer-9oduvh]
+    paths: [.github/workflows/diag-share.yml]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          css=$(curl -s "https://ucp-noticeboard.msndev.workers.dev/?r=$RANDOM" | grep -o 'assets/index-[A-Za-z0-9_-]*\.css')
+          echo "live stylesheet: $css"
+          curl -s "https://ucp-noticeboard.msndev.workers.dev/$css" | grep -c 'data-ucpnb-theme' | sed 's/^/shared dark theme rules: /'
