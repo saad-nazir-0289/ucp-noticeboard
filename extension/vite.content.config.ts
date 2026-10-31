@@ -89,8 +89,12 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
-      for (const file of ["popup.html", "popup.css", "popup.js"]) {
+      for (const file of ["popup.html", "popup.css", "popup.js", "popup-theme.js"]) {
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
+      }
+      // Dark mode for Horizon's own pages (horizon-theme/theme.js).
+      for (const file of ["theme.js", "theme.css"]) {
+        copyFileSync(resolve(root, "horizon-theme", file), resolve(dist, `horizon-${file}`));
       }
       writeFileSync(
         resolve(dist, "qr-notifications.svg"),
