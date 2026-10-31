@@ -121,14 +121,21 @@ chrome.runtime.setUninstallURL(
 // After installing or updating: "NEW" on the toolbar icon, and an
 // introduction the first time Horizon or the menu opens (popup.js and
 // horizon-theme/theme.js show it, then remove ucpnb_tour).
+importScripts("whatsnew.js");
 const TOUR_KEY = "ucpnb_tour";
+const older = (a, b) => {
+  const [x, y] = [a, b].map((v) => String(v).split(".").map(Number));
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
+  return false;
+};
 const showBadge = (on) => {
   chrome.action.setBadgeText({ text: on ? "NEW" : "" });
   if (on) chrome.action.setBadgeBackgroundColor({ color: "#6d5cf6" });
 };
 chrome.runtime.onInstalled.addListener(({ reason, previousVersion }) => {
   const version = chrome.runtime.getManifest().version;
-  if (reason !== "install" && !(reason === "update" && previousVersion !== version)) return;
+  // An update only when there's something new since the version it came from.
+  if (reason !== "install" && !(reason === "update" && older(previousVersion, UCPNB_WHATS_NEW.since))) return;
   chrome.storage.local.set({ [TOUR_KEY]: { reason, version } });
   showBadge(true);
 });

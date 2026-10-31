@@ -211,10 +211,15 @@ html.ucpnb-skin #sidebar_main .menu_section ul ul a:hover {
 }
 
 /* ---------- Breadcrumb bar ---------- */
+/* The "Home > Dashboard" bar under the header: a surface of its own with
+   NoticeBoard's gradient line along the bottom; the current page is a pill. */
 html.ucpnb-skin #top_bar {
-  background: transparent !important;
+  background:
+    linear-gradient(90deg, #2457d6, #6d5cf6 35%, transparent 75%) bottom / 100% 2px no-repeat,
+    linear-gradient(90deg, var(--sk-primary-soft), var(--sk-surface) 45%) !important;
   border: 0 !important;
-  box-shadow: none !important;
+  border-bottom: 1px solid var(--sk-border) !important;
+  box-shadow: var(--sk-shadow-1) !important;
 }
 html.ucpnb-skin #breadcrumbs,
 html.ucpnb-skin #breadcrumbs a {
@@ -223,8 +228,17 @@ html.ucpnb-skin #breadcrumbs a {
   font-weight: 500;
 }
 html.ucpnb-skin #breadcrumbs li:last-child a {
-  color: var(--sk-text) !important;
+  display: inline-block;
+  padding: 2px 12px !important;
+  border-radius: 999px;
+  background: var(--sk-primary-soft) !important;
+  color: var(--sk-primary) !important;
   font-weight: 650;
+  line-height: 1.6;
+}
+html.ucpnb-skin #breadcrumbs li:first-child a,
+html.ucpnb-skin #breadcrumbs li:first-child a i {
+  color: var(--sk-primary) !important;
 }
 
 /* ---------- Cards ---------- */
