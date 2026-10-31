@@ -13,7 +13,22 @@ html.ucpnb-dark body {
 html.ucpnb-dark-pending body {
   opacity: 0 !important;
 }
-/* Pictures a touch dimmer, so bright photos don't glare on the dark page. */
+/* Pictures a touch dimmer, so bright photos don't glare on the dark page
+   (set below, with the guard against an older copy's inversion). */
+
+/* An older copy of the extension (1.23.0) darkened Horizon by inverting
+   it. If one is still installed next to this one, the two fight and the
+   page comes out light with inverted photos: switch that off. */
+html.ucpnb-dark,
+html.ucpnb-dark #ucp-noticeboard-root,
+html.ucpnb-dark video,
+html.ucpnb-dark picture,
+html.ucpnb-dark canvas,
+html.ucpnb-dark iframe,
+html.ucpnb-dark [style*="background-image"],
+html.ucpnb-dark #ucp-noticeboard-root img {
+  filter: none !important;
+}
 html.ucpnb-dark img:not(#ucp-noticeboard-root img) {
-  filter: brightness(0.92);
+  filter: brightness(0.92) !important;
 }
