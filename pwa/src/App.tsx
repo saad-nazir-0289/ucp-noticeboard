@@ -72,6 +72,11 @@ export function App() {
   const [showManage, setShowManage] = useState(false);
   // Bumped after a publish/edit/delete so the feed and list reload.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Bumped when a background sign-in brings fresh notices to replace the
+  // saved ones shown at start: the feed remounts with them, no extra request.
+  const [freshFeed, setFreshFeed] = useState(0);
+  const refreshKeyRef = useRef(refreshKey);
+  refreshKeyRef.current = refreshKey;
   const [showAccount, setShowAccount] = useState(false);
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(getThemePreference);
   const [viewMode, setViewMode] = useState<ViewMode>(getSavedViewMode);
@@ -182,7 +187,12 @@ export function App() {
         notices: result.notices,
         categories: result.categories,
       });
-      if (quiet) setRefreshKey((k) => k + 1); // fresh notices replace the saved ones
+      // Fresh notices replace the saved ones. Before any refresh they came
+      // with the sign-in; after one, the feed fetches its own.
+      if (quiet) {
+        if (refreshKeyRef.current === 0) setFreshFeed((k) => k + 1);
+        else setRefreshKey((k) => k + 1);
+      }
       setOffline(null);
       setLoginError(null);
       setStatus("ready");
@@ -269,6 +279,20 @@ export function App() {
       setStatus("needs-identity");
       return;
     }
+    // Opening the app shouldn't mean waiting on the server: show the notices
+    // saved last time straight away and sign in behind them. The fresh ones
+    // replace them a moment later (or, offline, the saved ones stay, with
+    // the offline note).
+    const feed = getLastFeed(saved.rollNumber);
+    if (feed) {
+      setUser({ ...feed.user, token: "" });
+      setMyLogoUrl(feed.logoUrl);
+      setBootstrapNotices(feed.notices);
+      setBootstrapCategories(feed.categories);
+      setStatus("ready");
+      login(saved.rollNumber, true);
+      return;
+    }
     login(saved.rollNumber);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -298,7 +322,7 @@ export function App() {
 
   // Once signed in, turn a share into a pre-filled new notice.
   useEffect(() => {
-    if (status !== "ready" || !arrivedFromShare || !user) return;
+    if (status !== "ready" || !arrivedFromShare || !user?.token) return;
     setArrivedFromShare(false);
     takeSharedPayload().then((payload) => {
       if (!payload) return;
@@ -594,7 +618,7 @@ export function App() {
         )}
         <InstallBanner onInstalled={() => showToast("NoticeBoard installed. Open it from your home screen.")} />
         <NoticeFeed
-          key={refreshKey}
+          key={`${refreshKey}.${freshFeed}`}
           token={user.token}
           // After a publish/edit the feed refetches instead of reusing the
           // notices bundled with login.
