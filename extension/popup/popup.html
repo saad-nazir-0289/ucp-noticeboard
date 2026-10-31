@@ -20,7 +20,7 @@
       <div class="col-left">
         <section class="card qr-card" aria-labelledby="qr-title">
           <div class="qr-frame">
-            <img src="qr-notifications.svg" alt="QR code that opens NoticeBoard on your phone to turn on notifications" width="150" height="150" />
+            <img src="qr-notifications.svg" alt="QR code that opens NoticeBoard on your phone to turn on notifications" width="124" height="124" />
           </div>
           <div class="qr-text">
             <span class="eyebrow">On your phone</span>
@@ -32,7 +32,26 @@
             </ol>
           </div>
         </section>
-
+        <section class="card avatar-card" aria-labelledby="avatar-title">
+          <div class="avatar-row">
+            <span class="avatar-preview" id="avatar-preview" aria-hidden="true"></span>
+            <span class="setting-text">
+              <strong id="avatar-title">Your picture on Horizon</strong>
+              <small id="avatar-note">Only in this Chrome. Horizon isn't changed.</small>
+            </span>
+          </div>
+          <div class="avatar-actions">
+            <button type="button" id="avatar-upload">Upload</button>
+            <button type="button" id="avatar-link-toggle">Paste link</button>
+            <button type="button" id="avatar-reset" hidden>Reset</button>
+          </div>
+          <form id="avatar-link-form" class="avatar-link" hidden>
+            <input id="avatar-link" type="url" placeholder="https://… image link" required />
+            <button type="submit">Use</button>
+            <button type="button" id="avatar-link-cancel" class="cancel" aria-label="Cancel">✕</button>
+          </form>
+          <input id="avatar-file" type="file" accept="image/*" hidden />
+        </section>
       </div>
       <div class="col-right">
         <section class="card settings">

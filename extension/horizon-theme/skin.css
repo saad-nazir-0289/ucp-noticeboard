@@ -313,7 +313,15 @@ html.ucpnb-skin #page_content_inner a:has(> .card),
 html.ucpnb-skin #page_content_inner a:has(> .card) * {
   text-decoration: none !important;
 }
+/* Each card fills its column, the same height as its row. */
+html.ucpnb-skin #page_content_inner .uk-grid > * > a:has(> .card) {
+  display: block;
+  height: 100%;
+}
 html.ucpnb-skin #page_content_inner .card {
+  width: 100%;
+  height: 100%;
+  margin: 0 !important;
   background: var(--sk-surface) !important;
   border: 1px solid var(--sk-border) !important;
   border-radius: 16px !important;
@@ -335,11 +343,11 @@ html.ucpnb-skin #page_content_inner .card .card-header {
 html.ucpnb-skin #page_content_inner .card .card-header * {
   color: #fff !important;
 }
-html.ucpnb-skin .uk-grid > :nth-child(6n + 2) .card .card-header { background: var(--sk-c2) !important; }
-html.ucpnb-skin .uk-grid > :nth-child(6n + 3) .card .card-header { background: var(--sk-c3) !important; }
-html.ucpnb-skin .uk-grid > :nth-child(6n + 4) .card .card-header { background: var(--sk-c4) !important; }
-html.ucpnb-skin .uk-grid > :nth-child(6n + 5) .card .card-header { background: var(--sk-c5) !important; }
-html.ucpnb-skin .uk-grid > :nth-child(6n + 6) .card .card-header { background: var(--sk-c6) !important; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(6n + 2) .card .card-header { background: var(--sk-c2) !important; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(6n + 3) .card .card-header { background: var(--sk-c3) !important; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(6n + 4) .card .card-header { background: var(--sk-c4) !important; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(6n + 5) .card .card-header { background: var(--sk-c5) !important; }
+html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(6n + 6) .card .card-header { background: var(--sk-c6) !important; }
 html.ucpnb-skin #page_content_inner .card .card-body {
   background: transparent !important;
   color: var(--sk-text-2) !important;
@@ -424,9 +432,10 @@ html.ucpnb-skin .md-btn {
   text-transform: none !important;
   box-shadow: none !important;
 }
-html.ucpnb-skin :is(.md-btn-primary, .md-btn-flat-primary.md-btn-wave-light, .btn-primary) {
-  background: var(--sk-primary) !important;
+html.ucpnb-skin :is(.md-btn-primary, .md-btn-flat-primary.md-btn-wave-light, .btn-primary, button[type="submit"], input[type="submit"]) {
+  background: linear-gradient(135deg, #2457d6, #4f7cff) !important;
   color: #fff !important;
+  border: 0 !important;
 }
 /* Plain buttons (course pages' section tabs): a surface, not white. */
 html.ucpnb-skin :is(.md-btn, .uk-button, .btn):not(.md-btn-flat):not([class*="md-bg-"]):not(.btn-primary):not(.md-btn-primary):not(.md-btn-success):not(.btn-success) {
@@ -437,10 +446,23 @@ html.ucpnb-skin :is(.md-btn, .uk-button, .btn):not(.md-btn-flat):not([class*="md
 html.ucpnb-skin :is(.md-btn, .uk-button, .btn):hover {
   filter: brightness(1.06);
 }
-/* The selected one keeps its colour, with readable text on it. */
-html.ucpnb-skin :is(.md-btn-success, .btn-success, [class*="md-bg-light-green"], [class*="md-bg-green"]) {
+/* The selected one (Horizon's green): NoticeBoard's blue gradient. */
+html.ucpnb-skin :is(.md-btn-success, .btn-success, .md-btn[class*="md-bg-light-green"], .md-btn[class*="md-bg-green"]) {
+  background: linear-gradient(135deg, #2457d6, #6d5cf6) !important;
   color: #fff !important;
   border-color: transparent !important;
+  box-shadow: 0 6px 16px rgba(36, 87, 214, 0.3) !important;
+}
+html.ucpnb-skin :is(.md-btn, .uk-button, .btn) {
+  border-radius: 999px !important;
+  padding: 8px 18px !important;
+  line-height: 1.3 !important;
+  min-height: 0 !important;
+  text-decoration: none !important;
+  transition: transform 0.15s, filter 0.15s;
+}
+html.ucpnb-skin :is(.md-btn, .uk-button, .btn):active {
+  transform: scale(0.97);
 }
 html.ucpnb-skin .md-btn-flat {
   background: transparent !important;
@@ -485,4 +507,37 @@ html.ucpnb-skin * {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ---------- Forms: file pickers and the rich-text editor ---------- */
+html.ucpnb-skin input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--sk-primary-soft);
+  color: var(--sk-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+/* The complaint editor (CKEditor) writes inside its own frame, which page
+   styles can't reach: in dark, its white page is turned dark as a whole. */
+html.ucpnb-skin :is(.cke_chrome, .cke_top, .cke_bottom) {
+  background: var(--sk-surface-2) !important;
+  border-color: var(--sk-border) !important;
+  border-radius: 12px;
+}
+html.ucpnb-skin.ucpnb-dark .cke_wysiwyg_frame {
+  filter: invert(0.88) hue-rotate(180deg);
+}
+html.ucpnb-skin.ucpnb-dark :is(.cke_button_icon, .cke_combo_text) {
+  filter: invert(0.85);
+}
+
+/* ---------- Time table ---------- */
+html.ucpnb-skin :is(.fc-event, .fc-time-grid-event, .uk-calendar-event, [class*="calendar"] .event) {
+  border-radius: 10px !important;
+  border: 0 !important;
+  box-shadow: var(--sk-shadow-1);
+  overflow: hidden;
 }

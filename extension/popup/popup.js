@@ -72,3 +72,83 @@ chrome.storage.local.get([ENABLED_KEY, THEME_KEY, STYLE_KEY]).then((saved) => {
   style = saved[STYLE_KEY] ?? "noticeboard";
   showStyle();
 });
+
+// ---------- Own picture on Horizon (horizon-theme/theme.js shows it) ----------
+const AVATAR_KEY = "ucpnb_avatar";
+const avatarPreview = document.getElementById("avatar-preview");
+const avatarNote = document.getElementById("avatar-note");
+const avatarReset = document.getElementById("avatar-reset");
+const avatarFile = document.getElementById("avatar-file");
+const avatarForm = document.getElementById("avatar-link-form");
+const avatarLink = document.getElementById("avatar-link");
+const DEFAULT_NOTE = "Only in this Chrome. Horizon isn't changed.";
+
+const showAvatar = (src) => {
+  avatarPreview.style.backgroundImage = src ? `url("${src.replace(/"/g, "%22")}")` : "";
+  avatarReset.hidden = !src;
+};
+const sayAvatar = (text, error = false) => {
+  avatarNote.textContent = text;
+  avatarNote.classList.toggle("error", error);
+};
+const saveAvatar = (src) => {
+  chrome.storage.local.set({ [AVATAR_KEY]: src });
+  showAvatar(src);
+  sayAvatar("Done. Reload Horizon if it's open.");
+};
+
+chrome.storage.local.get(AVATAR_KEY).then((saved) => showAvatar(saved[AVATAR_KEY] ?? null));
+
+// A photo from this computer: cropped square and made small, so it's
+// stored here and loads instantly (never uploaded anywhere).
+document.getElementById("avatar-upload").addEventListener("click", () => avatarFile.click());
+avatarFile.addEventListener("change", () => {
+  const file = avatarFile.files?.[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const size = 256;
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = size;
+    canvas.getContext("2d").drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+    URL.revokeObjectURL(img.src);
+    saveAvatar(canvas.toDataURL("image/jpeg", 0.88));
+  };
+  img.onerror = () => sayAvatar("That file isn't a picture Chrome can open.", true);
+  img.src = URL.createObjectURL(file);
+});
+
+// A link to a picture (it must be the image itself, not a page). The link
+// box takes the buttons' place, so the menu stays the same height.
+const avatarActions = document.querySelector(".avatar-actions");
+const showLinkBox = (open) => {
+  avatarForm.hidden = !open;
+  avatarActions.hidden = open;
+  if (open) avatarLink.focus();
+  else avatarLink.value = "";
+};
+document.getElementById("avatar-link-toggle").addEventListener("click", () => showLinkBox(true));
+document.getElementById("avatar-link-cancel").addEventListener("click", () => {
+  showLinkBox(false);
+  sayAvatar(DEFAULT_NOTE);
+});
+avatarForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const url = avatarLink.value.trim();
+  sayAvatar("Checking the link…");
+  const test = new Image();
+  test.onload = () => {
+    saveAvatar(url);
+    showLinkBox(false);
+  };
+  test.onerror = () =>
+    sayAvatar("That link isn't a picture. On Instagram, open the photo, right-click it and choose Copy image address.", true);
+  test.src = url;
+});
+
+avatarReset.addEventListener("click", () => {
+  chrome.storage.local.remove(AVATAR_KEY);
+  showAvatar(null);
+  sayAvatar(DEFAULT_NOTE);
+});
