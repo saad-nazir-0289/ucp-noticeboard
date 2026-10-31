@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
+import QRCode from "qrcode";
 
 // Code in ../shared is compiled into this app (see shared/README.md).
 // dedupe makes its `react` imports resolve from this app's node_modules,
@@ -65,14 +66,17 @@ const outDirFor = (mode: string) =>
 // changing it in an update makes Chrome disable the extension until each
 // student re-approves it.
 //
-// It also writes background.js: all it does is tell Chrome which page to
+// It also copies the toolbar menu (popup/), writing popup-config.js with
+// this build's PWA address and qr-notifications.svg (the QR code students
+// scan with their phone to turn on notifications, drawn here so the menu
+// loads nothing from the internet), and writes background.js: all it does is tell Chrome which page to
 // open when the extension is removed (the PWA's one-question "why?" page),
 // which needs no permission. Generated here so it carries this build's PWA
 // address.
 function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Plugin {
   return {
     name: "extension-manifest",
-    closeBundle() {
+    async closeBundle() {
       const root = __dirname;
       const dist = resolve(root, outDir);
       mkdirSync(dist, { recursive: true });
@@ -85,6 +89,22 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
+      for (const file of ["popup.html", "popup.css", "popup.js"]) {
+        copyFileSync(resolve(root, "popup", file), resolve(dist, file));
+      }
+      writeFileSync(
+        resolve(dist, "qr-notifications.svg"),
+        await QRCode.toString(`${pwaBaseUrl}/?enableNotifications=1`, {
+          type: "svg",
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: { dark: "#0f172a", light: "#ffffff" },
+        })
+      );
+      writeFileSync(
+        resolve(dist, "popup-config.js"),
+        `// Written by vite.content.config.ts: the web app this build opens.\nwindow.UCPNB_PWA_URL = ${JSON.stringify(pwaBaseUrl)};\n`
+      );
       writeFileSync(
         resolve(dist, "background.js"),
         `// Written by vite.content.config.ts. When NoticeBoard is removed, Chrome opens
