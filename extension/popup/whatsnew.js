@@ -1,7 +1,10 @@
 // What the install and update introductions show: the toolbar menu
 // (popup.js) and Horizon's pages (horizon-theme/theme.js) both read it.
-// Update "updates" with each release that has something to show.
+// Update "updates" with each release that has something to show, and set
+// "since" to that release: updating from an older version shows the list;
+// a small fix after it (from "since" or newer) shows nothing again.
 globalThis.UCPNB_WHATS_NEW = {
+  since: "1.30.0",
   // First install: what NoticeBoard does.
   install: [
     { icon: "📢", title: "Campus notices on your dashboard", text: "Societies, events and deadlines from across UCP, in one place." },
