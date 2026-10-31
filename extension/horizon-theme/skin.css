@@ -324,6 +324,10 @@ html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) {
   margin: 18px 0 30px !important;
   padding: 0 !important;
 }
+/* Anything else in the grid (an empty placeholder) would take a cell. */
+html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) > :not(:has(.card)) {
+  display: none !important;
+}
 html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) > * {
   width: auto !important;
   max-width: none !important;
@@ -636,8 +640,16 @@ html.ucpnb-skin .cd-schedule__event .ucpnb-course {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
-html.ucpnb-skin .cd-schedule__event .ucpnb-teacher { font-size: 11.5px; opacity: 0.92; }
-html.ucpnb-skin .cd-schedule__event .ucpnb-teacher { flex-shrink: 1; min-height: 0; }
+/* Just the course, its time and its room. */
+html.ucpnb-skin .cd-schedule__event .ucpnb-teacher { display: none !important; }
+html.ucpnb-skin .cd-schedule__event .ucpnb-time {
+  order: -1; /* right under the course name, the room chip at the bottom */
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.92;
+  white-space: nowrap;
+}
 /* The section code (CSHU4213-F26-BS-...) is noise next to the course name. */
 html.ucpnb-skin .cd-schedule__event .ucpnb-section { display: none !important; }
 html.ucpnb-skin .cd-schedule__event .ucpnb-extra { font-size: 11px; opacity: 0.8; }

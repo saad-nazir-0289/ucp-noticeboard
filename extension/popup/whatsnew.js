@@ -1,0 +1,19 @@
+// What the install and update introductions show: the toolbar menu
+// (popup.js) and Horizon's pages (horizon-theme/theme.js) both read it.
+// Update "updates" with each release that has something to show.
+globalThis.UCPNB_WHATS_NEW = {
+  // First install: what NoticeBoard does.
+  install: [
+    { icon: "📢", title: "Campus notices on your dashboard", text: "Societies, events and deadlines from across UCP, in one place." },
+    { icon: "🌙", title: "A new look for all of Horizon", text: "Dark NoticeBoard style, with Light and Original in the menu." },
+    { icon: "📱", title: "Notices on your phone", text: "Scan the QR code in the menu to get notified." },
+    { icon: "🖼️", title: "Your own picture", text: "Upload a photo or paste an image link in the menu." },
+  ],
+  // Updates: what changed.
+  updates: [
+    { icon: "🗓️", title: "Colourful time table", text: "Each course in its own colour, in 12-hour time, today highlighted." },
+    { icon: "🖼️", title: "Your own picture", text: "Upload a photo or paste an image link in the menu." },
+    { icon: "🌙", title: "Dark by default", text: "Switch to Light or Original any time from the menu." },
+    { icon: "🎨", title: "Neater course cards", text: "Even rows, each course in its own colour." },
+  ],
+};
