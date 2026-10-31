@@ -13,6 +13,11 @@ html.ucpnb-dark body {
 html.ucpnb-dark-pending body {
   opacity: 0 !important;
 }
+/* The student's own picture (toolbar menu): Horizon's stays hidden until
+   it's been swapped, so it never shows for a moment (at most 2 s). */
+html.ucpnb-avatar-pending .user_heading_avatar img:not([data-ucpnb-avatar]) {
+  visibility: hidden !important;
+}
 /* Pictures a touch dimmer, so bright photos don't glare on the dark page
    (set below, with the guard against an older copy's inversion). */
 
