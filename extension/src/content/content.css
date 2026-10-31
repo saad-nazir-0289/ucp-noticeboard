@@ -36,6 +36,14 @@
   margin: 0;
 }
 
+/* Portal heading styles (underlines, padding) don't belong on ours. */
+#ucp-noticeboard-root h2,
+#ucp-noticeboard-root h3,
+#ucp-noticeboard-root h4 {
+  border: 0;
+  padding: 0;
+}
+
 #ucp-noticeboard-root a:hover,
 #ucp-noticeboard-root a:focus {
   text-decoration: none;

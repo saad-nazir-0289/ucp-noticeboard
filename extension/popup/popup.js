@@ -1,7 +1,7 @@
 // The menu shown when NoticeBoard is clicked in Chrome's toolbar.
 // popup-config.js (written at build time) sets window.UCPNB_PWA_URL.
 const ENABLED_KEY = "ucpnb_enabled"; // read by the content script (src/content/index.tsx)
-const THEME_KEY = "ucpnb_theme"; // "light", "dark" or "system": Horizon, the panel and this menu
+const THEME_KEY = "ucpnb_theme"; // "light", "dark" or "system": Horizon and the panel (this menu is always dark)
 const STORE_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg";
 const REPO_URL = "https://github.com/saad-nazir-0289/ucp-noticeboard";
 const WHATSAPP = "923254278463";
@@ -36,13 +36,10 @@ toggle.addEventListener("change", () => {
 });
 
 // Theme.
-const deviceDark = matchMedia("(prefers-color-scheme: dark)");
 const choices = document.querySelectorAll("[data-theme-choice]");
 let theme = "light";
 const showTheme = () => {
   for (const choice of choices) choice.setAttribute("aria-checked", String(choice.dataset.themeChoice === theme));
-  const dark = theme === "dark" || (theme === "system" && deviceDark.matches);
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
 };
 for (const choice of choices) {
   choice.addEventListener("click", () => {
@@ -51,7 +48,6 @@ for (const choice of choices) {
     showTheme();
   });
 }
-deviceDark.addEventListener("change", showTheme);
 
 chrome.storage.local.get([ENABLED_KEY, THEME_KEY]).then((saved) => {
   toggle.checked = saved[ENABLED_KEY] !== false;

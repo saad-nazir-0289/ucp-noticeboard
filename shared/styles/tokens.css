@@ -4,8 +4,9 @@
  * only ever use these variables, so a re-theme happens here.
  *
  * Light theme first; the dark theme at the end. The PWA switches it on
- * with <html data-theme="dark"> (pwa/src/theme.ts), the extension with
- * data-ucpnb-theme="dark" on its own panel (the toolbar menu's Theme).
+ * with <html data-theme="dark"> (pwa/src/theme.ts); the extension's panel
+ * follows Horizon's dark mode (html.ucpnb-dark, set by
+ * extension/horizon-theme/theme.js from the toolbar menu's Theme).
  */
 :root {
   /* Brand */
@@ -73,7 +74,7 @@
 
 /* ---------- Dark theme ---------- */
 :root[data-theme="dark"],
-[data-ucpnb-theme="dark"] {
+html.ucpnb-dark #ucp-noticeboard-root {
   --nb-brand: #e8eefb;
   --nb-primary: #6b97ff;
   --nb-primary-hover: #86a9ff;
@@ -118,6 +119,6 @@
 }
 
 [data-theme="dark"] .ucpnb-chip.is-active,
-[data-ucpnb-theme="dark"] .ucpnb-chip.is-active {
+html.ucpnb-dark #ucp-noticeboard-root .ucpnb-chip.is-active {
   color: #0b111c;
 }

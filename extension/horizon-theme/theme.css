@@ -1,22 +1,19 @@
-/* Dark mode for Horizon (theme.js): the page's colours inverted, with
-   pictures, video and the NoticeBoard panel inverted back to normal. */
+/* Dark mode for Horizon (theme.js recolours the page itself). */
 html.ucpnb-dark {
-  filter: invert(1) hue-rotate(180deg);
-  background: #fff;
+  color-scheme: dark;
+  background-color: #111a28 !important;
 }
-html.ucpnb-dark img,
-html.ucpnb-dark video,
-html.ucpnb-dark picture,
-html.ucpnb-dark canvas,
-html.ucpnb-dark iframe,
-html.ucpnb-dark [style*="background-image"],
-html.ucpnb-dark #ucp-noticeboard-root {
-  filter: invert(1) hue-rotate(180deg);
+html.ucpnb-dark body {
+  background-color: #111a28 !important;
+  color: #dfe5ee;
+  -webkit-font-smoothing: antialiased;
 }
-/* Inside the panel, already turned back: leave pictures alone. */
-html.ucpnb-dark #ucp-noticeboard-root img,
-html.ucpnb-dark #ucp-noticeboard-root video,
-html.ucpnb-dark #ucp-noticeboard-root canvas,
-html.ucpnb-dark #ucp-noticeboard-root [style*="background-image"] {
-  filter: none;
+/* Until the first recolouring pass: the page stays hidden instead of
+   flashing white (theme.js shows it after at most 1.5 s regardless). */
+html.ucpnb-dark-pending body {
+  opacity: 0 !important;
+}
+/* Pictures a touch dimmer, so bright photos don't glare on the dark page. */
+html.ucpnb-dark img:not(#ucp-noticeboard-root img) {
+  filter: brightness(0.92);
 }
