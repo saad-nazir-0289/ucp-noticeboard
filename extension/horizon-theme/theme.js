@@ -168,6 +168,7 @@
   function keepClasses() {
     if (html.classList.contains("ucpnb-skin") !== wanted.skin) html.classList.toggle("ucpnb-skin", wanted.skin);
     if (html.classList.contains("ucpnb-dark") !== wanted.dark) html.classList.toggle("ucpnb-dark", wanted.dark); // also the panel's dark colours
+    if (html.classList.contains("ucpnb-avatar-pending") !== hideAvatar) html.classList.toggle("ucpnb-avatar-pending", hideAvatar);
   }
   new MutationObserver(keepClasses).observe(html, { attributes: true, attributeFilter: ["class"] });
 
@@ -177,6 +178,7 @@
     wanted = { skin, dark };
     keepClasses();
     dark ? turnOn(skin ? "skin" : "original") : turnOff();
+    if (document.body) tuneSchedule();
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ preference, style }));
     } catch {
@@ -185,33 +187,131 @@
   };
 
   // ---------- Own picture ----------
+  // Horizon's own picture stays hidden until it's been swapped, so it never
+  // shows for a moment while the page loads. The picture is also kept in the
+  // page's own storage, so it's ready before the extension's storage answers.
+  const AVATAR_CACHE = "ucpnb_avatar_cache";
   let avatar = null;
+  try {
+    avatar = localStorage.getItem(AVATAR_CACHE);
+  } catch {
+    // Waits for the extension's storage instead.
+  }
+  let hideAvatar = Boolean(avatar);
+  keepClasses();
+  const AVATAR_IMG = ".user_heading_avatar img";
   function applyAvatar(root = document) {
-    for (const img of root.querySelectorAll(".user_heading_avatar img")) {
+    const imgs = root.matches?.(AVATAR_IMG) ? [root] : root.querySelectorAll(AVATAR_IMG);
+    for (const img of imgs) {
       if (img.closest(PANEL)) continue;
       if (!("ucpnbOriginal" in img.dataset)) img.dataset.ucpnbOriginal = img.getAttribute("src") ?? "";
       const src = avatar || img.dataset.ucpnbOriginal;
       if (img.getAttribute("src") !== src) img.setAttribute("src", src);
       img.style.objectFit = avatar ? "cover" : "";
+      img.dataset.ucpnbAvatar = "";
     }
   }
-  const avatarObserver = new MutationObserver((mutations) => {
-    for (const m of mutations) for (const node of m.addedNodes) if (node.nodeType === 1) applyAvatar(node);
-  });
-  const watchAvatar = () => {
+  function setAvatar(src) {
+    avatar = src || null;
+    try {
+      if (avatar) localStorage.setItem(AVATAR_CACHE, avatar);
+      else localStorage.removeItem(AVATAR_CACHE);
+    } catch {
+      // Too big for the page's storage: it then waits for the extension's.
+    }
     applyAvatar();
-    avatarObserver.observe(document.body, { childList: true, subtree: true });
+    hideAvatar = false;
+    keepClasses();
+  }
+
+  // ---------- Horizon's logo ----------
+  // On most pages Horizon swaps its logo for a sharper "@2x" copy that isn't
+  // there, leaving a broken picture: put the normal one back.
+  function fixLogo(img) {
+    if (img.tagName !== "IMG" || img.dataset.ucpnbLogo || !/@2x\./.test(img.getAttribute("src") ?? "")) return;
+    img.dataset.ucpnbLogo = "1";
+    img.setAttribute("src", img.getAttribute("src").replace("@2x.", "."));
+  }
+  document.addEventListener("error", (e) => fixLogo(e.target), true);
+  const checkLogos = () => {
+    for (const img of document.querySelectorAll('#header_main img[src*="@2x."]')) {
+      if (img.complete && img.naturalWidth === 0) fixLogo(img);
+    }
   };
-  if (document.body && document.readyState !== "loading") watchAvatar();
-  else document.addEventListener("DOMContentLoaded", watchAvatar, { once: true });
-  chrome.storage.local.get(AVATAR_KEY).then((saved) => {
-    avatar = saved[AVATAR_KEY] ?? null;
-    if (document.body) applyAvatar();
-  });
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !(AVATAR_KEY in changes)) return;
-    avatar = changes[AVATAR_KEY].newValue ?? null;
+
+  // ---------- Time table ----------
+  // Each course gets its own colour, today's column is marked, and the tiny
+  // fixed sizes Horizon writes on each class are cleared (they're set
+  // "important" on the element itself, which no stylesheet can override).
+  const PARTS = ["ucpnb-teacher", "ucpnb-course", "ucpnb-section", "ucpnb-room"];
+  const DAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  function tuneSchedule() {
+    const events = document.querySelectorAll(".cd-schedule__event");
+    if (events.length === 0) return;
+    if (!wanted.skin) {
+      for (const el of document.querySelectorAll("[data-ucpnb-style]")) {
+        el.setAttribute("style", el.dataset.ucpnbStyle);
+        delete el.dataset.ucpnbStyle;
+      }
+      return;
+    }
+    const tones = new Map();
+    for (const event of events) {
+      const names = [...event.querySelectorAll(".cd-schedule__name")];
+      names.forEach((el, i) => {
+        const text = el.textContent.trim();
+        // Some classes repeat the room on a fifth line.
+        const repeat = i >= PARTS.length && names.slice(0, i).some((n) => n.textContent.trim() === text);
+        el.classList.add(!text || repeat ? "ucpnb-blank" : PARTS[i] ?? "ucpnb-extra");
+        if (el.hasAttribute("style") && !("ucpnbStyle" in el.dataset)) {
+          el.dataset.ucpnbStyle = el.getAttribute("style");
+          el.style.removeProperty("font-size");
+          el.style.removeProperty("margin");
+        }
+      });
+      const course = (names[1] ?? names[0])?.textContent.trim().toLowerCase() ?? "";
+      if (!tones.has(course)) tones.set(course, (tones.size % 6) + 1);
+      event.dataset.ucpnbTone = tones.get(course);
+    }
+    const today = DAYS[new Date().getDay()];
+    for (const group of document.querySelectorAll(".cd-schedule__group")) {
+      const day = group.querySelector(".cd-schedule__top-info")?.textContent.trim().toLowerCase();
+      group.classList.toggle("ucpnb-today", day === today);
+    }
+  }
+
+  // Everything Horizon adds while loading and later.
+  let tuneQueued = false;
+  new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === "attributes") {
+        if (m.target.closest?.(".user_heading_avatar")) applyAvatar(m.target);
+        continue;
+      }
+      for (const node of m.addedNodes) if (node.nodeType === 1) applyAvatar(node);
+    }
+    if (!tuneQueued) {
+      tuneQueued = true;
+      requestAnimationFrame(() => {
+        tuneQueued = false;
+        tuneSchedule();
+      });
+    }
+  }).observe(html, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
+  document.addEventListener("DOMContentLoaded", () => {
     applyAvatar();
+    tuneSchedule();
+    checkLogos();
+  }, { once: true });
+  window.addEventListener("load", checkLogos, { once: true });
+  // Never hidden for long, whatever happens.
+  setTimeout(() => {
+    hideAvatar = false;
+    keepClasses();
+  }, 2000);
+  chrome.storage.local.get(AVATAR_KEY).then((saved) => setAvatar(saved[AVATAR_KEY]));
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && AVATAR_KEY in changes) setAvatar(changes[AVATAR_KEY].newValue);
   });
 
   try {

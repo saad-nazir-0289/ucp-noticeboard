@@ -313,13 +313,32 @@ html.ucpnb-skin #page_content_inner a:has(> .card),
 html.ucpnb-skin #page_content_inner a:has(> .card) * {
   text-decoration: none !important;
 }
-/* Each card fills its column, the same height as its row. */
+/* An even grid. Horizon's own layout script measures the cards while the
+   page is still loading and pushes some down a row's gap ("uk-grid-margin"),
+   and each card is capped at 22rem inside a wider column; a CSS grid with
+   equal columns and gaps doesn't depend on either. */
+html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  margin: 18px 0 30px !important;
+  padding: 0 !important;
+}
+html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) > * {
+  width: auto !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  float: none !important;
+}
+/* Each card fills its cell, the same height as its row. */
 html.ucpnb-skin #page_content_inner .uk-grid > * > a:has(> .card) {
   display: block;
   height: 100%;
 }
 html.ucpnb-skin #page_content_inner .card {
   width: 100%;
+  max-width: none !important;
   height: 100%;
   margin: 0 !important;
   background: var(--sk-surface) !important;
@@ -534,8 +553,107 @@ html.ucpnb-skin.ucpnb-dark :is(.cke_button_icon, .cke_combo_text) {
   filter: invert(0.85);
 }
 
-/* ---------- Time table ---------- */
-html.ucpnb-skin :is(.fc-event, .fc-time-grid-event, .uk-calendar-event, [class*="calendar"] .event) {
+/* ---------- Time table (Class Schedule) ----------
+   Horizon places each class by pixel from the size of the day headings and
+   half-hour rows, so those keep their size; only colours, corners and type
+   change. theme.js gives each course its own colour (data-ucpnb-tone),
+   marks today and clears the tiny fixed font sizes. */
+html.ucpnb-skin .cd-schedule__group {
+  border-color: var(--sk-border) !important;
+}
+html.ucpnb-skin .cd-schedule__group.ucpnb-today {
+  background: var(--sk-primary-soft) !important;
+}
+html.ucpnb-skin .cd-schedule__top-info {
+  background: var(--sk-surface-2) !important;
+  border-bottom-color: var(--sk-border) !important;
+  color: var(--sk-text) !important;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+html.ucpnb-skin .cd-schedule__top-info * { color: inherit !important; }
+html.ucpnb-skin .cd-schedule__group.ucpnb-today .cd-schedule__top-info {
+  background: linear-gradient(135deg, #2457d6, #6d5cf6) !important;
+  color: #fff !important;
+}
+html.ucpnb-skin .cd-schedule__timeline li::after {
+  background: var(--sk-border) !important;
+  opacity: 0.55;
+}
+html.ucpnb-skin .cd-schedule__timeline span {
+  color: var(--sk-text-3) !important;
+  font-size: 12px;
+  font-weight: 600;
+}
+html.ucpnb-skin .cd-schedule__event {
+  box-sizing: border-box;
+  padding: 2px 4px !important;
+  z-index: 3;
+  animation: ucpnb-pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+html.ucpnb-skin .cd-schedule__event a {
+  display: flex !important;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 8px 10px !important;
+  border-radius: 12px;
+  background: var(--sk-c1) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+html.ucpnb-skin .cd-schedule__event a:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.28) !important;
+}
+html.ucpnb-skin .cd-schedule__event[data-ucpnb-tone="2"] a { background: var(--sk-c2) !important; }
+html.ucpnb-skin .cd-schedule__event[data-ucpnb-tone="3"] a { background: var(--sk-c3) !important; }
+html.ucpnb-skin .cd-schedule__event[data-ucpnb-tone="4"] a { background: var(--sk-c4) !important; }
+html.ucpnb-skin .cd-schedule__event[data-ucpnb-tone="5"] a { background: var(--sk-c5) !important; }
+html.ucpnb-skin .cd-schedule__event[data-ucpnb-tone="6"] a { background: var(--sk-c6) !important; }
+html.ucpnb-skin .cd-schedule__event .cd-schedule__name {
+  display: block;
+  margin: 0 !important;
+  color: #fff !important;
+  font-style: normal;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Horizon's order is teacher, course, section, room: the course goes first. */
+html.ucpnb-skin .cd-schedule__event .ucpnb-course {
+  order: -1;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+html.ucpnb-skin .cd-schedule__event .ucpnb-teacher { font-size: 11.5px; opacity: 0.92; }
+html.ucpnb-skin .cd-schedule__event .ucpnb-teacher { flex-shrink: 1; min-height: 0; }
+/* The section code (CSHU4213-F26-BS-...) is noise next to the course name. */
+html.ucpnb-skin .cd-schedule__event .ucpnb-section { display: none !important; }
+html.ucpnb-skin .cd-schedule__event .ucpnb-extra { font-size: 11px; opacity: 0.8; }
+html.ucpnb-skin .cd-schedule__event .ucpnb-room {
+  align-self: flex-start;
+  flex-shrink: 0;
+  margin-top: auto !important;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 11px;
+  font-weight: 700;
+}
+html.ucpnb-skin .cd-schedule__event .ucpnb-blank { display: none !important; }
+/* Other calendars, if a page uses one. */
+html.ucpnb-skin :is(.fc-event, .fc-time-grid-event, .uk-calendar-event) {
   border-radius: 10px !important;
   border: 0 !important;
   box-shadow: var(--sk-shadow-1);
