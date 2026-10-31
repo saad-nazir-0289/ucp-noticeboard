@@ -211,12 +211,10 @@ html.ucpnb-skin #sidebar_main .menu_section ul ul a:hover {
 }
 
 /* ---------- Breadcrumb bar ---------- */
-/* The "Home > Dashboard" bar under the header: the page's own background,
-   kept in view under the header while the page scrolls. */
+/* The "Home > Dashboard" bar: Horizon already keeps it fixed under the
+   header; the page's own background, so the page no longer shows through
+   it while scrolling. */
 html.ucpnb-skin #top_bar {
-  position: sticky !important;
-  top: 48px; /* under Horizon's fixed header */
-  z-index: 5;
   background: var(--sk-bg) !important;
   border: 0 !important;
   box-shadow: none !important;
@@ -329,7 +327,13 @@ html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) {
   margin: 18px 0 30px !important;
   padding: 0 !important;
 }
-/* Anything else in the grid (an empty placeholder) would take a cell. */
+/* UIkit's clearfix (an empty ::before and ::after) would take the first
+   and last cells of a CSS grid, as would any other placeholder. */
+html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card)::before,
+html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card)::after {
+  display: none !important;
+  content: none !important;
+}
 html.ucpnb-skin #page_content_inner .uk-grid:has(> * > a > .card) > :not(:has(.card)) {
   display: none !important;
 }
