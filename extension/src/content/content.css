@@ -1009,3 +1009,26 @@ select.ucpnb-input-sm {
 .ucpnb-manage-row.is-selected {
   background: var(--nb-primary-soft);
 }
+
+/* ---------- Smaller cards on the dashboard ----------
+   The usual panel and card design, with narrower, shorter cards in the
+   carousel so the panel takes less room. "View all" and the web app keep
+   the full size. */
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
+  --visible: 6.25;
+  flex-basis: clamp(170px, calc((100cqw - 44px - 16px * (var(--visible) - 0.25)) / var(--visible)), 240px);
+}
+@container (max-width: 1250px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 5.25; } }
+@container (max-width: 900px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 3.25; } }
+@container (max-width: 700px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 2.25; } }
+@container (max-width: 480px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 1.25; } }
+
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media { aspect-ratio: 5 / 2; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner { gap: 4px; padding: 10px 12px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > svg:first-child { width: 22px; height: 22px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-body { gap: 6px; padding: 10px 12px 10px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags > * { font-size: 11px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-title { font-size: 13.5px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-footer,
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-source { font-size: 11.5px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-avatar { width: 18px; height: 18px; }
