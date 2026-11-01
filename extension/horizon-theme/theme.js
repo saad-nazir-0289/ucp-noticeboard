@@ -19,10 +19,6 @@
   // is on before Horizon draws instead of after the extension's storage
   // answers (no flash of the original page).
   const CACHE_KEY = "ucpnb_look";
-  // The student's own picture (toolbar menu): an uploaded photo (data URL)
-  // or an image link, shown instead of Horizon's in the top bar, sidebar
-  // and dashboard. Only in this Chrome; Horizon itself is never changed.
-  const AVATAR_KEY = "ucpnb_avatar";
   const PANEL = "#ucp-noticeboard-root";
   const SKIP = new Set(["IMG", "PICTURE", "VIDEO", "CANVAS", "SVG", "IFRAME", "SCRIPT", "STYLE", "LINK", "META", "NOSCRIPT", "BR"]);
   const html = document.documentElement;
@@ -187,17 +183,45 @@
   };
 
   // ---------- Own picture ----------
-  // Horizon's own picture stays hidden until it's been swapped, so it never
-  // shows for a moment while the page loads. The picture is also kept in the
-  // page's own storage, so it's ready before the extension's storage answers.
-  const AVATAR_CACHE = "ucpnb_avatar_cache";
+  // Each student's own picture (toolbar menu: an uploaded photo or an image
+  // link), shown instead of Horizon's in the top bar, sidebar and dashboard.
+  // Horizon itself is never changed. It's kept in Chrome sync under the
+  // student's roll number ("ucpnb_avatar:L1S23BSCS0289"), so it follows them
+  // to any Chrome signed in to the same Google account, and someone else
+  // logging in to Horizon in this Chrome sees their own picture, not this one.
+  //
+  // Whose page is this: the roll number is on the dashboard (and profile),
+  // the name is in the sidebar on every page. A name seen next to a roll
+  // number is remembered (in the page's own storage), so the other pages
+  // know the roll number too.
+  const AVATAR_PREFIX = "ucpnb_avatar:";
+  const LEGACY_AVATAR = "ucpnb_avatar"; // 1.28 to 1.30: one picture per Chrome
+  const STUDENT_KEY = "ucpnb_student"; // the student last seen here, for the menu
+  const PAGE_AVATARS = "ucpnb_avatars"; // page storage: roll number to picture, for the first paint
+  const PAGE_STUDENTS = "ucpnb_students"; // page storage: name to roll number
+  const SYNC_ITEM_LIMIT = 7600; // Chrome sync allows 8 KB per item, key included
+  const ROLL = /\b[A-Z]\d[A-Z]\d{2}[A-Z]{2,8}\d{3,5}\b/;
+  const readPage = (key) => {
+    try {
+      return JSON.parse(localStorage.getItem(key) ?? "{}") ?? {};
+    } catch {
+      return {};
+    }
+  };
+  const writePage = (key, value) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // Not kept for the next page: it waits for the extension's storage.
+    }
+  };
+  let roll = null;
   let avatar = null;
-  try {
-    avatar = localStorage.getItem(AVATAR_CACHE);
-  } catch {
-    // Waits for the extension's storage instead.
-  }
-  let hideAvatar = Boolean(avatar);
+  let known = false; // whose page this is has been worked out
+
+  // Horizon's own picture stays hidden until we know whose page this is (if
+  // any picture is set in this Chrome), so the old one never flashes.
+  let hideAvatar = Object.keys(readPage(PAGE_AVATARS)).length > 0;
   keepClasses();
   const AVATAR_IMG = ".user_heading_avatar img";
   function applyAvatar(root = document) {
@@ -208,20 +232,78 @@
       const src = avatar || img.dataset.ucpnbOriginal;
       if (img.getAttribute("src") !== src) img.setAttribute("src", src);
       img.style.objectFit = avatar ? "cover" : "";
-      img.dataset.ucpnbAvatar = "";
+      if (known) img.dataset.ucpnbAvatar = ""; // shown (theme.css)
     }
   }
   function setAvatar(src) {
     avatar = src || null;
-    try {
-      if (avatar) localStorage.setItem(AVATAR_CACHE, avatar);
-      else localStorage.removeItem(AVATAR_CACHE);
-    } catch {
-      // Too big for the page's storage: it then waits for the extension's.
+    if (roll) {
+      const cached = readPage(PAGE_AVATARS);
+      if (avatar) cached[roll] = avatar;
+      else delete cached[roll];
+      writePage(PAGE_AVATARS, cached);
     }
     applyAvatar();
     hideAvatar = false;
     keepClasses();
+  }
+  // A photo made small enough for Chrome sync (popup.js does the same).
+  function fitForSync(src) {
+    if (!src.startsWith("data:") || src.length <= SYNC_ITEM_LIMIT) return Promise.resolve(src);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        for (const [size, quality] of [[160, 0.8], [128, 0.75], [112, 0.7], [96, 0.65], [80, 0.6], [64, 0.55]]) {
+          canvas.width = canvas.height = size;
+          const side = Math.min(img.naturalWidth, img.naturalHeight);
+          canvas.getContext("2d").drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+          const small = canvas.toDataURL("image/jpeg", quality);
+          if (small.length <= SYNC_ITEM_LIMIT) return resolve(small);
+        }
+        resolve(null);
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+  async function loadAvatar() {
+    const key = AVATAR_PREFIX + roll;
+    let src = (await chrome.storage.sync.get(key))[key];
+    // A picture from before pictures belonged to a roll number: it becomes
+    // this student's, the first one seen here.
+    const legacy = (await chrome.storage.local.get(LEGACY_AVATAR))[LEGACY_AVATAR];
+    if (legacy) {
+      if (!src) {
+        const fitted = await fitForSync(legacy);
+        if (fitted) {
+          await chrome.storage.sync.set({ [key]: fitted }).catch(() => {});
+          src = fitted;
+        }
+      }
+      await chrome.storage.local.remove(LEGACY_AVATAR);
+    }
+    setAvatar(src);
+  }
+  function findStudent() {
+    known = true;
+    const name = document.querySelector("#sidebar_main .uk-text-bold")?.textContent.trim() || null;
+    const students = readPage(PAGE_STUDENTS);
+    let found = document.querySelector("#page_content")?.textContent.match(ROLL)?.[0] ?? null;
+    if (found && name && students[name] !== found) writePage(PAGE_STUDENTS, { ...students, [name]: found });
+    found ??= name ? students[name] ?? null : null;
+    if (!found) {
+      // Not known yet (a page without the roll number, before the dashboard
+      // was ever opened here): Horizon's own picture.
+      setAvatar(null);
+      return;
+    }
+    if (found === roll) return;
+    roll = found;
+    avatar = readPage(PAGE_AVATARS)[roll] ?? null;
+    applyAvatar();
+    chrome.storage.local.set({ [STUDENT_KEY]: { roll, name } });
+    loadAvatar();
   }
 
   // ---------- Horizon's logo ----------
@@ -344,7 +426,7 @@
     }
   }).observe(html, { childList: true, subtree: true, attributes: true, attributeFilter: ["src"] });
   document.addEventListener("DOMContentLoaded", () => {
-    applyAvatar();
+    findStudent();
     tuneSchedule();
     checkLogos();
   }, { once: true });
@@ -354,9 +436,11 @@
     hideAvatar = false;
     keepClasses();
   }, 2000);
-  chrome.storage.local.get(AVATAR_KEY).then((saved) => setAvatar(saved[AVATAR_KEY]));
+  if (document.readyState !== "loading") findStudent();
+  window.addEventListener("load", findStudent, { once: true });
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && AVATAR_KEY in changes) setAvatar(changes[AVATAR_KEY].newValue);
+    const key = AVATAR_PREFIX + roll;
+    if (area === "sync" && roll && key in changes) setAvatar(changes[key].newValue);
   });
 
   // ---------- Introduction after installing or updating ----------
