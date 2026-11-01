@@ -304,6 +304,20 @@
       if (!tones.has(course)) tones.set(course, (tones.size % 6) + 1);
       event.dataset.ucpnbTone = tones.get(course);
     }
+    // Fit: a class whose text overflows its slot gets a tighter layout, then
+    // one without the room (measured after layout, so a frame later).
+    requestAnimationFrame(() => {
+      const overflows = (event) => {
+        const link = event.querySelector("a");
+        return link && link.scrollHeight > link.clientHeight + 1;
+      };
+      for (const event of events) {
+        event.classList.remove("ucpnb-tight", "ucpnb-tighter");
+        if (!overflows(event)) continue;
+        event.classList.add("ucpnb-tight");
+        if (overflows(event)) event.classList.add("ucpnb-tighter");
+      }
+    });
     const today = DAYS[new Date().getDay()];
     for (const group of document.querySelectorAll(".cd-schedule__group")) {
       const day = group.querySelector(".cd-schedule__top-info")?.textContent.trim().toLowerCase();

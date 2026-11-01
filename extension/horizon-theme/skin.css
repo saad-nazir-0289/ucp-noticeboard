@@ -38,7 +38,7 @@ html.ucpnb-skin {
   color-scheme: light;
 }
 html.ucpnb-skin.ucpnb-dark {
-  --sk-bg: #0b111c;
+  --sk-bg: #111a28; /* the same as theme.css's dark page, so the breadcrumb bar matches it */
   --sk-surface: #131b29;
   --sk-surface-2: #1b2535;
   --sk-border: #233047;
@@ -127,7 +127,7 @@ html.ucpnb-skin .uk-dropdown {
   border: 1px solid var(--sk-border) !important;
   border-radius: 16px !important;
   box-shadow: var(--sk-shadow-2) !important;
-  animation: ucpnb-pop 0.18s ease both;
+  animation: ucpnb-pop 0.18s ease backwards;
 }
 html.ucpnb-skin .uk-dropdown a {
   color: var(--sk-text) !important;
@@ -237,8 +237,11 @@ html.ucpnb-skin .md-card {
   border-radius: var(--sk-radius) !important;
   box-shadow: var(--sk-shadow-1) !important;
   /* No overflow: hidden here: menus that open inside a card (the
-     NoticeBoard panel's among them) must not be cut off. */
-  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+     NoticeBoard panel's among them) must not be cut off. The entrance
+     animation is "backwards", not "both": an animation still holding a
+     transform afterwards makes the card the frame of fixed pop-ups inside
+     it, which put the notice view below the screen. */
+  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 html.ucpnb-skin .md-card .md-card-content,
 html.ucpnb-skin .md-card .md-card-toolbar {
@@ -392,7 +395,7 @@ html.ucpnb-skin #page_content_inner .card .card-body :is(span, b, div, h6) {
   color: var(--sk-text-2) !important;
 }
 html.ucpnb-skin #page_content_inner .uk-grid > * {
-  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(2) { animation-delay: 0.05s; }
 html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(3) { animation-delay: 0.1s; }
@@ -602,7 +605,7 @@ html.ucpnb-skin .cd-schedule__event {
   box-sizing: border-box;
   padding: 2px 4px !important;
   z-index: 3;
-  animation: ucpnb-pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: ucpnb-pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 html.ucpnb-skin .cd-schedule__event a {
   display: flex !important;
@@ -673,6 +676,16 @@ html.ucpnb-skin .cd-schedule__event .ucpnb-room {
   font-weight: 700;
 }
 html.ucpnb-skin .cd-schedule__event .ucpnb-blank { display: none !important; }
+/* Anything else Horizon's schedule script writes in a class (its own
+   "10:00 - 10:55" line): the 12-hour time above replaces it. */
+html.ucpnb-skin .cd-schedule__event a > :not(.cd-schedule__name):not(.ucpnb-time) { display: none !important; }
+/* A class too short for everything (theme.js measures): smaller, the course
+   name on one line, then without the room chip. */
+html.ucpnb-skin .cd-schedule__event.ucpnb-tight a { padding: 5px 8px !important; gap: 1px; }
+html.ucpnb-skin .cd-schedule__event.ucpnb-tight .ucpnb-course { font-size: 12px; -webkit-line-clamp: 1; }
+html.ucpnb-skin .cd-schedule__event.ucpnb-tight .ucpnb-time { font-size: 10.5px; }
+html.ucpnb-skin .cd-schedule__event.ucpnb-tight .ucpnb-room { font-size: 10px; padding: 0 6px; }
+html.ucpnb-skin .cd-schedule__event.ucpnb-tighter .ucpnb-room { display: none !important; }
 /* Other calendars, if a page uses one. */
 html.ucpnb-skin :is(.fc-event, .fc-time-grid-event, .uk-calendar-event) {
   border-radius: 10px !important;
