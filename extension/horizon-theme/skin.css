@@ -717,3 +717,38 @@ html.ucpnb-skin :is(.fc-event, .fc-time-grid-event, .uk-calendar-event) {
   box-shadow: var(--sk-shadow-1);
   overflow: hidden;
 }
+
+/* ---------- Another extension's grade cards (".ext") ----------
+   A grade calculator some students use adds credit and GPA estimate cards
+   to the dashboard: NoticeBoard's cards, type and gradient for them. */
+html.ucpnb-skin .ext .custom-card {
+  background: var(--sk-surface) !important;
+  border: 1px solid var(--sk-border) !important;
+  border-radius: var(--sk-radius) !important;
+  box-shadow: var(--sk-shadow-1) !important;
+  color: var(--sk-text) !important;
+  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+html.ucpnb-skin .ext .custom-card :is(h1, h2, h3, h4, .h4) {
+  font-family: var(--sk-font) !important;
+  color: var(--sk-text) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em;
+}
+html.ucpnb-skin .ext :is(.cgpa-text, .credit-text, .gpa-text) {
+  color: var(--sk-text) !important;
+}
+html.ucpnb-skin .ext :is(.text-gray, .small, small) {
+  color: var(--sk-text-2) !important;
+}
+html.ucpnb-skin .ext .border-right {
+  border-right-color: var(--sk-border) !important;
+}
+/* The circular dials: a ring filled to --value with NoticeBoard's gradient. */
+html.ucpnb-skin .ext :is(.credit-progress, .gpa-progress) {
+  background:
+    radial-gradient(closest-side, var(--sk-surface) 79%, transparent 80% 100%),
+    conic-gradient(#2457d6 0%, #6d5cf6 calc(var(--value) * 1%), var(--sk-surface-2) 0) !important;
+  color: var(--sk-text) !important;
+  font-weight: 800 !important;
+}

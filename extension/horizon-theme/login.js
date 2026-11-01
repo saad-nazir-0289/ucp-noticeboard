@@ -1,7 +1,8 @@
 // Horizon's login page at night (NoticeBoard style; login.css draws it):
-// a photo of the campus at night (login-night.jpg), stars twinkling and
-// sky lanterns drifting up over it, and a quiet line about NoticeBoard in
-// the bottom-right corner. In Original style the scene is
+// the campus at night under sky lanterns (login-night.jpg, AI-generated),
+// a few more lanterns drifting up over it, and a quiet line about
+// NoticeBoard in the bottom-right corner; Horizon's own login form stays
+// as it is. In Original style the scene is
 // hidden and Horizon's page shows as it is.
 (() => {
   if (!location.pathname.startsWith("/web/login")) return;
@@ -29,7 +30,7 @@
     // sway and start time.
     const lanterns = document.createElement("div");
     lanterns.className = "ucpnb-ls-lanterns";
-    for (let i = 0; i < 22; i++) {
+    for (let i = 0; i < 12; i++) {
       const lantern = document.createElement("span");
       const size = 10 + Math.random() * 16;
       lantern.style.left = `${4 + Math.random() * 92}%`;
