@@ -1010,114 +1010,25 @@ select.ucpnb-input-sm {
   background: var(--nb-primary-soft);
 }
 
-/* ---------- Compact panel on the dashboard ----------
-   Less height: a tighter panel and short horizontal cards in the carousel
-   (poster on the left; tags, title and publisher beside it). The "View all"
-   grid and the web app keep the full cards. */
-/* A section of the dashboard like the others ("Academics", "Classes,
-   Grades and Attendance"): no box around it, a section heading with the
-   same coloured underline, then the search and the notices. */
-.ucpnb-panel-root {
-  gap: 14px;
-  margin: 6px 0 30px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.ucpnb-panel-root .ucpnb-brand-text strong {
-  position: relative;
-  padding-bottom: 10px;
-  color: var(--nb-text);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-.ucpnb-panel-root .ucpnb-brand-text strong::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: 44px;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #2457d6, #8b5cf6, #ec4899);
-}
-.ucpnb-panel-root .ucpnb-carousel-wrap { margin: 0 -6px; }
-.ucpnb-panel-root .ucpnb-carousel {
-  gap: 12px;
-  padding: 4px 6px 8px;
-  scroll-padding: 0 6px;
-}
+/* ---------- Smaller cards on the dashboard ----------
+   The usual panel and card design, with narrower, shorter cards in the
+   carousel so the panel takes less room. "View all" and the web app keep
+   the full size. */
 .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
-  background: var(--nb-surface);
-  box-shadow: var(--nb-shadow-1);
+  --visible: 6.25;
+  flex-basis: clamp(170px, calc((100cqw - 44px - 16px * (var(--visible) - 0.25)) / var(--visible)), 240px);
 }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
-  --visible: 4.3;
-  flex: 0 0 clamp(250px, calc((100cqw - 12px - 12px * (var(--visible) - 0.3)) / var(--visible)), 360px);
-  display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
-  height: 112px;
-  border-radius: 14px;
-}
-@container (max-width: 1250px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 3.3; } }
-@container (max-width: 900px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 2.3; } }
-@container (max-width: 600px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 1.2; } }
+@container (max-width: 1250px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 5.25; } }
+@container (max-width: 900px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 3.25; } }
+@container (max-width: 700px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 2.25; } }
+@container (max-width: 480px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 1.25; } }
 
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media {
-  aspect-ratio: auto;
-  height: 100%;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media img { object-fit: cover; }
-/* Posterless: the category's icon and name, small. */
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner {
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  padding: 8px;
-  text-align: center;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > span {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 11.5px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > svg:first-child { width: 24px; height: 24px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner-mark { display: none; }
-
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-body {
-  gap: 4px;
-  min-height: 0;
-  padding: 10px 12px;
-  overflow: hidden;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags {
-  flex-wrap: nowrap;
-  overflow: hidden;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags > * {
-  flex: none;
-  font-size: 11px;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-title {
-  display: -webkit-box;
-  margin: 0;
-  overflow: hidden;
-  font-size: 13.5px;
-  line-height: 1.3;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-footer {
-  margin-top: auto;
-  padding-top: 0;
-  font-size: 11.5px;
-}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media { aspect-ratio: 5 / 2; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner { gap: 4px; padding: 10px 12px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > svg:first-child { width: 22px; height: 22px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-body { gap: 6px; padding: 10px 12px 10px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags > * { font-size: 11px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-title { font-size: 13.5px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-footer,
 .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-source { font-size: 11.5px; }
 .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-avatar { width: 18px; height: 18px; }
-/* The skeleton while loading: the same short shape. */
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card-skeleton .ucpnb-card-body > :last-child { display: none; }
