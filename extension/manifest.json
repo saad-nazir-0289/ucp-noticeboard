@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UCP NoticeBoard",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "description": "Injects a live NoticeBoard into the UCP Student Portal dashboard.",
   "permissions": [
     "storage"
@@ -66,7 +66,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "login-night.jpg"
+        "icon128.png"
       ],
       "matches": [
         "https://horizon.ucp.edu.pk/*"

@@ -1,6 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import QRCode from "qrcode";
 
@@ -90,10 +90,6 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
-      // The login page's night picture (horizon-theme/login.js), once added.
-      if (existsSync(resolve(root, "public/login-night.jpg"))) {
-        copyFileSync(resolve(root, "public/login-night.jpg"), resolve(dist, "login-night.jpg"));
-      }
       for (const file of ["popup.html", "popup.css", "popup.js", "whatsnew.js"]) {
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
