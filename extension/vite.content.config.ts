@@ -94,7 +94,7 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
       // Horizon's look (horizon-theme/): NoticeBoard style and dark mode.
-      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js"]) {
+      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js", "keepalive.js", "due.js"]) {
         copyFileSync(resolve(root, "horizon-theme", file), resolve(dist, `horizon-${file}`));
       }
       writeFileSync(
