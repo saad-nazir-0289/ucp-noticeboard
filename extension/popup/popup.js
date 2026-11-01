@@ -188,7 +188,9 @@ avatarForm.addEventListener("submit", (e) => {
 });
 
 avatarReset.addEventListener("click", () => {
-  chrome.storage.sync.remove(AVATAR_PREFIX + student.roll);
+  // An empty picture rather than none, so Horizon doesn't bring back the
+  // copy it remembers (theme.js).
+  chrome.storage.sync.set({ [AVATAR_PREFIX + student.roll]: "" });
   showAvatar(null);
   sayAvatar(defaultNote);
 });
