@@ -272,21 +272,41 @@
       img.src = src;
     });
   }
+  // Saved for this student; false if it couldn't be (the copy it came from
+  // is then kept).
+  const saveSynced = (key, src) =>
+    chrome.storage.sync.set({ [key]: src }).then(() => true, () => false);
   async function loadAvatar() {
     const key = AVATAR_PREFIX + roll;
+    // undefined: never set (or the extension's storage was emptied, as on a
+    // reinstall); "": removed with Reset in the menu.
     let src = (await chrome.storage.sync.get(key))[key];
     // A picture from before pictures belonged to a roll number: it becomes
     // this student's, the first one seen here.
     const legacy = (await chrome.storage.local.get(LEGACY_AVATAR))[LEGACY_AVATAR];
     if (legacy) {
-      if (!src) {
+      let kept = src !== undefined;
+      if (!kept) {
         const fitted = await fitForSync(legacy);
-        if (fitted) {
-          await chrome.storage.sync.set({ [key]: fitted }).catch(() => {});
+        if (fitted && (await saveSynced(key, fitted))) {
           src = fitted;
+          kept = true;
         }
       }
-      await chrome.storage.local.remove(LEGACY_AVATAR);
+      // Only once it's safely in its new place.
+      if (kept) await chrome.storage.local.remove(LEGACY_AVATAR);
+      else src = legacy;
+    }
+    // Nothing in the extension's storage, but this page still remembers the
+    // student's picture (the extension was reinstalled, or its storage
+    // cleared): it's put back rather than lost.
+    if (src === undefined) {
+      const remembered = readPage(PAGE_AVATARS)[roll];
+      if (remembered) {
+        const fitted = await fitForSync(remembered);
+        if (fitted) await saveSynced(key, fitted);
+        src = remembered;
+      }
     }
     setAvatar(src);
   }

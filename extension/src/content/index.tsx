@@ -18,16 +18,11 @@ const ENABLED_KEY = "ucpnb_enabled";
 let root: Root | null = null;
 
 function findInjectionAnchor(): Element | null {
-  const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5"));
+  const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5")).filter((el) => !el.closest(`#${CONTAINER_ID}`));
   const heading = headings.find((el) =>
     el.textContent?.trim().toLowerCase().includes(SECTION_HEADING_TEXT.toLowerCase())
   );
-  if (!heading) return null;
-
-  const gridWrapper = heading.closest('[class*="uk-width"]');
-  if (gridWrapper) return gridWrapper;
-
-  return heading.parentElement ?? heading;
+  return heading ?? null;
 }
 
 function inject() {
@@ -43,7 +38,7 @@ function inject() {
   root.render(<NoticeBoard />);
 }
 
-// Above the dashboard's sections, where it has always been.
+// Above "Classes, Grades and Attendance" (placement.ts DEFAULT_BEFORE).
 function putAtDefault(container: Element) {
   const anchor = findInjectionAnchor();
   if (anchor?.parentElement) {

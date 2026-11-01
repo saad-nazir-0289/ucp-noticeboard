@@ -6,9 +6,11 @@
 // (h3.heading_a: "Academics", "Classes, Grades and Attendance", "News and
 // Announcements"), plus "Submissions Due" from horizon-due.js. A place is
 // "above <section heading>" or "at the bottom"; no saved place means the
-// default, at the top.
+// default, above "Classes, Grades and Attendance".
 
 const KEY = "ucpnb_panel_place";
+// Where it goes unless moved: above this section (index.tsx).
+const DEFAULT_BEFORE = "classes, grades and attendance";
 type Place = { before: string } | { end: true };
 
 const storage = typeof chrome !== "undefined" ? chrome.storage?.local : undefined;
@@ -107,22 +109,17 @@ export function pickPlace(container: Element, restoreDefault: () => void) {
   };
 
   const list = sections();
-  // The default spot, at the top of the dashboard card.
-  if (list[0]) {
-    const top = slot("At the top (default)", () => {
-      save(null);
-      restoreDefault();
-    });
-    // Just above the panel when it's there now.
-    if (container.parentElement && !list.some((s) => s.parent === container.parentElement)) container.before(top);
-    else list[0].parent.before(top);
-  }
-  // The first section's spot is the default one, just above it.
-  for (const s of list.slice(1)) {
+  for (const s of list) {
+    const isDefault = s.key === DEFAULT_BEFORE;
     s.parent.insertBefore(
-      slot(`Above ${s.title}`, () => {
-        save({ before: s.key });
-        put(container, { before: s.key });
+      slot(isDefault ? `Above ${s.title} (default)` : `Above ${s.title}`, () => {
+        if (isDefault) {
+          save(null);
+          restoreDefault();
+        } else {
+          save({ before: s.key });
+          put(container, { before: s.key });
+        }
       }),
       s.node
     );
