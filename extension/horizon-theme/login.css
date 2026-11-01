@@ -1,0 +1,151 @@
+/* Horizon's login page at night (login.js builds the scene). NoticeBoard
+   style only: in Original style the scene stays hidden. */
+#ucpnb-login-scene { display: none; }
+html.ucpnb-skin.ucpnb-login body {
+  background: #040714 !important;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+html.ucpnb-skin #ucpnb-login-scene {
+  display: block;
+  position: fixed; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
+}
+html.ucpnb-skin.ucpnb-login body > .container-fluid { position: relative; z-index: 1; }
+
+/* The campus at night (a real night picture: nothing is darkened). */
+#ucpnb-login-scene .ucpnb-ls-photo {
+  position: absolute; inset: -2%;
+  background: #0b1020 center 70% / cover no-repeat;
+  animation: ucpnb-ls-drift 40s ease-in-out infinite alternate;
+}
+/* A little shade at the top and the left, so the sign and the login box
+   read clearly over the picture. */
+#ucpnb-login-scene .ucpnb-ls-shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to right, rgba(3, 6, 20, 0.55), transparent 42%),
+    linear-gradient(to bottom, rgba(3, 6, 20, 0.35), transparent 30%);
+}
+/* Stars, only in the sky part. */
+#ucpnb-login-scene .ucpnb-ls-stars {
+  position: absolute; inset: 0 0 45% 0;
+  background-image:
+    radial-gradient(1.4px 1.4px at 8% 12%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 17% 33%, #cfe0ff 60%, transparent),
+    radial-gradient(1.6px 1.6px at 26% 8%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 34% 24%, #fff 60%, transparent),
+    radial-gradient(1.2px 1.2px at 43% 41%, #ffe9c9 60%, transparent),
+    radial-gradient(1px 1px at 52% 15%, #fff 60%, transparent),
+    radial-gradient(1.5px 1.5px at 61% 30%, #cfe0ff 60%, transparent),
+    radial-gradient(1px 1px at 69% 6%, #fff 60%, transparent),
+    radial-gradient(1.3px 1.3px at 77% 37%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 86% 19%, #ffe9c9 60%, transparent),
+    radial-gradient(1.6px 1.6px at 94% 9%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 4% 44%, #fff 60%, transparent),
+    radial-gradient(1px 1px at 48% 4%, #fff 60%, transparent),
+    radial-gradient(1.2px 1.2px at 72% 48%, #cfe0ff 60%, transparent);
+  background-size: 640px 420px;
+  opacity: 0.7;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  animation: ucpnb-ls-twinkle 4.5s ease-in-out infinite alternate;
+}
+/* Neon light over the buildings. */
+#ucpnb-login-scene .ucpnb-ls-glow {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(40vw 22vh at 30% 92%, rgba(255, 46, 170, 0.18), transparent 70%),
+    radial-gradient(34vw 24vh at 85% 90%, rgba(0, 229, 255, 0.16), transparent 70%);
+  mix-blend-mode: screen;
+  animation: ucpnb-ls-pulse 5s ease-in-out infinite alternate;
+}
+
+/* The neon sign, up in the sky. */
+#ucpnb-login-scene .ucpnb-ls-sign {
+  position: absolute; top: 4vh; right: 4vw;
+  display: grid; justify-items: center; gap: 6px;
+  padding: 18px 34px 20px;
+  border: 3px solid #5ef2ff; border-radius: 22px;
+  background: rgba(4, 8, 28, 0.45);
+  box-shadow: 0 0 8px #5ef2ff, 0 0 24px rgba(94, 242, 255, 0.7), inset 0 0 18px rgba(94, 242, 255, 0.45), 0 0 70px rgba(94, 242, 255, 0.35);
+  transform: rotate(-3deg);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-align: center;
+}
+#ucpnb-login-scene .ucpnb-ls-kicker {
+  color: #fff3b0; font-size: 13px; font-weight: 800; letter-spacing: 0.32em; text-transform: uppercase;
+  text-shadow: 0 0 4px #fff3b0, 0 0 12px #ffcf3f, 0 0 24px #ff9f1c;
+}
+#ucpnb-login-scene .ucpnb-ls-sign strong {
+  font-size: clamp(30px, 3.6vw, 54px); font-weight: 900; line-height: 1.05; letter-spacing: 0.01em;
+}
+#ucpnb-login-scene .ucpnb-ls-ucp {
+  color: #ffe4f5;
+  text-shadow: 0 0 4px #fff, 0 0 10px #ff2ea8, 0 0 22px #ff2ea8, 0 0 44px #ff2ea8, 0 0 80px #d1006f;
+}
+#ucpnb-login-scene .ucpnb-ls-nb {
+  color: #e9fdff;
+  text-shadow: 0 0 4px #fff, 0 0 10px #18e6ff, 0 0 22px #18e6ff, 0 0 44px #00b7ff, 0 0 80px #0077ff;
+}
+#ucpnb-login-scene .ucpnb-ls-flicker { animation: ucpnb-ls-flicker 6s linear infinite; }
+#ucpnb-login-scene .ucpnb-ls-tag {
+  color: #f3e8ff; font-size: clamp(13px, 1.2vw, 17px); font-weight: 600; letter-spacing: 0.04em;
+  text-shadow: 0 0 6px #b06bff, 0 0 16px #8a3dff;
+}
+
+/* The login box: Horizon's white curved panel goes, and the form itself
+   becomes a card of dark glass with a neon edge (the column it sits in
+   keeps its size, so the layout stays Horizon's). */
+html.ucpnb-skin.ucpnb-login .short_image {
+  background: none !important;
+}
+html.ucpnb-skin.ucpnb-login form.oe_login_form {
+  max-width: 400px !important;
+  padding: 26px 26px 22px !important;
+  border-radius: 24px;
+  background: rgba(8, 12, 32, 0.62) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(94, 242, 255, 0.45);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.5), 0 0 26px rgba(94, 242, 255, 0.2), inset 0 0 0 1px rgba(255, 46, 170, 0.12);
+}
+html.ucpnb-skin.ucpnb-login .logo_ucp {
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35)) drop-shadow(0 0 22px rgba(94, 242, 255, 0.35));
+}
+html.ucpnb-skin.ucpnb-login .oe_login_form .form-control {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(160, 190, 255, 0.28) !important;
+  color: #eef2ff !important;
+  height: 46px;
+}
+html.ucpnb-skin.ucpnb-login .oe_login_form .form-control::placeholder { color: rgba(220, 228, 255, 0.6); }
+html.ucpnb-skin.ucpnb-login .oe_login_form .form-control:focus {
+  border-color: #5ef2ff !important;
+  box-shadow: 0 0 0 3px rgba(94, 242, 255, 0.22), 0 0 18px rgba(94, 242, 255, 0.35) !important;
+}
+html.ucpnb-skin.ucpnb-login .oe_login_form button[type="submit"] {
+  background: linear-gradient(135deg, #ff2ea8, #7c4dff 55%, #18c8ff) !important;
+  border: 0 !important; color: #fff !important;
+  box-shadow: 0 8px 26px rgba(124, 77, 255, 0.45), 0 0 18px rgba(255, 46, 170, 0.35) !important;
+}
+html.ucpnb-skin.ucpnb-login .oe_login_form a.btn {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(160, 190, 255, 0.35) !important;
+  color: #eef2ff !important;
+}
+html.ucpnb-skin.ucpnb-login .oe_login_form .text-center { color: rgba(220, 228, 255, 0.7) !important; }
+
+@keyframes ucpnb-ls-twinkle { from { opacity: 0.7; } to { opacity: 0.25; } }
+@keyframes ucpnb-ls-pulse { from { opacity: 0.85; } to { opacity: 1; } }
+@keyframes ucpnb-ls-drift { from { transform: scale(1.02) translateX(0); } to { transform: scale(1.06) translateX(-1%); } }
+@keyframes ucpnb-ls-flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.25; }
+}
+@media (max-width: 1023px) {
+  #ucpnb-login-scene .ucpnb-ls-sign { top: auto; bottom: 6vh; right: 50%; transform: translateX(50%) rotate(-2deg); padding: 12px 20px; }
+  }
+@media (prefers-reduced-motion: reduce) {
+  #ucpnb-login-scene * { animation: none !important; }
+}

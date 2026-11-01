@@ -173,7 +173,10 @@
     const skin = style !== "original";
     wanted = { skin, dark };
     keepClasses();
-    dark ? turnOn(skin ? "skin" : "original") : turnOff();
+    // The login page draws its own night scene (login.js); recolouring it
+    // would only darken the picture and the login box.
+    const onLogin = location.pathname.startsWith("/web/login");
+    dark && !onLogin ? turnOn(skin ? "skin" : "original") : turnOff();
     if (document.body) tuneSchedule();
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ preference, style }));

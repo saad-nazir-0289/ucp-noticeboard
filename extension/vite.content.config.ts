@@ -90,11 +90,15 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         writeFileSync(resolve(dist, "manifest.json"), JSON.stringify(manifest, null, 2));
       }
       copyFileSync(resolve(root, "public/icon128.png"), resolve(dist, "icon128.png"));
+      // The login page's night picture (horizon-theme/login.js), once added.
+      if (existsSync(resolve(root, "public/login-night.jpg"))) {
+        copyFileSync(resolve(root, "public/login-night.jpg"), resolve(dist, "login-night.jpg"));
+      }
       for (const file of ["popup.html", "popup.css", "popup.js", "whatsnew.js"]) {
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
       // Horizon's look (horizon-theme/): NoticeBoard style and dark mode.
-      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js", "keepalive.js", "due.js"]) {
+      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js", "keepalive.js", "due.js", "login.js", "login.css"]) {
         copyFileSync(resolve(root, "horizon-theme", file), resolve(dist, `horizon-${file}`));
       }
       writeFileSync(
