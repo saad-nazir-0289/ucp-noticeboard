@@ -91,6 +91,9 @@
 
   function recolour(el) {
     if (SKIP.has(el.tagName.toUpperCase()) || el.closest(PANEL) || el.closest("svg")) return;
+    // Another extension's grade cards (.ext): skin.css gives them NoticeBoard's
+    // colours, which recolouring here would override.
+    if (mode === "skin" && el.closest(".ext")) return;
     const style = getComputedStyle(el);
     const bg = parse(style.backgroundColor);
     if (bg && bg.a > 0) set(el, "background-color", mode === "skin" ? skinBackground(bg) : darkBackground(bg));
@@ -160,8 +163,9 @@
   // Horizon's own scripts rewrite <html class="..."> after loading (feature
   // and web-font detection), which would drop these and put the original
   // look back: put them back whenever that happens.
-  let wanted = { skin: false, dark: false };
+  let wanted = { skin: false, dark: false, night: false };
   function keepClasses() {
+    if (html.classList.contains("ucpnb-night") !== wanted.night) html.classList.toggle("ucpnb-night", wanted.night);
     if (html.classList.contains("ucpnb-skin") !== wanted.skin) html.classList.toggle("ucpnb-skin", wanted.skin);
     if (html.classList.contains("ucpnb-dark") !== wanted.dark) html.classList.toggle("ucpnb-dark", wanted.dark); // also the panel's dark colours
     if (html.classList.contains("ucpnb-avatar-pending") !== hideAvatar) html.classList.toggle("ucpnb-avatar-pending", hideAvatar);
@@ -169,9 +173,12 @@
   new MutationObserver(keepClasses).observe(html, { attributes: true, attributeFilter: ["class"] });
 
   const apply = () => {
-    const dark = preference === "dark" || (preference === "system" && deviceDark.matches);
+    // The login page keeps Horizon's own form and buttons; NoticeBoard style
+    // only puts the night scene behind it (login.js, login.css).
+    const onLogin = location.pathname.startsWith("/web/login");
+    const dark = !onLogin && (preference === "dark" || (preference === "system" && deviceDark.matches));
     const skin = style !== "original";
-    wanted = { skin, dark };
+    wanted = { skin: skin && !onLogin, dark, night: skin && onLogin };
     keepClasses();
     dark ? turnOn(skin ? "skin" : "original") : turnOff();
     if (document.body) tuneSchedule();
