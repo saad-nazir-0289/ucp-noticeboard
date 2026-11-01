@@ -86,7 +86,7 @@ main {
 
 /* ---------- Settings ---------- */
 .settings { padding: 4px 14px; }
-.setting { display: flex; align-items: center; gap: 12px; padding: 11px 0; }
+.setting { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
 .setting + .setting { border-top: 1px solid var(--line); }
 label.setting { cursor: pointer; }
 .setting-text { flex: 1; display: grid; }

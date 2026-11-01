@@ -20,6 +20,8 @@
 
   const CELEBRATE = "ucpnb_celebrate"; // success, for celebrate.js (also across a reload)
   const PENDING = "ucpnb_submit_pending"; // started, result not known before the page changed
+  const DONE = "ucpnb_submitted_ids"; // page storage: submissions sent, left out of "Submissions due" (due.js)
+  let lastOpened = null; // the row whose Upload button was pressed
   const FAIL_WORDS = /\b(error|errors|fail|failed|failure|invalid|not allowed|cannot|can't|unable|expired|denied|exception|already submitted)\b/i;
   let watch = null; // { started, pending, ok, failed, formSent, timer }
 
@@ -34,7 +36,8 @@
 
   function start() {
     if (watch && Date.now() - watch.started < 3000) return; // the same submission, seen twice
-    watch = { started: Date.now(), pending: 0, ok: 0, failed: false, formSent: false, timer: 0 };
+    const id = document.getElementById("student_submission_id")?.value || lastOpened;
+    watch = { started: Date.now(), id, pending: 0, ok: 0, failed: false, formSent: false, timer: 0 };
     // Nothing came back in two minutes: give up quietly.
     const mine = watch;
     setTimeout(() => {
@@ -42,8 +45,19 @@
     }, 120000);
   }
 
+  function remember(id) {
+    if (!id) return;
+    try {
+      const done = JSON.parse(localStorage.getItem(DONE) ?? "[]");
+      if (!done.includes(String(id))) localStorage.setItem(DONE, JSON.stringify([...done, String(id)].slice(-300)));
+    } catch {
+      // Only "Submissions due" may list it a little longer.
+    }
+  }
+
   function finish(success) {
     if (!watch) return;
+    if (success) remember(watch.id);
     clearTimeout(watch.timer);
     watch = null;
     note(PENDING, null);
@@ -160,6 +174,14 @@
   };
   document.addEventListener("DOMContentLoaded", wrap);
   window.addEventListener("load", wrap);
+  document.addEventListener(
+    "click",
+    (e) => {
+      const row = e.target.closest?.(".upload_submission")?.closest("tr[submission_id]");
+      if (row) lastOpened = row.getAttribute("submission_id");
+    },
+    true
+  );
   // The confirm dialog's OK, in case the function is named differently.
   document.addEventListener(
     "click",
@@ -178,6 +200,7 @@
   window.addEventListener("pagehide", () => {
     if (!watch) return;
     if (!watch.failed && watch.ok > 0 && watch.pending === 0) {
+      remember(watch.id);
       note(CELEBRATE, String(Date.now()));
     } else if (!watch.failed && watch.formSent) {
       // Judged on the page it leads to.

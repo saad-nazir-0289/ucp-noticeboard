@@ -36,6 +36,12 @@ toggle.addEventListener("change", () => {
   showNote(toggle.checked);
 });
 
+// Stay logged in (horizon-theme/keepalive.js). On unless turned off.
+const STAY_KEY = "ucpnb_stay_signed_in";
+const stay = document.getElementById("stay-signed-in");
+chrome.storage.local.get(STAY_KEY).then((saved) => (stay.checked = saved[STAY_KEY] !== false));
+stay.addEventListener("change", () => chrome.storage.local.set({ [STAY_KEY]: stay.checked }));
+
 // Theme.
 const choices = document.querySelectorAll("[data-theme-choice]");
 let theme = "dark";
