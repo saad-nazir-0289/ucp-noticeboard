@@ -331,6 +331,9 @@
   // fixed sizes Horizon writes on each class are cleared (they're set
   // "important" on the element itself, which no stylesheet can override).
   const PARTS = ["ucpnb-teacher", "ucpnb-course", "ucpnb-section", "ucpnb-room"];
+  // "13:00" in running text, not already followed by AM or PM.
+  const TIME_24 = /\b([01]?\d|2[0-3]):([0-5]\d)\b(?!\s*[AaPp]\.?[Mm])/g;
+  const originalTimes = new Map(); // text node to Horizon's own wording, for Original style
   function twelveHour(text) {
     const m = text.trim().match(/^(\d{1,2}):(\d{2})$/);
     if (!m) return null;
@@ -346,19 +349,23 @@
         el.setAttribute("style", el.dataset.ucpnbStyle);
         delete el.dataset.ucpnbStyle;
       }
-      for (const el of document.querySelectorAll("[data-ucpnb-text]")) {
-        el.textContent = el.dataset.ucpnbText;
-        delete el.dataset.ucpnbText;
-      }
+      for (const [node, text] of originalTimes) if (node.isConnected) node.data = text;
+      originalTimes.clear();
       return;
     }
-    // 12-hour times: the hours down the side and each class's own time.
-    for (const label of document.querySelectorAll(".cd-schedule__timeline li > span")) {
-      if ("ucpnbText" in label.dataset) continue;
-      const time = twelveHour(label.textContent);
-      if (!time) continue;
-      label.dataset.ucpnbText = label.textContent;
-      label.textContent = time;
+    // 12-hour times everywhere on the time table: the hours down the side,
+    // and the pop-up a class opens ("13:00 - 13:55"), which Horizon fills in
+    // on each click (this runs again then).
+    for (const area of document.querySelectorAll(".cd-schedule, .cd-schedule-modal")) {
+      const walker = document.createTreeWalker(area, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.parentElement?.closest(".ucpnb-time")) continue; // already 12-hour
+        const text = node.data;
+        const changed = text.replace(TIME_24, (match, hours, minutes) => twelveHour(`${hours}:${minutes}`) ?? match);
+        if (changed === text) continue;
+        if (!originalTimes.has(node)) originalTimes.set(node, text);
+        node.data = changed;
+      }
     }
     const tones = new Map();
     for (const event of events) {
