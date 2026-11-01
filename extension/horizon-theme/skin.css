@@ -700,8 +700,15 @@ html.ucpnb-skin .cd-schedule__event .ucpnb-room {
   font-weight: 700;
 }
 html.ucpnb-skin .cd-schedule__event .ucpnb-blank { display: none !important; }
-/* Anything else Horizon's schedule script writes in a class (its own
-   "10:00 - 10:55" line): the 12-hour time above replaces it. */
+/* Horizon's own "10:00 - 10:55" line in each class: drawn by its stylesheet
+   from the start and end times (a ::before, not text), so it can only be
+   hidden; the 12-hour time above replaces it. */
+html.ucpnb-skin .cd-schedule__event a::before,
+html.ucpnb-skin .cd-schedule__event a::after {
+  content: none !important;
+  display: none !important;
+}
+/* Anything else Horizon's schedule script writes in a class: same. */
 html.ucpnb-skin .cd-schedule__event a > :not(.cd-schedule__name):not(.ucpnb-time) { display: none !important; }
 /* A class too short for everything (theme.js measures): smaller, the course
    name on one line, then without the room chip. */

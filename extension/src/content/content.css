@@ -1009,3 +1009,85 @@ select.ucpnb-input-sm {
 .ucpnb-manage-row.is-selected {
   background: var(--nb-primary-soft);
 }
+
+/* ---------- Compact panel on the dashboard ----------
+   Less height: a tighter panel and short horizontal cards in the carousel
+   (poster on the left; tags, title and publisher beside it). The "View all"
+   grid and the web app keep the full cards. */
+.ucpnb-panel-root {
+  gap: 12px;
+  padding: 14px 18px 14px;
+}
+.ucpnb-panel-root .ucpnb-carousel-wrap { margin: 0 -18px; }
+.ucpnb-panel-root .ucpnb-carousel {
+  gap: 12px;
+  padding: 2px 18px 6px;
+  scroll-padding: 0 18px;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
+  --visible: 4.3;
+  flex: 0 0 clamp(250px, calc((100cqw - 36px - 12px * (var(--visible) - 0.3)) / var(--visible)), 360px);
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  height: 112px;
+  border-radius: 14px;
+}
+@container (max-width: 1250px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 3.3; } }
+@container (max-width: 900px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 2.3; } }
+@container (max-width: 600px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 1.2; } }
+
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media {
+  aspect-ratio: auto;
+  height: 100%;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media img { object-fit: cover; }
+/* Posterless: the category's icon and name, small. */
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner {
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  text-align: center;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > span {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > svg:first-child { width: 24px; height: 24px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner-mark { display: none; }
+
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-body {
+  gap: 4px;
+  min-height: 0;
+  padding: 10px 12px;
+  overflow: hidden;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags > * {
+  flex: none;
+  font-size: 11px;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 1.3;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-footer {
+  margin-top: auto;
+  padding-top: 0;
+  font-size: 11.5px;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-source { font-size: 11.5px; }
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-avatar { width: 18px; height: 18px; }
+/* The skeleton while loading: the same short shape. */
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card-skeleton .ucpnb-card-body > :last-child { display: none; }
