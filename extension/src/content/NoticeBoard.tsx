@@ -222,6 +222,10 @@ export function NoticeBoard() {
             <Icon name="bell" size={17} />
             Notifications on your phone
           </a>
+          <button className="ucpnb-more-item" onClick={() => document.dispatchEvent(new CustomEvent("ucpnb:move-panel"))}>
+            <Icon name="layers" size={17} />
+            Move NoticeBoard on this page
+          </button>
           <a className="ucpnb-more-item" href={REVIEW_URL} target="_blank" rel="noopener noreferrer">
             <Icon name="message" size={17} />
             Send feedback

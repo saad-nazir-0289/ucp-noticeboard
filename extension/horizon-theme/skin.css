@@ -82,7 +82,7 @@ html.ucpnb-skin #page_content,
 html.ucpnb-skin #page_content_inner {
   background: transparent !important;
 }
-html.ucpnb-skin #page_content a:not(.md-btn):not(.uk-button):not(.btn):not([class*="md-bg-"]) {
+html.ucpnb-skin #page_content a:not(.md-btn):not(.uk-button):not(.btn):not([class*="md-bg-"]):not(#ucp-noticeboard-root *) {
   color: var(--sk-primary);
 }
 html.ucpnb-skin :is(.uk-text-muted, .sub-heading, [class*="md-color-blue-grey"], [class*="md-color-grey"]) {
