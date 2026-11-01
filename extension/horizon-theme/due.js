@@ -145,14 +145,17 @@
       const card = document.createElement("a");
       card.className = `ucpnb-due-card ucpnb-due-${level}`;
       card.href = `/student/course/submission/${item.courseId}`;
-      // Header in the course card's colour, like the course cards above.
-      const top = document.createElement("span");
-      top.className = "ucpnb-due-course";
-      top.textContent = item.course;
+      // The course card's colour: the stripe takes it as it is (a gradient in
+      // NoticeBoard style), the course name its first colour.
       const paint = paintOf(item.courseId);
-      if (paint) top.style.setProperty("background", paint, "important");
-      const inner = document.createElement("span");
-      inner.className = "ucpnb-due-inner";
+      if (paint) {
+        card.style.setProperty("--d-paint", paint);
+        const solid = paint.match(/rgba?\([^)]*\)/)?.[0];
+        if (solid) card.style.setProperty("--d-ink", solid);
+      }
+      const course = document.createElement("span");
+      course.className = "ucpnb-due-course";
+      course.textContent = item.course;
       const name = document.createElement("b");
       name.className = "ucpnb-due-title";
       name.textContent = item.title;
@@ -162,8 +165,7 @@
       const chip = document.createElement("span");
       chip.className = "ucpnb-due-chip";
       chip.textContent = text;
-      inner.append(name, when, chip);
-      card.append(top, inner);
+      card.append(course, name, when, chip);
       list.append(card);
     }
     body.append(list);
