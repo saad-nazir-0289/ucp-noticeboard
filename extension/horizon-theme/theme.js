@@ -163,9 +163,8 @@
   // Horizon's own scripts rewrite <html class="..."> after loading (feature
   // and web-font detection), which would drop these and put the original
   // look back: put them back whenever that happens.
-  let wanted = { skin: false, dark: false, night: false };
+  let wanted = { skin: false, dark: false };
   function keepClasses() {
-    if (html.classList.contains("ucpnb-night") !== wanted.night) html.classList.toggle("ucpnb-night", wanted.night);
     if (html.classList.contains("ucpnb-skin") !== wanted.skin) html.classList.toggle("ucpnb-skin", wanted.skin);
     if (html.classList.contains("ucpnb-dark") !== wanted.dark) html.classList.toggle("ucpnb-dark", wanted.dark); // also the panel's dark colours
     if (html.classList.contains("ucpnb-avatar-pending") !== hideAvatar) html.classList.toggle("ucpnb-avatar-pending", hideAvatar);
@@ -173,12 +172,11 @@
   new MutationObserver(keepClasses).observe(html, { attributes: true, attributeFilter: ["class"] });
 
   const apply = () => {
-    // The login page keeps Horizon's own form and buttons; NoticeBoard style
-    // only puts the night scene behind it (login.js, login.css).
+    // The login page is left exactly as Horizon draws it.
     const onLogin = location.pathname.startsWith("/web/login");
     const dark = !onLogin && (preference === "dark" || (preference === "system" && deviceDark.matches));
-    const skin = style !== "original";
-    wanted = { skin: skin && !onLogin, dark, night: skin && onLogin };
+    const skin = !onLogin && style !== "original";
+    wanted = { skin, dark };
     keepClasses();
     dark ? turnOn(skin ? "skin" : "original") : turnOff();
     if (document.body) tuneSchedule();
