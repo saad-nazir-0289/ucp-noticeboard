@@ -1,6 +1,6 @@
 // Horizon's login page at night (NoticeBoard style; login.css draws it):
 // the campus at night with sky lanterns rising (login-night.jpg), a little
-// twinkle and neon glow, and a neon "UCP NoticeBoard" sign in the sky. In Original style the scene is
+// twinkle, and a quiet line about NoticeBoard in the bottom-right corner. In Original style the scene is
 // hidden and Horizon's page shows as it is.
 (() => {
   if (!location.pathname.startsWith("/web/login")) return;
@@ -18,10 +18,10 @@
       <div class="ucpnb-ls-shade"></div>
       <div class="ucpnb-ls-stars"></div>
       <div class="ucpnb-ls-glow"></div>
-      <div class="ucpnb-ls-sign">
-        <span class="ucpnb-ls-kicker">Now on Horizon</span>
-        <strong><span class="ucpnb-ls-ucp">UCP</span> <span class="ucpnb-ls-nb">Notice<span class="ucpnb-ls-flicker">B</span>oard</span></strong>
-        <span class="ucpnb-ls-tag">Every campus notice, in one place</span>
+      <div class="ucpnb-ls-credit">
+        <span class="ucpnb-ls-kicker">UCP NoticeBoard</span>
+        <strong>Every campus notice, in one place.</strong>
+        <span class="ucpnb-ls-tag">Societies, events and deadlines, right on your Horizon dashboard.</span>
       </div>`;
     scene.querySelector(".ucpnb-ls-photo").style.backgroundImage = photo;
     document.body.prepend(scene);
