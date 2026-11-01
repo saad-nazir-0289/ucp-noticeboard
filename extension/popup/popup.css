@@ -162,6 +162,7 @@ footer button { padding: 0; border: 0; background: none; color: var(--muted); te
   background: var(--hover); font-size: 12px; font-weight: 600;
 }
 .avatar-actions button:hover, .avatar-link button:hover { border-color: var(--accent); }
+.avatar-actions button:disabled { opacity: 0.45; cursor: default; border-color: var(--line); }
 .avatar-link { display: flex; gap: 6px; }
 .avatar-link input {
   flex: 1; width: 0; min-width: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px;

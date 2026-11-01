@@ -74,14 +74,22 @@ chrome.storage.local.get([ENABLED_KEY, THEME_KEY, STYLE_KEY]).then((saved) => {
 });
 
 // ---------- Own picture on Horizon (horizon-theme/theme.js shows it) ----------
-const AVATAR_KEY = "ucpnb_avatar";
+// Saved in Chrome sync under the student's roll number, so it follows them to
+// any Chrome signed in to the same Google account and other students using
+// this Chrome keep their own. theme.js notes the student last seen on Horizon
+// (ucpnb_student): that's whose picture this sets.
+const AVATAR_PREFIX = "ucpnb_avatar:";
+const STUDENT_KEY = "ucpnb_student";
+const SYNC_ITEM_LIMIT = 7600; // Chrome sync allows 8 KB per item, key included
 const avatarPreview = document.getElementById("avatar-preview");
 const avatarNote = document.getElementById("avatar-note");
 const avatarReset = document.getElementById("avatar-reset");
 const avatarFile = document.getElementById("avatar-file");
 const avatarForm = document.getElementById("avatar-link-form");
 const avatarLink = document.getElementById("avatar-link");
-const DEFAULT_NOTE = "Only in this Chrome. Horizon isn't changed.";
+const avatarActions = document.querySelector(".avatar-actions");
+let student = null;
+let defaultNote = "";
 
 const showAvatar = (src) => {
   avatarPreview.style.backgroundImage = src ? `url("${src.replace(/"/g, "%22")}")` : "";
@@ -91,29 +99,52 @@ const sayAvatar = (text, error = false) => {
   avatarNote.textContent = text;
   avatarNote.classList.toggle("error", error);
 };
-const saveAvatar = (src) => {
-  chrome.storage.local.set({ [AVATAR_KEY]: src });
-  showAvatar(src);
-  sayAvatar("Done. Reload Horizon if it's open.");
-};
+const saveAvatar = (src) =>
+  chrome.storage.sync
+    .set({ [AVATAR_PREFIX + student.roll]: src })
+    .then(() => {
+      showAvatar(src);
+      sayAvatar("Done. It's on Horizon now.");
+    })
+    .catch(() => sayAvatar("Couldn't save that picture. Try a smaller one, or Upload.", true));
 
-chrome.storage.local.get(AVATAR_KEY).then((saved) => showAvatar(saved[AVATAR_KEY] ?? null));
+chrome.storage.local.get(STUDENT_KEY).then(async (saved) => {
+  student = saved[STUDENT_KEY] ?? null;
+  if (!student?.roll) {
+    defaultNote = "Open your Horizon dashboard once, then come back here.";
+    sayAvatar(defaultNote);
+    for (const button of avatarActions.querySelectorAll("button")) button.disabled = true;
+    return;
+  }
+  defaultNote = `For ${student.roll}. Follows your Google account.`;
+  sayAvatar(defaultNote);
+  const key = AVATAR_PREFIX + student.roll;
+  showAvatar((await chrome.storage.sync.get(key))[key] ?? null);
+});
 
-// A photo from this computer: cropped square and made small, so it's
-// stored here and loads instantly (never uploaded anywhere).
+// A photo from this computer: cropped square and made small enough for
+// Chrome sync (about 6 KB), never uploaded anywhere else.
+function fitPhoto(img) {
+  const canvas = document.createElement("canvas");
+  const side = Math.min(img.naturalWidth, img.naturalHeight);
+  for (const [size, quality] of [[160, 0.8], [128, 0.75], [112, 0.7], [96, 0.65], [80, 0.6], [64, 0.55]]) {
+    canvas.width = canvas.height = size;
+    canvas.getContext("2d").drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
+    const small = canvas.toDataURL("image/jpeg", quality);
+    if (small.length <= SYNC_ITEM_LIMIT) return small;
+  }
+  return null;
+}
 document.getElementById("avatar-upload").addEventListener("click", () => avatarFile.click());
 avatarFile.addEventListener("change", () => {
   const file = avatarFile.files?.[0];
   if (!file) return;
   const img = new Image();
   img.onload = () => {
-    const size = 256;
-    const side = Math.min(img.naturalWidth, img.naturalHeight);
-    const canvas = document.createElement("canvas");
-    canvas.width = canvas.height = size;
-    canvas.getContext("2d").drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, size, size);
     URL.revokeObjectURL(img.src);
-    saveAvatar(canvas.toDataURL("image/jpeg", 0.88));
+    const small = fitPhoto(img);
+    if (small) saveAvatar(small);
+    else sayAvatar("Couldn't make that photo small enough. Try another one.", true);
   };
   img.onerror = () => sayAvatar("That file isn't a picture Chrome can open.", true);
   img.src = URL.createObjectURL(file);
@@ -121,7 +152,6 @@ avatarFile.addEventListener("change", () => {
 
 // A link to a picture (it must be the image itself, not a page). The link
 // box takes the buttons' place, so the menu stays the same height.
-const avatarActions = document.querySelector(".avatar-actions");
 const showLinkBox = (open) => {
   avatarForm.hidden = !open;
   avatarActions.hidden = open;
@@ -131,11 +161,15 @@ const showLinkBox = (open) => {
 document.getElementById("avatar-link-toggle").addEventListener("click", () => showLinkBox(true));
 document.getElementById("avatar-link-cancel").addEventListener("click", () => {
   showLinkBox(false);
-  sayAvatar(DEFAULT_NOTE);
+  sayAvatar(defaultNote);
 });
 avatarForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const url = avatarLink.value.trim();
+  if (url.length > SYNC_ITEM_LIMIT) {
+    sayAvatar("That link is too long to save. Download the picture and use Upload.", true);
+    return;
+  }
   sayAvatar("Checking the link…");
   const test = new Image();
   test.onload = () => {
@@ -148,9 +182,9 @@ avatarForm.addEventListener("submit", (e) => {
 });
 
 avatarReset.addEventListener("click", () => {
-  chrome.storage.local.remove(AVATAR_KEY);
+  chrome.storage.sync.remove(AVATAR_PREFIX + student.roll);
   showAvatar(null);
-  sayAvatar(DEFAULT_NOTE);
+  sayAvatar(defaultNote);
 });
 
 // ---------- Introduction after installing or updating ----------
