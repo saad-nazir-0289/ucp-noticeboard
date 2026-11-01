@@ -14,7 +14,7 @@ globalThis.UCPNB_WHATS_NEW = {
   ],
   // Updates: what changed.
   updates: [
-    { icon: "🏮", title: "A new login page", text: "UCP at night under sky lanterns." },
+    { icon: "🎨", title: "Grade calculator in NoticeBoard style", text: "Credit and GPA cards from your grade extension now match." },
     { icon: "📌", title: "Submissions due", text: "Every open assignment on your dashboard, soonest first." },
     { icon: "🔓", title: "Stay logged in", text: "No more session timeouts. Switch it off in the menu." },
     { icon: "🎆", title: "Fireworks when you submit", text: "Submit an assignment on Horizon and celebrate." },
