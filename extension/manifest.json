@@ -1,9 +1,11 @@
 {
   "manifest_version": 3,
   "name": "UCP NoticeBoard",
-  "version": "1.31.0",
+  "version": "1.32.0",
   "description": "Injects a live NoticeBoard into the UCP Student Portal dashboard.",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://horizon.ucp.edu.pk/*"
   ],
@@ -24,13 +26,24 @@
       ],
       "js": [
         "whatsnew.js",
-        "horizon-theme.js"
+        "horizon-theme.js",
+        "horizon-celebrate.js"
       ],
       "css": [
         "horizon-skin.css",
         "horizon-theme.css"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://horizon.ucp.edu.pk/student/*"
+      ],
+      "js": [
+        "horizon-submit-watch.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
     },
     {
       "matches": [
@@ -44,5 +57,6 @@
   ],
   "icons": {
     "128": "icon128.png"
-  }
+  },
+  "minimum_chrome_version": "111"
 }

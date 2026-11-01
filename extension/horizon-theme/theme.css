@@ -97,3 +97,22 @@ html.ucpnb-dark img:not(#ucp-noticeboard-root img) {
 @media (prefers-reduced-motion: reduce) {
   #ucpnb-intro, #ucpnb-intro * { animation: none !important; }
 }
+
+/* ---------- Fireworks after a submission (celebrate.js) ---------- */
+#ucpnb-fireworks {
+  position: fixed; inset: 0; z-index: 2147483600;
+  width: 100vw; height: 100vh; pointer-events: none;
+}
+#ucpnb-celebrate-toast {
+  position: fixed; top: 18px; left: 50%; z-index: 2147483601;
+  transform: translateX(-50%);
+  padding: 12px 22px; border-radius: 999px;
+  background: linear-gradient(135deg, #2457d6, #6d5cf6); color: #fff;
+  font: 700 16px/1.2 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-shadow: 0 14px 40px rgba(36, 87, 214, 0.45);
+  pointer-events: none;
+  animation: ucpnb-toast-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.25) both;
+  transition: opacity 0.5s, transform 0.5s;
+}
+#ucpnb-celebrate-toast.ucpnb-out { opacity: 0; transform: translate(-50%, -12px); }
+@keyframes ucpnb-toast-in { from { opacity: 0; transform: translate(-50%, -20px) scale(0.9); } }
