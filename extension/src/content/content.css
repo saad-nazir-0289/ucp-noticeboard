@@ -1014,19 +1014,49 @@ select.ucpnb-input-sm {
    Less height: a tighter panel and short horizontal cards in the carousel
    (poster on the left; tags, title and publisher beside it). The "View all"
    grid and the web app keep the full cards. */
+/* A section of the dashboard like the others ("Academics", "Classes,
+   Grades and Attendance"): no box around it, a section heading with the
+   same coloured underline, then the search and the notices. */
 .ucpnb-panel-root {
-  gap: 12px;
-  padding: 14px 18px 14px;
+  gap: 14px;
+  margin: 6px 0 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
-.ucpnb-panel-root .ucpnb-carousel-wrap { margin: 0 -18px; }
+.ucpnb-panel-root .ucpnb-brand-text strong {
+  position: relative;
+  padding-bottom: 10px;
+  color: var(--nb-text);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ucpnb-panel-root .ucpnb-brand-text strong::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2457d6, #8b5cf6, #ec4899);
+}
+.ucpnb-panel-root .ucpnb-carousel-wrap { margin: 0 -6px; }
 .ucpnb-panel-root .ucpnb-carousel {
   gap: 12px;
-  padding: 2px 18px 6px;
-  scroll-padding: 0 18px;
+  padding: 4px 6px 8px;
+  scroll-padding: 0 6px;
+}
+.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
+  background: var(--nb-surface);
+  box-shadow: var(--nb-shadow-1);
 }
 .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
   --visible: 4.3;
-  flex: 0 0 clamp(250px, calc((100cqw - 36px - 12px * (var(--visible) - 0.3)) / var(--visible)), 360px);
+  flex: 0 0 clamp(250px, calc((100cqw - 12px - 12px * (var(--visible) - 0.3)) / var(--visible)), 360px);
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   height: 112px;
