@@ -750,5 +750,10 @@ html.ucpnb-skin .ext :is(.credit-progress, .gpa-progress) {
     radial-gradient(closest-side, var(--sk-surface) 79%, transparent 80% 100%),
     conic-gradient(#2457d6 0%, #6d5cf6 calc(var(--value) * 1%), var(--sk-surface-2) 0) !important;
   color: var(--sk-text) !important;
-  font-weight: 800 !important;
+  /* Sized to sit inside the ring (the other extension's large figure
+     spilled over it): "138/133" fits at this size. */
+  font-size: clamp(20px, 1.9vw, 28px) !important;
+  font-weight: 750 !important;
+  letter-spacing: -0.02em;
+  line-height: 1 !important;
 }
