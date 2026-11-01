@@ -1,5 +1,6 @@
 import { createRoot, type Root } from "react-dom/client";
 import { NoticeBoard } from "./NoticeBoard";
+import { applySavedPlace, pickPlace } from "./placement";
 import "@shared/styles/tokens.css";
 import "@shared/styles/components.css";
 import "./content.css";
@@ -32,19 +33,31 @@ function findInjectionAnchor(): Element | null {
 function inject() {
   if (document.getElementById(CONTAINER_ID)) return;
 
-  const anchor = findInjectionAnchor();
   const container = document.createElement("div");
   container.id = CONTAINER_ID;
 
+  putAtDefault(container);
+  void applySavedPlace(container);
+
+  root = createRoot(container);
+  root.render(<NoticeBoard />);
+}
+
+// Above the dashboard's sections, where it has always been.
+function putAtDefault(container: Element) {
+  const anchor = findInjectionAnchor();
   if (anchor?.parentElement) {
     anchor.parentElement.insertBefore(container, anchor);
   } else {
     document.body.appendChild(container);
   }
-
-  root = createRoot(container);
-  root.render(<NoticeBoard />);
 }
+
+// "Move NoticeBoard" in the panel's menu.
+document.addEventListener("ucpnb:move-panel", () => {
+  const container = document.getElementById(CONTAINER_ID);
+  if (container) pickPlace(container, () => putAtDefault(container));
+});
 
 function remove() {
   root?.unmount();

@@ -4,7 +4,7 @@
 // "since" to that release: updating from an older version shows the list;
 // a small fix after it (from "since" or newer) shows nothing again.
 globalThis.UCPNB_WHATS_NEW = {
-  since: "1.40.0",
+  since: "1.44.0",
   // First install: what NoticeBoard does.
   install: [
     { icon: "📢", title: "Campus notices on your dashboard", text: "Societies, events and deadlines from across UCP, in one place." },
@@ -14,7 +14,7 @@ globalThis.UCPNB_WHATS_NEW = {
   ],
   // Updates: what changed.
   updates: [
-    { icon: "🎨", title: "Grade calculator in NoticeBoard style", text: "Credit and GPA cards from your grade extension now match." },
+    { icon: "↕️", title: "Put NoticeBoard where you like", text: "Open ⋯ on the panel and choose Move NoticeBoard on this page." },
     { icon: "📌", title: "Submissions due", text: "Every open assignment on your dashboard, soonest first." },
     { icon: "🔓", title: "Stay logged in", text: "No more session timeouts. Switch it off in the menu." },
     { icon: "🎆", title: "Fireworks when you submit", text: "Submit an assignment on Horizon and celebrate." },

@@ -1010,25 +1010,67 @@ select.ucpnb-input-sm {
   background: var(--nb-primary-soft);
 }
 
-/* ---------- Smaller cards on the dashboard ----------
-   The usual panel and card design, with narrower, shorter cards in the
-   carousel so the panel takes less room. "View all" and the web app keep
-   the full size. */
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card {
-  --visible: 6.25;
-  flex-basis: clamp(170px, calc((100cqw - 44px - 16px * (var(--visible) - 0.25)) / var(--visible)), 240px);
+/* ---------- Choosing where the panel goes (placement.ts) ----------
+   Outside the panel, so plain colours instead of its tokens. */
+html.ucpnb-placing #ucp-noticeboard-root {
+  max-height: 96px;
+  overflow: hidden;
+  opacity: 0.45;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(#000 40%, transparent);
+  mask-image: linear-gradient(#000 40%, transparent);
 }
-@container (max-width: 1250px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 5.25; } }
-@container (max-width: 900px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 3.25; } }
-@container (max-width: 700px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 2.25; } }
-@container (max-width: 480px) { .ucpnb-panel-root .ucpnb-carousel > .ucpnb-card { --visible: 1.25; } }
-
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-media { aspect-ratio: 5 / 2; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner { gap: 4px; padding: 10px 12px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-banner > svg:first-child { width: 22px; height: 22px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-body { gap: 6px; padding: 10px 12px 10px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-tags > * { font-size: 11px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-title { font-size: 13.5px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-footer,
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-card-source { font-size: 11.5px; }
-.ucpnb-panel-root .ucpnb-carousel > .ucpnb-card .ucpnb-avatar { width: 18px; height: 18px; }
+.ucpnb-place-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 64px;
+  margin: 10px 0 16px;
+  padding: 10px 16px;
+  border: 2px dashed #6b97ff;
+  border-radius: 14px;
+  background: rgba(107, 151, 255, 0.08);
+  color: #2457d6;
+  font: 500 13px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+.ucpnb-place-slot strong { font-size: 14.5px; font-weight: 700; }
+.ucpnb-place-slot span { opacity: 0.8; }
+.ucpnb-place-slot:hover,
+.ucpnb-place-slot:focus-visible {
+  background: rgba(107, 151, 255, 0.2);
+  outline: none;
+  transform: scale(1.01);
+}
+html.ucpnb-dark .ucpnb-place-slot { color: #a9c2ff; }
+.ucpnb-place-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 2147483000;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 10px 10px 18px;
+  border-radius: 999px;
+  background: #16223a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font: 500 14px/1.3 system-ui, -apple-system, "Segoe UI", sans-serif;
+  transform: translateX(-50%);
+}
+.ucpnb-place-bar button {
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ucpnb-place-bar button:hover { background: rgba(255, 255, 255, 0.24); }

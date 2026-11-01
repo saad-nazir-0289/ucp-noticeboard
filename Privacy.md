@@ -1,6 +1,6 @@
 # Privacy Policy — UCP NoticeBoard
 
-**Last updated: October 15, 2026**
+**Last updated: November 1, 2026**
 
 This document explains what UCP NoticeBoard collects, why it collects it, and how the information is handled across both the Chrome extension and the standalone mobile-friendly website (the “PWA”). It is intended to reflect the application's actual implementation, not generic boilerplate.
 
@@ -17,7 +17,7 @@ UCP NoticeBoard is **not an official product of, affiliated with, endorsed by, o
 
 How these are obtained depends on which version you use:
 
-- **Chrome extension:** Your Roll Number and Name are read directly from your already-authenticated UCP Student Portal page. You do not need to enter them manually.
+- **Chrome extension:** Your Roll Number and Name are read directly from your already-authenticated UCP Student Portal page. You do not need to enter them manually. Your Roll Number is also used inside your browser to keep your chosen profile picture separate for each student who uses the same Chrome profile (see **Features That Run Only in Your Browser**).
 - **Standalone website (PWA):** You enter your Roll Number once when first using the application on a device. It is saved locally so you do not need to enter it again. The PWA does not ask for your name. For a new account created this way, your display name defaults to your Roll Number until an Admin corrects it.
 
 ### Information Created Through Use of Either Version
@@ -37,6 +37,7 @@ UCP NoticeBoard does not intentionally collect:
 - Your UCP portal password.
 - Your email address.
 - Browsing activity outside the dashboard or the information required to integrate with the UCP Student Portal.
+- Your grades, attendance, timetable, assignment titles or deadlines, or any files you submit on the UCP Student Portal. Features that use this information work entirely inside your browser and never send it to UCP NoticeBoard servers.
 - Location data.
 - Unrelated device or browser information beyond what is needed to operate the application and, if you opt in, deliver notifications.
 
@@ -50,9 +51,20 @@ Neither the extension nor the PWA provides a traditional username-and-password s
 - A Roll Number alone grants ordinary read-only Student access.
 - Publisher or Admin privileges require a separate authorization process using a PIN or one-time secret link, as applicable to the interface. These privileges are not granted merely by knowing a Roll Number.
 
+## Features That Run Only in Your Browser
+
+The Chrome extension also improves the UCP Student Portal itself. These features work entirely on your own computer. **None of them send portal information to UCP NoticeBoard servers or to anyone else.**
+
+- **Portal look and dark mode:** The extension restyles portal pages (colours, layout, dark mode, a 12-hour timetable, and matching styles for cards added by other extensions). It changes only how pages look in your browser.
+- **Submissions Due:** On your dashboard, the extension opens the submission page of each course listed there, as you, through your existing portal session, and lists assignments that are still open, soonest first. The assignment titles, course names and due dates it finds are kept for a short time in the portal page's own browser storage so the list appears quickly, and are refreshed at most every 10 minutes.
+- **Stay logged in:** When the portal shows its "Your session is about to expire" message, the extension presses the portal's own "Stay Online" button for you. It does not read, store, or send your password or session cookies. It is on by default and can be switched off in the toolbar menu, which is recommended on shared computers.
+- **Submission celebration:** On course submission pages, the extension watches whether your submission succeeded so it can show a short fireworks animation. It does not read or copy the files you submit. The IDs of assignments you submitted are kept in the portal page's own browser storage so they no longer appear under Submissions Due.
+- **Profile picture:** You can choose your own picture for the portal, either a photo from your computer or a link to an image. The picture (or link) is saved with Chrome's `chrome.storage.sync`, under your Roll Number, so it follows your Google account to other computers where you use Chrome sync. It is not uploaded to UCP NoticeBoard servers. If you use an image link, your browser loads the image from that address like any other web image. A small list linking the name shown on the portal to your Roll Number is kept in the portal page's own storage so the right picture appears straight away.
+- **Panel position:** If you move the NoticeBoard panel to another place on your dashboard, that choice is saved locally.
+
 ## Chrome Extension Storage
 
-The Chrome extension uses `chrome.storage.local` for one specific purpose: **remembering that a Publisher has unlocked posting access on a particular computer**.
+The Chrome extension uses its own `chrome.storage.local` storage to remember your settings on that computer (such as the theme, the Stay logged in switch, whether the panel is shown and where, and whether the welcome or update introduction has been seen), and `chrome.storage.sync` for your profile picture as described above. The rest of this section covers its one security-sensitive use: **remembering that a Publisher has unlocked posting access on a particular computer**.
 
 When a Publisher, such as a university office or student society, enters their PIN to unlock posting access, the extension saves the following information locally:
 
@@ -63,7 +75,7 @@ This allows the Publisher to create, edit, and delete notices without entering t
 
 The extension uses its own `chrome.storage.local` storage rather than the UCP Student Portal page's storage. This helps prevent scripts running in the portal page from directly reading the saved Publisher token.
 
-**Students who only read notices do not have Publisher credentials saved through this mechanism.** The extension does not use this storage for browsing history or unrelated personal information.
+**Students who only read notices do not have Publisher credentials saved through this mechanism.** The extension does not use its storage for browsing history or unrelated personal information.
 
 The locally saved token is an authentication credential. Anyone who gains access to an active, unlocked Publisher session or obtains the token may potentially be able to exercise the associated privileges until the token is invalidated or expires. Publishers should lock the extension or sign out when leaving a shared computer unattended.
 
@@ -80,14 +92,15 @@ This is a standard browser capability. Delivery is routed through the browser ve
 
 ## Where Your Data Is Stored
 
-- **Application data:** Accounts, notices, categories, dismissal records, and push subscriptions are stored in a PostgreSQL database hosted by Railway (railway.app), a third-party cloud hosting provider.
+- **Application data:** Accounts, notices, categories, dismissal records, and push subscriptions are stored in a PostgreSQL database on a server run by the project on Oracle Cloud infrastructure (oracle.com/cloud), a third-party cloud provider.
+- **Standalone website (PWA):** The website itself is served by Cloudflare (cloudflare.com).
 - **Poster images:** Images uploaded by Publishers or Admins are hosted on Cloudinary (cloudinary.com), a third-party image hosting provider. These images may be publicly accessible through their hosted URLs.
-- **Chrome extension:** Publisher Roll Numbers and server-issued sign-in tokens are stored locally using `chrome.storage.local` for the purpose described above.
+- **Chrome extension:** Settings, and Publisher Roll Numbers and server-issued sign-in tokens, are stored locally using `chrome.storage.local`; your profile picture is stored with `chrome.storage.sync`; the Submissions Due list and related items are kept in the portal page's own browser storage. All as described above.
 - **PWA:** Your Roll Number is saved locally by the application so you do not need to enter it again on that device.
 
 Other data may be temporarily processed or cached as required for normal browser and application operation.
 
-Railway, Cloudinary, and browser push infrastructure are used to operate the service. Their handling of information is subject to their respective service terms and privacy practices; UCP NoticeBoard does not authorize these providers to use application data for unrelated purposes.
+Oracle Cloud, Cloudflare, Cloudinary, and browser push infrastructure are used to operate the service. Their handling of information is subject to their respective service terms and privacy practices; UCP NoticeBoard does not authorize these providers to use application data for unrelated purposes.
 
 ## What This Data Is Used For
 
@@ -109,12 +122,15 @@ Your data is **not sold, rented, or shared with third parties for advertising or
 - **Dismissed notices:** Records are retained until the underlying notice expires or is deleted, after which the dismissal record no longer has an active notice to reference.
 - **Push subscriptions:** Retained until notifications are disabled or the subscription is detected as invalid.
 - **Publisher credentials in extension storage:** The locally saved Roll Number and sign-in token are removed when the Publisher locks the device or signs out. Server-side token validity is subject to the server's authentication and expiration rules.
+- **Settings, profile picture and Submissions Due:** Kept in your browser until you change or reset them, clear your browser's site data, or remove the extension. Your profile picture can be removed at any time with Reset in the toolbar menu.
 
 ## Your Choices
 
 - **Viewing notices:** You can view notices by visiting the dashboard or using the extension without a separate account-registration or consent process.
 - **Hiding notices:** You can reverse a dismissal through the Hidden Notices panel.
 - **Notifications:** You can enable or disable notifications on each subscribed device.
+- **Stay logged in:** You can switch it off in the extension's toolbar menu.
+- **Profile picture:** You can replace or reset it in the extension's toolbar menu.
 - **Publisher access:** Publishers can lock the extension or sign out to remove their locally saved Publisher credentials.
 - **Requesting data removal:** Contact the project Admin to request removal of your account data. Removing your account from UCP NoticeBoard does not change your student record or account on the official UCP Student Portal.
 
