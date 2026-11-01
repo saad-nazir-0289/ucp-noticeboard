@@ -117,47 +117,48 @@ html.ucpnb-dark img:not(#ucp-noticeboard-root img) {
 #ucpnb-celebrate-toast.ucpnb-out { opacity: 0; transform: translate(-50%, -12px); }
 @keyframes ucpnb-toast-in { from { opacity: 0; transform: translate(-50%, -20px) scale(0.9); } }
 
-/* ---------- Submissions due, on the dashboard (due.js) ---------- */
+/* ---------- Submissions Due, on the dashboard (due.js) ---------- */
 #ucpnb-due {
   --d-card: #ffffff; --d-border: #e3e8f2; --d-text: #101828; --d-muted: #667085;
   --d-urgent: #d92d20; --d-soon: #dc6803; --d-later: #2457d6;
-  margin: 14px 0 22px;
+  margin: 0 0 32px;
   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 html.ucpnb-dark #ucpnb-due {
   --d-card: #1b2535; --d-border: #2a3548; --d-text: #eef2f8; --d-muted: #9aa6bb;
   --d-urgent: #ff6b5e; --d-soon: #ffab4a; --d-later: #7ea3ff;
 }
-#ucpnb-due .ucpnb-due-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-#ucpnb-due .ucpnb-due-head strong { color: var(--d-text) !important; font-size: 15px; font-weight: 700; }
 #ucpnb-due .ucpnb-due-count {
-  min-width: 22px; padding: 1px 8px; border-radius: 999px; text-align: center;
-  background: linear-gradient(135deg, #2457d6, #6d5cf6); color: #fff !important; font-size: 12px; font-weight: 700;
+  display: inline-block; vertical-align: middle; min-width: 26px; margin-left: 6px; padding: 2px 9px;
+  border-radius: 999px; text-align: center;
+  background: linear-gradient(135deg, #2457d6, #6d5cf6); color: #fff !important;
+  font-size: 13px; font-weight: 700; line-height: 1.4;
 }
-#ucpnb-due .ucpnb-due-empty { margin: 0; color: var(--d-muted) !important; font-size: 13.5px; }
-#ucpnb-due .ucpnb-due-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+#ucpnb-due .ucpnb-due-body { margin-top: 16px; }
+#ucpnb-due .ucpnb-due-empty { margin: 0; color: var(--d-muted) !important; font-size: 14px; }
+#ucpnb-due .ucpnb-due-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
 #ucpnb-due .ucpnb-due-card {
-  position: relative; display: grid; gap: 3px; padding: 14px 16px 14px 18px;
-  border: 1px solid var(--d-border); border-radius: 14px; background: var(--d-card) !important;
-  text-decoration: none !important; overflow: hidden;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--d-border); border-radius: 16px; background: var(--d-card) !important;
+  text-decoration: none !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-#ucpnb-due .ucpnb-due-card::before { /* urgency stripe */
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--d-level);
+#ucpnb-due .ucpnb-due-card:hover { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(15, 23, 42, 0.2); }
+/* The course's own colour (set from its course card). */
+#ucpnb-due .ucpnb-due-course {
+  padding: 12px 16px; background: #112b4f; color: #fff !important;
+  font-size: 14px; font-weight: 650;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-#ucpnb-due .ucpnb-due-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16); }
+#ucpnb-due .ucpnb-due-inner { display: grid; gap: 4px; padding: 14px 16px 16px; }
 #ucpnb-due .ucpnb-due-urgent { --d-level: var(--d-urgent); }
 #ucpnb-due .ucpnb-due-soon { --d-level: var(--d-soon); }
 #ucpnb-due .ucpnb-due-later { --d-level: var(--d-later); }
-#ucpnb-due .ucpnb-due-course {
-  color: var(--d-muted) !important; font-size: 12px; font-weight: 600;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-#ucpnb-due .ucpnb-due-title { color: var(--d-text) !important; font-size: 15px; font-weight: 700; }
-#ucpnb-due .ucpnb-due-when { color: var(--d-muted) !important; font-size: 12.5px; }
+#ucpnb-due .ucpnb-due-title { color: var(--d-text) !important; font-size: 16px; font-weight: 700; }
+#ucpnb-due .ucpnb-due-when { color: var(--d-muted) !important; font-size: 13px; }
 #ucpnb-due .ucpnb-due-chip {
-  justify-self: start; margin-top: 4px; padding: 2px 10px; border-radius: 999px;
-  background: color-mix(in srgb, var(--d-level) 14%, transparent);
-  color: var(--d-level) !important; font-size: 12px; font-weight: 700;
+  justify-self: start; margin-top: 6px; padding: 3px 11px; border-radius: 999px;
+  background: color-mix(in srgb, var(--d-level) 15%, transparent);
+  color: var(--d-level) !important; font-size: 12.5px; font-weight: 700;
 }
