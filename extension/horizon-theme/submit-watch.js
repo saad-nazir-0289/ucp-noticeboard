@@ -20,7 +20,10 @@
 
   const CELEBRATE = "ucpnb_celebrate"; // success, for celebrate.js (also across a reload)
   const PENDING = "ucpnb_submit_pending"; // started, result not known before the page changed
-  const DONE = "ucpnb_submitted_ids"; // page storage: submissions sent, left out of "Submissions due" (due.js)
+  const DONE = "ucpnb_submitted_ids"; // page storage: { id: when } submissions sent, left out of "Submissions due" for a while (due.js)
+  // Requests that can be part of sending a submission. Anything else sent
+  // meanwhile (Horizon's own background requests) is not judged.
+  const SUBMISSION_URL = /submi|upload|attach/i;
   let lastOpened = null; // the row whose Upload button was pressed
   const FAIL_WORDS = /\b(error|errors|fail|failed|failure|invalid|not allowed|cannot|can't|unable|expired|denied|exception|already submitted)\b/i;
   let watch = null; // { started, pending, ok, failed, formSent, timer }
@@ -48,8 +51,10 @@
   function remember(id) {
     if (!id) return;
     try {
-      const done = JSON.parse(localStorage.getItem(DONE) ?? "[]");
-      if (!done.includes(String(id))) localStorage.setItem(DONE, JSON.stringify([...done, String(id)].slice(-300)));
+      let done = JSON.parse(localStorage.getItem(DONE) ?? "{}");
+      if (Array.isArray(done) || typeof done !== "object" || !done) done = {};
+      done[String(id)] = Date.now();
+      localStorage.setItem(DONE, JSON.stringify(Object.fromEntries(Object.entries(done).slice(-300))));
     } catch {
       // Only "Submissions due" may list it a little longer.
     }
@@ -113,13 +118,14 @@
 
   // ---------- Requests ----------
   const open = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function (method, ...rest) {
+  XMLHttpRequest.prototype.open = function (method, url, ...rest) {
     this.__ucpnbMethod = String(method).toUpperCase();
-    return open.call(this, method, ...rest);
+    this.__ucpnbUrl = String(url ?? "");
+    return open.call(this, method, url, ...rest);
   };
   const send = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send = function (...args) {
-    if (watch && this.__ucpnbMethod !== "GET") {
+    if (watch && this.__ucpnbMethod !== "GET" && (SUBMISSION_URL.test(this.__ucpnbUrl) || args[0] instanceof FormData)) {
       watch.pending += 1;
       // "readystatechange" comes before Horizon's own "load" handler, which
       // may reload the page.
@@ -140,8 +146,9 @@
   const nativeFetch = window.fetch;
   window.fetch = function (input, init) {
     const method = String(init?.method ?? input?.method ?? "GET").toUpperCase();
+    const url = String(input?.url ?? input ?? "");
     const result = nativeFetch.apply(this, arguments);
-    if (watch && method !== "GET") {
+    if (watch && method !== "GET" && (SUBMISSION_URL.test(url) || init?.body instanceof FormData)) {
       watch.pending += 1;
       result
         .then(async (response) => judge(response.status, await response.clone().text().catch(() => null)))
@@ -182,13 +189,15 @@
     },
     true
   );
-  // The confirm dialog's OK, in case the function is named differently.
+  // The OK of Horizon's "Are you sure to Submit Submission" question, in
+  // case the function is named differently. Only that question: other
+  // dialogs (the upload form itself) mention submitting too.
   document.addEventListener(
     "click",
     (e) => {
-      const ok = e.target.closest?.(".js-modal-confirm, .uk-modal-dialog .uk-button-primary");
-      const dialog = ok?.closest(".uk-modal, .uk-modal-dialog");
-      if (dialog && /submit/i.test(dialog.textContent)) start();
+      const ok = e.target.closest?.(".js-modal-confirm");
+      const dialog = ok?.closest(".uk-modal-dialog, .uk-modal");
+      if (dialog && /sure to submit/i.test(dialog.textContent)) start();
     },
     true
   );

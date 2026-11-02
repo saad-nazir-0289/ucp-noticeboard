@@ -218,3 +218,11 @@ footer button { padding: 0; border: 0; background: none; color: var(--muted); te
 @media (prefers-reduced-motion: reduce) {
   .intro, .intro *, .intro-card { animation: none !important; }
 }
+
+/* ---------- Phones ----------
+   Kiwi and other Android browsers open this menu as a page the width of
+   the phone: one column, scrolling, and no QR code (it's for phones).
+   popup.js marks the page (html.phone) on a phone-sized screen. */
+html.phone body { width: auto; min-height: 100vh; overflow: auto; }
+html.phone main { grid-template-columns: minmax(0, 1fr); padding-bottom: 16px; }
+html.phone .qr-card { display: none; }

@@ -11,13 +11,24 @@
 // last result shows straight away meanwhile.
 //
 // Left out: assignments past their due date, rows without an Upload button,
-// and ones the student submitted with the extension watching
-// (submit-watch.js notes those in ucpnb_submitted_ids).
+// and, for half an hour, ones the student just submitted with the extension
+// watching (submit-watch.js notes those in ucpnb_submitted_ids), until
+// Horizon's page catches up.
 (() => {
   if (!location.pathname.startsWith("/student/dashboard")) return;
 
   const CACHE = "ucpnb_due_cache"; // page storage: { at, items }
-  const DONE = "ucpnb_submitted_ids"; // page storage, from submit-watch.js
+  const DONE = "ucpnb_submitted_ids"; // page storage: { id: when }, from submit-watch.js
+  // Horizon takes the Upload button away once a submission is in ("You can
+  // not submit again"), so a submission seen here only needs hiding until
+  // Horizon's own page says so. After that, Horizon's page decides.
+  const DONE_FOR_MS = 30 * 60 * 1000;
+  const recentlySubmitted = () => {
+    const done = read(DONE, {});
+    if (Array.isArray(done) || typeof done !== "object") return new Set(); // the old list: Horizon decides
+    const now = Date.now();
+    return new Set(Object.keys(done).filter((id) => now - done[id] < DONE_FOR_MS));
+  };
   const FRESH_MS = 10 * 60 * 1000;
   const read = (key, fallback) => {
     try {
@@ -114,7 +125,7 @@
   function show(items, { checking = false } = {}) {
     const box = section();
     if (!box) return;
-    const done = new Set(read(DONE, []));
+    const done = recentlySubmitted();
     const now = Date.now();
     const due = items
       .filter((i) => i.open && i.due > now && !done.has(String(i.id)))

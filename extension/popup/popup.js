@@ -1,3 +1,10 @@
+// On a phone (Kiwi and other Android browsers open this menu as a page):
+// the one-column layout in popup.css. A phone's screen is narrower than
+// the menu itself; no desktop screen is.
+if (screen.width < 680 || matchMedia("(hover: none) and (pointer: coarse)").matches) {
+  document.documentElement.classList.add("phone");
+}
+
 // The menu shown when NoticeBoard is clicked in Chrome's toolbar.
 // popup-config.js (written at build time) sets window.UCPNB_PWA_URL.
 const ENABLED_KEY = "ucpnb_enabled"; // read by the content script (src/content/index.tsx)
