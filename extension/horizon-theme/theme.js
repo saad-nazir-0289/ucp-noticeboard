@@ -89,27 +89,77 @@
     return toHsl(c).l > 0.86 ? hsl(218, 0.32, 0.16, c.a) : null;
   }
 
-  function recolour(el) {
-    if (SKIP.has(el.tagName.toUpperCase()) || el.closest(PANEL) || el.closest("svg")) return;
-    // Another extension's grade cards (.ext): skin.css gives them NoticeBoard's
-    // colours, which recolouring here would override.
-    if (mode === "skin" && el.closest(".ext")) return;
+  // What one element needs, read without changing anything: reading every
+  // element first and writing after means the browser works out the page's
+  // styles once per batch, not once per element.
+  function plan(el, out) {
     const style = getComputedStyle(el);
     const bg = parse(style.backgroundColor);
-    if (bg && bg.a > 0) set(el, "background-color", mode === "skin" ? skinBackground(bg) : darkBackground(bg));
+    if (bg && bg.a > 0) {
+      const value = mode === "skin" ? skinBackground(bg) : darkBackground(bg);
+      if (value) out.push([el, "background-color", value]);
+    }
     const fg = parse(style.color);
-    if (fg) set(el, "color", lightText(fg));
+    if (fg) {
+      const value = lightText(fg);
+      if (value) out.push([el, "color", value]);
+    }
     for (const side of ["top", "right", "bottom", "left"]) {
       if (style[`border-${side}-style`] === "none") continue;
       const border = parse(style[`border-${side}-color`]);
-      if (border && border.a > 0) set(el, `border-${side}-color`, darkBorder(border));
+      if (border && border.a > 0) {
+        const value = darkBorder(border);
+        if (value) out.push([el, `border-${side}-color`, value]);
+      }
     }
   }
 
-  function recolourAll(root) {
-    if (root.nodeType !== 1) return;
-    recolour(root);
-    for (const el of root.querySelectorAll("*")) recolour(el);
+  // Every element under root that may need recolouring: not pictures,
+  // scripts or icons, not the NoticeBoard panel, and in NoticeBoard style
+  // not another extension's grade cards (.ext, which skin.css colours).
+  function collect(root, into) {
+    if (root.nodeType !== 1 || root.closest(PANEL) || root.closest("svg")) return;
+    const skip = (el) =>
+      SKIP.has(el.tagName.toUpperCase()) || el.id === "ucp-noticeboard-root" || (mode === "skin" && el.classList.contains("ext"));
+    if (skip(root)) return;
+    into.push(root);
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (el) => (skip(el) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+    });
+    for (let el = walker.nextNode(); el; el = walker.nextNode()) into.push(el);
+  }
+
+  // A batch: all the reads, then all the writes.
+  function recolourBatch(elements) {
+    const changes = [];
+    for (const el of elements) if (el.isConnected) plan(el, changes);
+    for (const [el, prop, value] of changes) set(el, prop, value);
+  }
+
+  // Original style in dark has nothing else making the page dark, so it's
+  // done at once (the page waits, hidden). In NoticeBoard style skin.css
+  // already made it dark and this is only a safety net: it runs in small
+  // pieces while the browser is idle, never holding up drawing or
+  // scrolling.
+  const idle = window.requestIdleCallback ?? ((fn) => setTimeout(() => fn({ timeRemaining: () => 8 }), 50));
+  let queue = [];
+  let working = false;
+  function recolourSoon(roots) {
+    for (const root of roots) collect(root, queue);
+    if (mode === "original") {
+      const now = queue;
+      queue = [];
+      recolourBatch(now);
+      return;
+    }
+    if (working) return;
+    working = true;
+    const step = (deadline) => {
+      while (queue.length && deadline.timeRemaining() > 2) recolourBatch(queue.splice(0, 150));
+      if (queue.length) idle(step, { timeout: 500 });
+      else working = false;
+    };
+    idle(step, { timeout: 500 });
   }
 
   // Content Horizon adds later (menus, tabs, loaded sections).
@@ -123,7 +173,7 @@
       scheduled = false;
       const nodes = pending;
       pending = [];
-      if (active) nodes.forEach(recolourAll);
+      if (active) recolourSoon(nodes);
     });
   });
 
@@ -133,14 +183,16 @@
     mode = newMode;
     active = true;
     const start = () => {
-      recolourAll(document.body);
+      recolourSoon([document.body]);
       html.classList.remove("ucpnb-dark-pending");
       observer.observe(document.body, { childList: true, subtree: true });
     };
     if (document.body && document.readyState !== "loading") start();
     else {
-      // Hidden until recoloured, so the light page never flashes.
-      html.classList.add("ucpnb-dark-pending");
+      // Original style: hidden until recoloured, so the light page never
+      // flashes. NoticeBoard style is dark from the first paint (skin.css),
+      // so the page shows straight away.
+      if (newMode === "original") html.classList.add("ucpnb-dark-pending");
       setTimeout(() => html.classList.remove("ucpnb-dark-pending"), 1500);
       document.addEventListener("DOMContentLoaded", start, { once: true });
     }
@@ -150,6 +202,7 @@
     if (!active) return;
     active = false;
     observer.disconnect();
+    queue = [];
     html.classList.remove("ucpnb-dark-pending");
     for (const [el, props] of changed) {
       for (const [prop, [value, priority]] of props) {
@@ -224,9 +277,26 @@
   let avatar = null;
   let known = false; // whose page this is has been worked out
 
-  // Horizon's own picture stays hidden until we know whose page this is (if
-  // any picture is set in this Chrome), so the old one never flashes.
-  let hideAvatar = Object.keys(readPage(PAGE_AVATARS)).length > 0;
+  // When only one student uses Horizon in this browser (the usual case),
+  // their picture is drawn from the very first frame: a style shows it in
+  // place of whatever Horizon loads, before anything is known. With more
+  // than one, Horizon's picture stays hidden until whose page it is is
+  // known, so the wrong one never shows.
+  const cachedAvatars = readPage(PAGE_AVATARS);
+  const knownRolls = new Set([...Object.values(readPage(PAGE_STUDENTS)), ...Object.keys(cachedAvatars)]);
+  const onlyRoll = knownRolls.size === 1 ? [...knownRolls][0] : null;
+  let earlyAvatar = null;
+  if (onlyRoll && cachedAvatars[onlyRoll]) {
+    earlyAvatar = document.createElement("style");
+    const url = cachedAvatars[onlyRoll].replace(/[\\"\n\r]/g, (c) => "\\" + c.charCodeAt(0).toString(16) + " ");
+    earlyAvatar.textContent = `.user_heading_avatar img{content:url("${url}")!important;object-fit:cover!important}`;
+    (document.head ?? html).append(earlyAvatar);
+  }
+  const dropEarlyAvatar = () => {
+    earlyAvatar?.remove();
+    earlyAvatar = null;
+  };
+  let hideAvatar = !earlyAvatar && Object.keys(cachedAvatars).length > 0;
   keepClasses();
   const AVATAR_IMG = ".user_heading_avatar img";
   function applyAvatar(root = document) {
@@ -249,6 +319,9 @@
       writePage(PAGE_AVATARS, cached);
     }
     applyAvatar();
+    // The pictures themselves are right now: the first-frame style goes
+    // (it showed the same picture, or this student has none).
+    dropEarlyAvatar();
     hideAvatar = false;
     keepClasses();
   }
@@ -324,6 +397,8 @@
       return;
     }
     if (found === roll) return;
+    // Someone else's page: the first-frame picture was the other student's.
+    if (found !== onlyRoll) dropEarlyAvatar();
     roll = found;
     avatar = readPage(PAGE_AVATARS)[roll] ?? null;
     applyAvatar();
@@ -440,19 +515,22 @@
   }
 
   // Everything Horizon adds while loading and later.
+  // Once per frame however much changed: the pictures (three on a page,
+  // looked up once) and the time table.
   let tuneQueued = false;
+  let avatarsChanged = false;
   new MutationObserver((mutations) => {
     for (const m of mutations) {
-      if (m.type === "attributes") {
-        if (m.target.closest?.(".user_heading_avatar")) applyAvatar(m.target);
-        continue;
-      }
-      for (const node of m.addedNodes) if (node.nodeType === 1) applyAvatar(node);
+      if (m.type === "attributes" ? m.target.tagName === "IMG" : m.addedNodes.length) avatarsChanged = true;
     }
     if (!tuneQueued) {
       tuneQueued = true;
       requestAnimationFrame(() => {
         tuneQueued = false;
+        if (avatarsChanged) {
+          avatarsChanged = false;
+          applyAvatar();
+        }
         tuneSchedule();
       });
     }
@@ -463,11 +541,14 @@
     checkLogos();
   }, { once: true });
   window.addEventListener("load", checkLogos, { once: true });
-  // Never hidden for long, whatever happens.
-  setTimeout(() => {
+  // Never hidden for long, whatever happens: once the page has loaded (or
+  // after 6 s), Horizon's picture shows if nothing replaced it.
+  const unhide = () => {
     hideAvatar = false;
     keepClasses();
-  }, 2000);
+  };
+  window.addEventListener("load", () => setTimeout(unhide, 300), { once: true });
+  setTimeout(unhide, 6000);
   if (document.readyState !== "loading") findStudent();
   window.addEventListener("load", findStudent, { once: true });
   chrome.storage.onChanged.addListener((changes, area) => {

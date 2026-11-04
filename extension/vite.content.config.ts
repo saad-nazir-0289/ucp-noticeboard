@@ -15,7 +15,10 @@ const sharedConfig = {
 };
 
 const PRODUCTION = {
-  VITE_API_BASE_URL: "https://ucpnb-api.duckdns.org",
+  // The API through the web app's own site (pwa/worker.js passes /api on to
+  // the Oracle server): a nearby Cloudflare server instead of a far one, and
+  // reachable on networks that block the server's own dynamic-DNS name.
+  VITE_API_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev/api",
   VITE_PWA_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev",
 };
 const LOCAL = {

@@ -7,8 +7,10 @@
 // is /student/course/submission/<id>, with one row per assignment
 // (tr[submission_id]: title, start, due date, and an "Upload" button while
 // it can still be submitted). Those pages are read in the background, as
-// the student (same site, their own login), at most every 10 minutes; the
-// last result shows straight away meanwhile.
+// the student (same site, their own login), at most every 30 minutes, and
+// only once the dashboard has finished loading and the browser is idle, two
+// pages at a time, so Horizon itself is never slowed down; the last result
+// shows straight away meanwhile.
 //
 // Left out: assignments past their due date, rows without an Upload button,
 // and, for half an hour, ones the student just submitted with the extension
@@ -29,7 +31,7 @@
     const now = Date.now();
     return new Set(Object.keys(done).filter((id) => now - done[id] < DONE_FOR_MS));
   };
-  const FRESH_MS = 10 * 60 * 1000;
+  const FRESH_MS = 30 * 60 * 1000;
   const read = (key, fallback) => {
     try {
       return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback;
@@ -182,6 +184,14 @@
     body.append(list);
   }
 
+  // After Horizon's own page has loaded and the browser has a quiet moment.
+  const pageSettled = () =>
+    new Promise((resolve) => {
+      const idle = () => (window.requestIdleCallback ? requestIdleCallback(() => resolve(), { timeout: 3000 }) : setTimeout(resolve, 1000));
+      if (document.readyState === "complete") idle();
+      else window.addEventListener("load", idle, { once: true });
+    });
+
   async function refresh() {
     const list = courses();
     if (list.size === 0) return;
@@ -189,7 +199,17 @@
     if (cached?.items) show(cached.items);
     else show([], { checking: true });
     if (cached && Date.now() - cached.at < FRESH_MS) return;
-    const results = await Promise.all([...list].map(([id, name]) => readCourse(id, name).catch(() => null)));
+    await pageSettled();
+    const pairs = [...list];
+    const results = new Array(pairs.length).fill(null);
+    let next = 0;
+    const worker = async () => {
+      while (next < pairs.length) {
+        const i = next++;
+        results[i] = await readCourse(...pairs[i]).catch(() => null);
+      }
+    };
+    await Promise.all([worker(), worker()]);
     // A course that couldn't be read keeps what was known about it.
     const items = results.flatMap((r, i) => r ?? (cached?.items ?? []).filter((x) => x.courseId === [...list.keys()][i]));
     write(CACHE, { at: Date.now(), items });

@@ -1,11 +1,12 @@
 // Runs independently of the app being open — this is what lets a
 // notification arrive and be tapped even when the PWA isn't running.
 
-// A repeat visit shouldn't have to re-download the app's own JS/CSS every
-// time: those are served from the saved copy (their names change with
-// their contents). The page itself is fetched fresh first (see fetch below),
-// so a new version appears on the next open.
-const APP_SHELL_CACHE = "ucpnb-shell-v3";
+// Opening the app never waits on the network: the page and its JS/CSS come
+// from the saved copy straight away (the JS/CSS are named after their
+// contents, so a saved one is always right), and the page is refreshed in
+// the background for next time. A new version is picked up by
+// src/autoUpdate.ts, which checks the server when the app comes on screen.
+const APP_SHELL_CACHE = "ucpnb-shell-v4";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -65,21 +66,32 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET" || url.origin !== self.location.origin) {
     return;
   }
+  // The API (proxied through this site, worker.js) is always fresh, and an
+  // explicit "no-store" (the update check) goes straight to the network.
+  if (url.pathname.startsWith("/api/") || event.request.cache === "no-store") {
+    return;
+  }
 
-  // The page itself (and the manifest): the network first, so a new version
-  // shows up the moment the app is opened, not one visit later; the saved
-  // copy only when offline. The JS/CSS files it points to have their
-  // contents' hash in the name, so a saved one is always still correct.
+  // The page itself (and the manifest): the saved copy at once, refreshed
+  // in the background. Only the very first visit waits for the network.
+  // Every address of the app is the same page, saved once as "/".
   if (event.request.mode === "navigate" || url.pathname === "/manifest.json") {
+    const key = event.request.mode === "navigate" ? "/" : event.request;
     event.respondWith(
-      caches.open(APP_SHELL_CACHE).then((cache) =>
-        fetch(event.request)
+      caches.open(APP_SHELL_CACHE).then(async (cache) => {
+        const cached = await cache.match(key);
+        const fresh = fetch(event.request)
           .then((response) => {
-            if (response.ok) cache.put(event.request, response.clone());
+            if (response.ok && response.type === "basic" && !response.redirected) cache.put(key, response.clone());
             return response;
           })
-          .catch(() => cache.match(event.request).then((cached) => cached || cache.match("/")))
-      )
+          .catch(() => cached);
+        if (cached) {
+          event.waitUntil(fresh.catch(() => {}));
+          return cached;
+        }
+        return fresh;
+      })
     );
     return;
   }
