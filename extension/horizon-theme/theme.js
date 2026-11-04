@@ -266,11 +266,20 @@
       return {};
     }
   };
+  // A copy of the page's pictures and names in the extension's own storage:
+  // logging out of Horizon (or signing in again with Microsoft) can clear
+  // the page's storage, and this copy puts it back.
+  const MIRROR_KEY = "ucpnb_avatar_page";
   const writePage = (key, value) => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
       // Not kept for the next page: it waits for the extension's storage.
+    }
+    if (key === PAGE_AVATARS || key === PAGE_STUDENTS) {
+      chrome.storage.local
+        .set({ [MIRROR_KEY]: { avatars: readPage(PAGE_AVATARS), students: readPage(PAGE_STUDENTS) } })
+        .catch(() => {});
     }
   };
   let roll = null;
@@ -282,22 +291,63 @@
   // place of whatever Horizon loads, before anything is known. With more
   // than one, Horizon's picture stays hidden until whose page it is is
   // known, so the wrong one never shows.
-  const cachedAvatars = readPage(PAGE_AVATARS);
-  const knownRolls = new Set([...Object.values(readPage(PAGE_STUDENTS)), ...Object.keys(cachedAvatars)]);
-  const onlyRoll = knownRolls.size === 1 ? [...knownRolls][0] : null;
   let earlyAvatar = null;
-  if (onlyRoll && cachedAvatars[onlyRoll]) {
+  let onlyRoll = null;
+  function showEarly(src) {
     earlyAvatar = document.createElement("style");
-    const url = cachedAvatars[onlyRoll].replace(/[\\"\n\r]/g, (c) => "\\" + c.charCodeAt(0).toString(16) + " ");
+    const url = src.replace(/[\\"\n\r]/g, (c) => "\\" + c.charCodeAt(0).toString(16) + " ");
     earlyAvatar.textContent = `.user_heading_avatar img{content:url("${url}")!important;object-fit:cover!important}`;
     (document.head ?? html).append(earlyAvatar);
   }
+  // Which picture to draw before anything is known: the one student's, if
+  // only one is known in this browser.
+  function decideEarly(avatars, students) {
+    const rolls = new Set([...Object.values(students), ...Object.keys(avatars)]);
+    onlyRoll = rolls.size === 1 ? [...rolls][0] : null;
+    if (onlyRoll && avatars[onlyRoll]) showEarly(avatars[onlyRoll]);
+  }
+  const cachedAvatars = readPage(PAGE_AVATARS);
+  const pageRemembers = localStorage.getItem(PAGE_AVATARS) !== null || localStorage.getItem(PAGE_STUDENTS) !== null;
+  decideEarly(cachedAvatars, readPage(PAGE_STUDENTS));
   const dropEarlyAvatar = () => {
     earlyAvatar?.remove();
     earlyAvatar = null;
   };
-  let hideAvatar = !earlyAvatar && Object.keys(cachedAvatars).length > 0;
+  // Horizon's own picture stays hidden while the right one isn't known yet:
+  // when the page remembers a picture, or remembers nothing at all (its
+  // storage was cleared, as on logging out) and the extension's copy is
+  // still being read.
+  let hideAvatar = !earlyAvatar && (Object.keys(cachedAvatars).length > 0 || !pageRemembers);
   keepClasses();
+  if (!pageRemembers) {
+    chrome.storage.local
+      .get(MIRROR_KEY)
+      .then((saved) => {
+        const copy = saved[MIRROR_KEY];
+        const avatars = copy?.avatars ?? {};
+        const students = copy?.students ?? {};
+        if (copy) {
+          // Put the page's copy back, for the next pages.
+          try {
+            localStorage.setItem(PAGE_AVATARS, JSON.stringify(avatars));
+            localStorage.setItem(PAGE_STUDENTS, JSON.stringify(students));
+          } catch {
+            // The extension's copy is read again next time.
+          }
+        }
+        if (known) return; // whose page this is was worked out meanwhile
+        if (!earlyAvatar) decideEarly(avatars, students);
+        // Nothing to wait for: no picture set here, or the one student's is drawn.
+        if (earlyAvatar || Object.keys(avatars).length === 0) {
+          hideAvatar = false;
+          keepClasses();
+        }
+      })
+      .catch(() => {
+        hideAvatar = false;
+        keepClasses();
+      });
+  }
   const AVATAR_IMG = ".user_heading_avatar img";
   function applyAvatar(root = document) {
     const imgs = root.matches?.(AVATAR_IMG) ? [root] : root.querySelectorAll(AVATAR_IMG);
