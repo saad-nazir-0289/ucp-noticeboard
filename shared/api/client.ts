@@ -3,6 +3,53 @@ import type { AddUserResult, AnalyticsSummary, BinNotice, AuthUser, Category, De
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 /**
+ * The server's own address, used when the main one doesn't answer. In
+ * production the main address goes through Cloudflare (pwa/worker.js),
+ * whose free plan has a daily request limit: past it, or if Cloudflare
+ * can't be reached, requests go straight to the server instead. Empty
+ * (no fallback) in local and staging builds.
+ */
+const API_FALLBACK_URL = (import.meta.env.VITE_API_FALLBACK_URL ?? "").replace(/\/+$/, "");
+/** After a fallback, the server's own address is tried first for this long. */
+const FALLBACK_FOR_MS = 15 * 60 * 1000;
+let fallbackUntil = 0;
+
+/**
+ * Cloudflare refused the request itself: its error pages (the daily limit,
+ * error 1027, or "couldn't reach the server", 52x) are web pages, while
+ * the server's own answers never are.
+ */
+function refusedByProxy(response: Response): boolean {
+  return (response.status === 429 || response.status >= 500) && (response.headers.get("Content-Type") ?? "").includes("text/html");
+}
+
+/**
+ * fetch() for an API path: through the main address, and if that one
+ * refuses or can't be reached, through the other one. A request that may
+ * have reached the server (a network error midway) is only repeated when
+ * repeating it is harmless (`repeatable`: reads, signing in).
+ */
+export async function apiFetch(path: string, init: RequestInit = {}, repeatable?: boolean): Promise<Response> {
+  if (!API_FALLBACK_URL) return fetch(`${API_BASE_URL}${path}`, init);
+  const method = (init.method ?? "GET").toUpperCase();
+  const canRepeat = repeatable ?? (method === "GET" || method === "HEAD");
+  const viaFallbackFirst = Date.now() < fallbackUntil;
+  const [first, second] = viaFallbackFirst ? [API_FALLBACK_URL, API_BASE_URL] : [API_BASE_URL, API_FALLBACK_URL];
+  try {
+    const response = await fetch(`${first}${path}`, init);
+    if (!refusedByProxy(response)) return response;
+    // A refusal page from Cloudflare means the server never saw the
+    // request, so even a change can safely go the other way; a 5xx page
+    // might have come after the server acted, so only a repeatable one.
+    if (response.status !== 429 && !canRepeat) return response;
+  } catch (err) {
+    if (!canRepeat) throw err;
+  }
+  if (!viaFallbackFirst) fallbackUntil = Date.now() + FALLBACK_FOR_MS;
+  else fallbackUntil = 0; // the server's own address failed: back to the main one
+  return fetch(`${second}${path}`, init);
+}
+/**
  * The API as a full address, for links that leave the app (shared notices,
  * calendar entries). The web app reaches the API through its own site
  * ("/api", proxied by pwa/worker.js), so its links get the site's address
@@ -87,7 +134,8 @@ export function hasDeviceToken(): boolean {
 async function request<T>(
   path: string,
   options: RequestInit = {},
-  token?: string
+  token?: string,
+  repeatable?: boolean
 ): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -102,10 +150,7 @@ async function request<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
-      ...options,
-      headers,
-    });
+    response = await apiFetch(path, { ...options, headers }, repeatable);
   } catch {
     throw new ApiError(0, unreachableMessage());
   }
@@ -132,10 +177,16 @@ async function request<T>(
 
 export const api = {
   login: (rollNumber: string, name: string, activationCode?: string) =>
-    request<LoginResult>("/login", {
-      method: "POST",
-      body: JSON.stringify({ rollNumber, name, activationCode }),
-    }),
+    request<LoginResult>(
+      "/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ rollNumber, name, activationCode }),
+      },
+      undefined,
+      // Signing in twice is harmless.
+      true
+    ),
 
   getNotices: (token: string, includeDismissed = false, includeExpired = false) => {
     const params = new URLSearchParams();

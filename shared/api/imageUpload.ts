@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "./client";
+import { apiFetch } from "./client";
 
 /**
  * Uploads an image straight from the browser to Cloudinary — bypassing
@@ -31,7 +31,7 @@ interface UploadSignature {
 }
 
 async function getUploadSignature(token: string): Promise<UploadSignature> {
-  const response = await fetch(`${API_BASE_URL}/uploads/signature`, {
+  const response = await apiFetch("/uploads/signature", {
     headers: { Authorization: `Bearer ${token}` },
   });
 

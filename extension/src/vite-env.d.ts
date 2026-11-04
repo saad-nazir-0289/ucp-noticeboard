@@ -3,6 +3,7 @@
 interface ImportMetaEnv {
   /** Backend base URL, resolved per build mode in vite.content.config.ts. */
   readonly VITE_API_BASE_URL: string;
+  readonly VITE_API_FALLBACK_URL?: string;
   /** PWA base URL (the notifications bell opens it), resolved the same way. */
   readonly VITE_PWA_BASE_URL: string;
 }
