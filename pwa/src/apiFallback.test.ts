@@ -86,4 +86,47 @@ describe("API fallback", () => {
     expect(result.token).toBe("t");
     expect(calls).toEqual([`${MAIN}/login`, `${DIRECT}/login`]);
   });
+
+  it("a read Cloudflare is slow to answer also goes to the server, and the first answer wins", async () => {
+    vi.useFakeTimers();
+    try {
+      const { apiFetch } = await load();
+      fetchWith((url) => (url.startsWith(MAIN) ? new Promise<Response>(() => {}) : json(200, { from: "server" })));
+      const pending = apiFetch("/notices");
+      await vi.advanceTimersByTimeAsync(3500);
+      const response = await pending;
+      expect(await response.json()).toEqual({ from: "server" });
+      expect(calls).toEqual([`${MAIN}/notices`, `${DIRECT}/notices`]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a quick answer from Cloudflare never starts a second request", async () => {
+    vi.useFakeTimers();
+    try {
+      const { apiFetch } = await load();
+      fetchWith(() => json(200));
+      await apiFetch("/notices");
+      await vi.advanceTimersByTimeAsync(10000);
+      expect(calls).toEqual([`${MAIN}/notices`]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("when Cloudflare gives up (its 504 page) a read goes to the server", async () => {
+    const { apiFetch } = await load();
+    fetchWith((url) => (url.startsWith(MAIN) ? html(504) : json(200)));
+    expect((await apiFetch("/notices")).status).toBe(200);
+  });
+
+  it("when both addresses fail, the read fails", async () => {
+    const { apiFetch } = await load();
+    fetchWith(() => {
+      throw new TypeError("Failed to fetch");
+    });
+    await expect(apiFetch("/notices")).rejects.toThrow();
+    expect(calls.length).toBe(2);
+  });
 });
