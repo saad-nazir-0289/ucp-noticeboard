@@ -29,7 +29,7 @@ gpg --decrypt ucp-noticeboard-2026-10-14.dump.gpg > backup.dump   # asks for the
 pg_restore --clean --if-exists --no-owner --dbname "postgres://…target database…" backup.dump
 ```
 
-Restore into a fresh or staging database first to check it, before ever
+Restore into a fresh database first to check it, before ever
 pointing it at production. Moving to a new host works the same way: restore
 the latest backup into the new database.
 

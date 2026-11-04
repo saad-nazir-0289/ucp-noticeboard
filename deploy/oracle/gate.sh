@@ -13,7 +13,7 @@ main() {
   case "${words[0]:-}" in
     deploy)
       local env=${words[1]:-} sha=${words[2]:-}
-      [[ "$env" =~ ^(production|staging)$ ]] || { echo "refused: unknown environment" >&2; exit 1; }
+      [[ "$env" == production ]] || { echo "refused: unknown environment" >&2; exit 1; }
       [[ "$sha" =~ ^[0-9a-f]{7,40}$ ]] || { echo "refused: not a commit id" >&2; exit 1; }
       if [ ! -f "/opt/ucpnb/config/$env.env" ]; then
         echo "$env isn't set up on this server; nothing to deploy."

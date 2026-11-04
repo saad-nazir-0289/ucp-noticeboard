@@ -91,7 +91,7 @@ builder.Services.AddAuthorization();
 // come from a content script, which Chrome treats as the host page's own
 // origin for CORS — that's why the portal origin is on this list.
 //
-// Cors:AllowedOrigins is a comma-separated list, so a staging deploy can
+// Cors:AllowedOrigins is a comma-separated list, so a test deploy can
 // point at its own PWA with a single environment variable
 // (Cors__AllowedOrigins). In Development, any localhost origin is also
 // allowed, for the local PWA dev server and the mock portal page.
@@ -237,7 +237,7 @@ using (var scope = app.Services.CreateScope())
     // database, and older free-form categories folded into it.
     await CategoryCatalog.EnsureAsync(db, app.Logger);
 
-    // Sample content for local runs and staging only. Off unless
+    // Sample content for local runs and test copies only. Off unless
     // SeedDemoData=true, and a no-op on any database that already has
     // users, so it can never add demo rows to real data.
     if (app.Configuration.GetValue<bool>("SeedDemoData"))

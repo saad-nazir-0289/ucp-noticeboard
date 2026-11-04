@@ -2,22 +2,19 @@
 # One-time setup of the Oracle server for NoticeBoard (Ubuntu 22.04 or 24.04).
 # On the server, as the default "ubuntu" user:
 #
-#   curl -fsSL https://raw.githubusercontent.com/saad-nazir-0289/ucp-noticeboard/staging/deploy/oracle/setup.sh -o setup.sh
+#   curl -fsSL https://raw.githubusercontent.com/saad-nazir-0289/ucp-noticeboard/main/deploy/oracle/setup.sh -o setup.sh
 #   sudo bash setup.sh --api-domain ucpnb-api.duckdns.org --duckdns-token <token>
-#
-# Add --staging-domain <name> only if you want a separate staging API too.
 #
 # Safe to run again: it skips whatever is already done and never overwrites
 # your settings. See docs/ORACLE.md for the whole walkthrough.
 set -euo pipefail
 
-API_DOMAIN="" STAGING_API_DOMAIN="" BRANCH=staging DUCKDNS_TOKEN="" SKIP_SYSTEM=0
+API_DOMAIN="" BRANCH=main DUCKDNS_TOKEN="" SKIP_SYSTEM=0
 REPO_URL=https://github.com/saad-nazir-0289/ucp-noticeboard.git
 OWNER=${SUDO_USER:-ubuntu}
 while [ $# -gt 0 ]; do
   case "$1" in
     --api-domain) API_DOMAIN=$2; shift 2 ;;
-    --staging-domain) STAGING_API_DOMAIN=$2; shift 2 ;;
     --branch) BRANCH=$2; shift 2 ;;
     --duckdns-token) DUCKDNS_TOKEN=$2; shift 2 ;;
     --skip-system) SKIP_SYSTEM=1; shift ;;   # for testing the rest elsewhere
@@ -62,7 +59,7 @@ main() {
 
     if [ -n "$DUCKDNS_TOKEN" ]; then
       step "Keep the DuckDNS names pointing at this server"
-      local names; names=$(echo "$API_DOMAIN${STAGING_API_DOMAIN:+,$STAGING_API_DOMAIN}" | sed 's/\.duckdns\.org//g')
+      local names; names=$(echo "$API_DOMAIN" | sed 's/\.duckdns\.org//g')
       echo "*/10 * * * * $OWNER curl -fsS 'https://www.duckdns.org/update?domains=$names&token=$DUCKDNS_TOKEN' >/dev/null 2>&1" > /etc/cron.d/ucpnb-duckdns
       chmod 600 /etc/cron.d/ucpnb-duckdns
     fi
@@ -78,7 +75,7 @@ main() {
   fi
   chown -R "$OWNER": "$root"
   # So git still works if a script is ever started with sudo.
-  for dir in "$root/repo" "$root/src/production" "$root/src/staging"; do
+  for dir in "$root/repo" "$root/src/production"; do
     git config --system --get-all safe.directory | grep -qx "$dir" || git config --system --add safe.directory "$dir"
   done
   chmod 700 "$root/config" "$root/backups"
@@ -96,12 +93,6 @@ CONF
     # Starts with fresh secrets; the guide has you copy Railway's values in.
     sed -e "s#^Jwt__Key=RAILWAY#Jwt__Key=$(openssl rand -base64 48 | tr -d '\n')#" \
         "$root/repo/deploy/oracle/env/production.env.example" > "$root/config/production.env"
-  fi
-  if [ -n "$STAGING_API_DOMAIN" ] && [ ! -f "$root/config/staging.env" ]; then
-    printf '%s {\n\tencode gzip\n\treverse_proxy api-staging:8080\n}\n' "$STAGING_API_DOMAIN" > "$root/config/caddy/staging.caddy"
-    sed -e "s#^Jwt__Key=GENERATED#Jwt__Key=$(openssl rand -base64 48 | tr -d '\n')#" \
-        -e "s#^AdminActivationSecret=GENERATED#AdminActivationSecret=$(openssl rand -hex 24)#" \
-        "$root/repo/deploy/oracle/env/staging.env.example" > "$root/config/staging.env"
   fi
   chown -R "$OWNER": "$root/config"
   find "$root/config" -type f -exec chmod 600 {} +
@@ -127,7 +118,7 @@ CONF
 Setup finished. Next (docs/ORACLE.md, part D onwards):
   1. Log out and back in (exit, then ssh again), so you can use Docker.
   2. Fill in the API settings:  nano $root/config/production.env
-  3. Start the API:             $root/repo/deploy/oracle/deploy.sh production origin/staging
+  3. Start the API:             $root/repo/deploy/oracle/deploy.sh production
   4. Check in a browser:        https://$API_DOMAIN/health
 NEXT
 }

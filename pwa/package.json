@@ -8,8 +8,6 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-ocr-assets.mjs",
     "build": "tsc -b && vite build",
-    "prebuild:staging": "node scripts/copy-ocr-assets.mjs",
-    "build:staging": "tsc -b && vite build --mode staging",
     "preview": "vite preview",
     "test": "vitest run"
   },

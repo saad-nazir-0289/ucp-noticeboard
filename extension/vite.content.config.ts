@@ -30,9 +30,9 @@ const LOCAL = {
 // Which backend and PWA this build points at, decided by Vite's --mode:
 //   production (npm run build)                 → the live API and PWA
 //   development (npm run dev / build:local)    → both on this machine
-//   staging (npm run build:staging)            → VITE_API_BASE_URL and
+//   any other mode                             → VITE_API_BASE_URL and
 //        VITE_PWA_BASE_URL, which must both be set (env vars or
-//        .env.staging.local)
+//        .env.<mode>.local)
 // Explicitly set variables always win, in any mode.
 function resolveUrls(mode: string): typeof PRODUCTION {
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -43,7 +43,7 @@ function resolveUrls(mode: string): typeof PRODUCTION {
     if (!value) {
       throw new Error(
         `${key} must be set for --mode ${mode} (e.g. in .env.${mode}.local). ` +
-          "Refusing to guess, so a staging build can never silently talk to production."
+          "Refusing to guess, so a test build can never silently talk to production."
       );
     }
     resolved[key] = value.replace(/\/+$/, "");
@@ -51,11 +51,11 @@ function resolveUrls(mode: string): typeof PRODUCTION {
   return resolved;
 }
 
-const MODE_LABELS: Record<string, string> = { development: "Local", staging: "Staging" };
+const MODE_LABELS: Record<string, string> = { development: "Local" };
 
 // Only production builds land in dist/ — the folder that gets zipped for
-// the Chrome Web Store — so a local or staging build can't be shipped by
-// accident. Others go to dist-local/ and dist-staging/.
+// the Chrome Web Store — so a local build can't be shipped by accident.
+// Others go to dist-local/ (or dist-<mode>/).
 const outDirFor = (mode: string) =>
   mode === "production" ? "dist" : `dist-${MODE_LABELS[mode]?.toLowerCase() ?? mode}`;
 

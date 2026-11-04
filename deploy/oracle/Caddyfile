@@ -5,6 +5,6 @@
 	reverse_proxy api-production:8080
 }
 
-# Optional extra sites, such as staging (setup.sh --staging-domain writes
-# /opt/ucpnb/config/caddy/staging.caddy). None is fine.
+# Optional extra sites (any *.caddy file in /opt/ucpnb/config/caddy). None
+# is fine.
 import /etc/caddy/sites/*.caddy

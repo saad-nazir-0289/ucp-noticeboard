@@ -103,9 +103,6 @@ dev/start-local.sh --reset      # see dev/README.md for URLs and demo accounts
 straight into the installed app (Android) or use Quick fill to paste text or
 read a screenshot: see [`docs/SHARING.md`](./docs/SHARING.md).
 
-**Test on real devices before release** — a full staging copy (separate
-backend, database, PWA and extension build): see [`docs/STAGING.md`](./docs/STAGING.md).
-
 Each part on its own:
 
 ```bash
@@ -124,7 +121,6 @@ cd extension
 npm install
 npm run build          # production → dist/ (what ships to the Chrome Web Store)
 npm run build:local    # → dist-local/, talks to a backend on localhost:5000
-npm run build:staging  # → dist-staging/, see docs/STAGING.md
 
 # PWA
 cd pwa
@@ -132,11 +128,10 @@ npm install
 npm run dev            # talks to a backend on localhost:5000
 npm test               # unit tests (e.g. the share/screenshot reader)
 npm run build          # production → dist/
-npm run build:staging  # → dist-staging/, see docs/STAGING.md
 ```
 
-Which backend a build talks to is decided by its mode (production, local or
-staging) in `pwa/vite.config.ts` and `extension/vite.content.config.ts`;
+Which backend a build talks to is decided by its mode (production or local)
+in `pwa/vite.config.ts` and `extension/vite.content.config.ts`;
 production is always the default.
 
 ## API overview

@@ -10,18 +10,5 @@
     },
     "vars": {
         "API_ORIGIN": "https://ucpnb-api.duckdns.org"
-    },
-    // `npx wrangler deploy --env staging` publishes the staging build
-    // (npm run build:staging → dist-staging/) as a separate Worker, so it
-    // can never overwrite the live site. See docs/STAGING.md.
-    "env": {
-        "staging": {
-            "name": "ucp-noticeboard-staging",
-            "assets": {
-                "directory": "./dist-staging",
-                "binding": "ASSETS",
-                "run_worker_first": ["/api/*", "/api"]
-            }
-        }
     }
 }

@@ -13,9 +13,8 @@ Everything on the server lives in `/opt/ucpnb` and runs in Docker. The
 scripts in `deploy/oracle/` do the work; you never type Docker commands.
 
 **The order:** create the server (A) → a web address for it (B) → set it
-up (C) → its settings (D) → a test website (E) → test with a copy of the
-real data (F) → release day: it becomes production (G) → automatic deploys
-and backups (H).
+up (C) → its settings (D) → test with a copy of the real data (E) →
+release day: it becomes production (F) → automatic deploys and backups (G).
 
 Railway keeps running, untouched, until the very end.
 
@@ -70,7 +69,7 @@ Mac: `chmod 600 <key>` first.)
 On the server:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/saad-nazir-0289/ucp-noticeboard/staging/deploy/oracle/setup.sh -o setup.sh
+curl -fsSL https://raw.githubusercontent.com/saad-nazir-0289/ucp-noticeboard/main/deploy/oracle/setup.sh -o setup.sh
 sudo bash setup.sh --api-domain ucpnb-api.duckdns.org --duckdns-token <your token>
 ```
 
@@ -93,33 +92,10 @@ everyone's notifications working after the move. (To edit the file by hand
 instead: `nano /opt/ucpnb/config/production.env`; save with Ctrl+O, Enter,
 Ctrl+X.)
 
-## E. A test website
-
-In Cloudflare, create a second Worker from this GitHub repository (the same
-way the production one was made):
-
-- branch **`staging`**
-- build command: `cd pwa && npm ci && npm run build:staging`
-- output / assets directory: `pwa/dist-staging`
-- build variable: `VITE_API_BASE_URL` = `https://ucpnb-api.duckdns.org`
-- Path (root directory): `/pwa`
-
-Cloudflare's create form doesn't ask for a branch, so the first build runs
-on `main` and fails with *Missing script: "build:staging"*; that's
-harmless. Set Settings → Build → Branch control → production branch to
-`staging`. "Retry build" repeats the same `main` commit, so the next push
-to `staging` is what produces the first working build.
-
-Note its address (e.g. `https://ucp-noticeboard-staging.<you>.workers.dev`)
-and add it to the end of `Cors__AllowedOrigins` in `production.env`
-(comma, no spaces). I build a matching test extension, which you load in
-Chrome (`chrome://extensions` → Developer mode → Load unpacked) after
-turning the store version off.
-
-## F. Test with a copy of the real data
+## E. Test with a copy of the real data
 
 ```bash
-/opt/ucpnb/repo/deploy/oracle/deploy.sh production origin/staging
+/opt/ucpnb/repo/deploy/oracle/deploy.sh production
 /opt/ucpnb/repo/deploy/oracle/copy-railway-data.sh production --test
 ```
 
@@ -132,14 +108,13 @@ everyone's notification subscriptions and unlocked devices, so nothing you
 do while testing reaches real students. The API then brings the data up to
 date: likes removed, old categories folded into the nine fixed ones.
 
-Test everything on the test website and extension: your real notices,
+Test everything with the live web app and extension: your real notices,
 users and categories, logging in as yourself, posting, sharing,
 notifications (subscribe on your own phone), installing the app.
 
-New code to test? After it's on the `staging` branch, run the `deploy.sh`
-line again. Want fresh data? Run the copy line again.
+Want fresh data? Run the copy line again.
 
-## G. Release day: the server becomes production
+## F. Release day: the server becomes production
 
 Do it in one sitting.
 
@@ -171,7 +146,7 @@ test website (set while testing, so shared links open it), put it back to
 PWA goes back to Railway by itself) and don't publish the extension;
 Railway still has everything.
 
-## H. Automatic deploys and backups (GitHub, after release)
+## G. Automatic deploys and backups (GitHub, after release)
 
 Repository → **Settings → Secrets and variables → Actions**:
 
@@ -217,10 +192,6 @@ compose up -d api-production
 ```
 
 A GitHub backup is decrypted first: `gpg --decrypt file.dump.gpg > file.dump`.
-
-**A separate staging API** is still possible later: run setup.sh again with
-`--staging-domain <another DuckDNS name>`, fill in
-`/opt/ucpnb/config/staging.env`, and `deploy.sh staging`.
 
 ## Troubleshooting
 

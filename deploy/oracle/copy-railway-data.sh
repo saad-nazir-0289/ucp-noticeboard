@@ -2,7 +2,6 @@
 # Copies the live Railway database into one environment here.
 #   copy-railway-data.sh production --test   # a copy to test with (no notifications go out)
 #   copy-railway-data.sh production          # the real move, on release day
-#   copy-railway-data.sh staging             # into a separate staging API, if you have one
 # It asks for Railway's public database URL (Railway → Postgres → Variables
 # → DATABASE_PUBLIC_URL), so it never ends up in a file or your shell history.
 # The target database is backed up first, then replaced; the API then starts
@@ -13,8 +12,7 @@ set -euo pipefail
 main() {
   local env=${1:-} test=0
   [ "${2:-}" = --test ] && test=1
-  [ "$env" = staging ] && test=1
-  valid_env "$env" || die "usage: copy-railway-data.sh production [--test] | staging"
+  valid_env "$env" || die "usage: copy-railway-data.sh production [--test]"
   [ -f "$CONFIG_DIR/$env.env" ] || die "$env isn't set up yet ($CONFIG_DIR/$env.env is missing)."
   load_stack_env
   local db; db=$(database_for "$env")
