@@ -106,8 +106,71 @@ public record AnalyticsSummaryDto(
     // Why people removed the extension, last 90 days: most common first.
     List<UninstallReasonCountDto> UninstallReasons,
     // The latest written comments from the same page, newest first.
-    List<UninstallCommentDto> UninstallComments
+    List<UninstallCommentDto> UninstallComments,
+    // Everything below covers the chosen range: the last RangeDays days
+    // (Pakistan days, today included), compared with the RangeDays before.
+    int RangeDays,
+    // The first day visits and notice opens were counted per day (null:
+    // none yet). Before it, those charts have nothing to show.
+    DateOnly? TrackingSince,
+    AnalyticsTotalsDto Current,
+    AnalyticsTotalsDto Previous,
+    int ActiveToday,
+    int ActiveLast30Days,
+    // People who opened NoticeBoard at least once in the range.
+    int ActiveInRange,
+    List<AnalyticsDayDto> Days,
+    // Dashboard and app opens in the range by hour of the day (Pakistan), 0 to 23.
+    List<int> VisitsByHour,
+    AudienceDto Audience,
+    NoticeStatsDto Notices,
+    List<CategoryStatsDto> Categories,
+    NotificationStatsDto Notifications
 );
+
+/// <summary>Totals for a period, to compare one range with the one before.</summary>
+public record AnalyticsTotalsDto(int NewUsers, int Visits, int Opens, int NoticesPosted, int Archives, int NewSubscriptions);
+
+/// <summary>One day of the range.</summary>
+public record AnalyticsDayDto(
+    DateOnly Day,
+    int NewUsers,
+    int Visitors,
+    int VisitorsExtension,
+    int VisitorsApp,
+    int Visits,
+    int Opens,
+    int NoticesPosted,
+    int Archives,
+    int NewSubscriptions);
+
+/// <summary>
+/// Who uses NoticeBoard and how: where they opened it in the range (the
+/// extension, the web app, or both), and how often anyone has.
+/// </summary>
+public record AudienceDto(
+    int ExtensionOnly,
+    int AppOnly,
+    int Both,
+    int Returning,
+    int OneTime,
+    int NeverOpened,
+    int Dormant);
+
+public record NoticeStatsDto(
+    int Live,
+    int Pinned,
+    int InBin,
+    int PostedInRange,
+    int WithPoster,
+    int WithDeadline,
+    int WithLink,
+    double AverageOpens);
+
+/// <summary>A category: notices posted in the range and their opens, notices live now, and devices that chose it for notifications.</summary>
+public record CategoryStatsDto(int? Id, string Name, int Posted, int Opens, int Live, int Subscribers);
+
+public record NotificationStatsDto(int Devices, int People, int AllTopics, int ChoseTopics, int NewInRange);
 
 public record UninstallReasonCountDto(string Reason, int Count);
 

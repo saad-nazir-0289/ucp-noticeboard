@@ -197,7 +197,7 @@ export function App() {
       setLoginError(null);
       setStatus("ready");
 
-      api.recordVisit(result.token).catch(() => {
+      api.recordVisit(result.token, "app").catch(() => {
         /* non-critical */
       });
 

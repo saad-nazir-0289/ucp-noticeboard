@@ -24,7 +24,8 @@ How these are obtained depends on which version you use:
 
 - Your account role: Student, Publisher, or Admin.
 - Account creation date.
-- The last time you opened the dashboard and a running count of dashboard visits. These are used to provide the Admin with aggregate usage statistics, such as total views and recently active users, rather than a per-person activity history.
+- The last time you opened the dashboard and a running count of dashboard visits, plus the last time you opened NoticeBoard from the extension and from the website (only the latest time for each, not a history). These are used to provide the Admin with aggregate usage statistics, such as total views, recently active users, and how many people use the extension, the website, or both, rather than a per-person activity history.
+- Daily totals that do not identify anyone: how many times NoticeBoard was opened each day and in each hour, how many different people opened it that day, and how many times notices were opened. They are kept as counts only, with no link to any account.
 - If you are a Publisher or Admin, the notices you create, including their titles, descriptions, optional poster images, external links, categories, and deadlines.
 - Notices you have archived from your own feed. These records are private to your account and do not affect what other users see.
 - If you enable notifications, a push subscription associated with that device.

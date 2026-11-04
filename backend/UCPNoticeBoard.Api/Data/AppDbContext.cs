@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
     public DbSet<DeviceSession> DeviceSessions => Set<DeviceSession>();
     public DbSet<UninstallFeedback> UninstallFeedback => Set<UninstallFeedback>();
+    public DbSet<DailyCount> DailyCounts => Set<DailyCount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,6 +77,12 @@ public class AppDbContext : DbContext
             // it rather than creating a duplicate.
             entity.HasIndex(p => p.Endpoint).IsUnique();
             entity.HasIndex(p => p.UserId);
+        });
+
+        modelBuilder.Entity<DailyCount>(entity =>
+        {
+            entity.HasKey(d => new { d.Day, d.Metric });
+            entity.Property(d => d.Metric).IsRequired().HasMaxLength(40);
         });
 
         modelBuilder.Entity<DeviceSession>(entity =>

@@ -46,6 +46,23 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("UCPNoticeBoard.Api.Models.DailyCount", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Metric")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Day", "Metric");
+
+                    b.ToTable("DailyCounts");
+                });
+
             modelBuilder.Entity("UCPNoticeBoard.Api.Models.DeviceSession", b =>
                 {
                     b.Property<int>("Id")
@@ -274,7 +291,13 @@ namespace UCPNoticeBoard.Api.Migrations
                     b.Property<int>("FailedPinAttempts")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("LastSeenAppAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSeenExtensionAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LogoUrl")

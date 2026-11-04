@@ -98,7 +98,7 @@ export function NoticeBoard() {
       setUser(loggedInUser);
       setStatus("ready");
 
-      api.recordVisit(loggedInUser.token).catch(() => {
+      api.recordVisit(loggedInUser.token, "extension").catch(() => {
         /* non-critical: don't block the UI if this fails */
       });
     }
