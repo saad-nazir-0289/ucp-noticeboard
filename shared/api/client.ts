@@ -333,15 +333,17 @@ export const api = {
   revokeMyDevice: (id: number, token: string) =>
     request<void>(`/auth/devices/${id}`, { method: "DELETE" }, token),
 
-  recordVisit: (token: string) =>
-    request<void>("/analytics/visit", { method: "POST" }, token),
+  /** The dashboard (extension) or the web app was opened: counted for the Admin's Analytics. */
+  recordVisit: (token: string, source: "extension" | "app") =>
+    request<void>(`/analytics/visit?source=${source}`, { method: "POST" }, token),
 
   /** From the page shown after the extension is removed: no sign-in, nothing identifying. */
   sendUninstallFeedback: (reason: string, comment: string, extensionVersion: string | null) =>
     request<void>("/feedback/uninstall", { method: "POST", body: JSON.stringify({ reason, comment, extensionVersion }) }),
 
-  getAnalyticsSummary: (adminPin: string, token: string) =>
-    request<AnalyticsSummary>("/analytics/summary", { headers: { "X-Admin-Pin": adminPin } }, token),
+  /** The Admin's Analytics over the last `days` days (7, 30 or 90). */
+  getAnalyticsSummary: (adminPin: string, token: string, days = 30) =>
+    request<AnalyticsSummary>(`/analytics/summary?days=${days}`, { headers: { "X-Admin-Pin": adminPin } }, token),
   getVapidPublicKey: (token: string) =>
     request<{ publicKey: string }>("/push/vapid-public-key", {}, token),
 

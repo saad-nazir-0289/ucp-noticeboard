@@ -17,6 +17,12 @@ public class User
     public DateTime? LastSeenAt { get; set; }
     public int ViewCount { get; set; } = 0;
 
+    // When this person last opened NoticeBoard in each place (only the
+    // latest time, like LastSeenAt: no history), for the Analytics split
+    // between the extension and the web app.
+    public DateTime? LastSeenExtensionAt { get; set; }
+    public DateTime? LastSeenAppAt { get; set; }
+
     // One-time activation code — redeemed once to become Publisher/Admin,
     // then cleared. No longer required on every login (that model was
     // replaced by the PIN below, specifically so Publisher/Admin role

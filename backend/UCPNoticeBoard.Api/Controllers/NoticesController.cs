@@ -57,6 +57,7 @@ public class NoticesController : ControllerBase
 
         notice.ViewCount++;
         await _db.SaveChangesAsync();
+        await DailyCounter.AddAsync(_db, DateTime.UtcNow, "opens");
 
         return Ok(ToDto(notice));
     }
@@ -84,6 +85,7 @@ public class NoticesController : ControllerBase
 
         notice.ViewCount++;
         await _db.SaveChangesAsync();
+        await DailyCounter.AddAsync(_db, DateTime.UtcNow, "opens");
 
         return NoContent();
     }

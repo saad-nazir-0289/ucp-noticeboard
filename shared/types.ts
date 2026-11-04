@@ -75,6 +75,63 @@ export interface AnalyticsSummary {
   uninstallReasons: { reason: string; count: number }[];
   /** The latest written comments from the same page, newest first. */
   uninstallComments: { reason: string; comment: string; extensionVersion: string | null; createdAt: string }[];
+  /** Everything below covers the last `rangeDays` days (Pakistan days, today included). */
+  rangeDays: number;
+  /** The first day visits and opens were counted per day ("2026-11-04"), or null. */
+  trackingSince: string | null;
+  current: AnalyticsTotals;
+  /** The same totals for the `rangeDays` days before. */
+  previous: AnalyticsTotals;
+  activeToday: number;
+  activeLast30Days: number;
+  activeInRange: number;
+  days: AnalyticsDay[];
+  /** Opens in the range by hour of the day (Pakistan), 0 to 23. */
+  visitsByHour: number[];
+  audience: {
+    extensionOnly: number;
+    appOnly: number;
+    both: number;
+    returning: number;
+    oneTime: number;
+    neverOpened: number;
+    dormant: number;
+  };
+  notices: {
+    live: number;
+    pinned: number;
+    inBin: number;
+    postedInRange: number;
+    withPoster: number;
+    withDeadline: number;
+    withLink: number;
+    averageOpens: number;
+  };
+  categories: { id: number | null; name: string; posted: number; opens: number; live: number; subscribers: number }[];
+  notifications: { devices: number; people: number; allTopics: number; choseTopics: number; newInRange: number };
+}
+
+export interface AnalyticsTotals {
+  newUsers: number;
+  visits: number;
+  opens: number;
+  noticesPosted: number;
+  archives: number;
+  newSubscriptions: number;
+}
+
+export interface AnalyticsDay {
+  /** "2026-11-04" */
+  day: string;
+  newUsers: number;
+  visitors: number;
+  visitorsExtension: number;
+  visitorsApp: number;
+  visits: number;
+  opens: number;
+  noticesPosted: number;
+  archives: number;
+  newSubscriptions: number;
 }
 
 export interface NoticeActivity {
