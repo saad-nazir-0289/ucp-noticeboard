@@ -23,11 +23,19 @@ function refusedByProxy(response: Response): boolean {
   return (response.status === 429 || response.status >= 500) && (response.headers.get("Content-Type") ?? "").includes("text/html");
 }
 
+/** A repeatable request that hasn't been answered this long also goes the other way (see apiFetch). */
+const SECOND_TRY_AFTER_MS = 3500;
+
 /**
  * fetch() for an API path: through the main address, and if that one
- * refuses or can't be reached, through the other one. A request that may
- * have reached the server (a network error midway) is only repeated when
- * repeating it is harmless (`repeatable`: reads, signing in).
+ * refuses or can't be reached, through the other one.
+ *
+ * A request that is safe to send twice (`repeatable`: reads, signing in)
+ * also goes the other way if the first hasn't answered within a few
+ * seconds, and whichever answers first is used: the Cloudflare leg
+ * sometimes stalls, while on campus only Cloudflare gets through, so
+ * neither address can simply be given up on. A change that may have
+ * reached the server is never sent twice.
  */
 export async function apiFetch(path: string, init: RequestInit = {}, repeatable?: boolean): Promise<Response> {
   if (!API_FALLBACK_URL) return fetch(`${API_BASE_URL}${path}`, init);
@@ -35,20 +43,70 @@ export async function apiFetch(path: string, init: RequestInit = {}, repeatable?
   const canRepeat = repeatable ?? (method === "GET" || method === "HEAD");
   const viaFallbackFirst = Date.now() < fallbackUntil;
   const [first, second] = viaFallbackFirst ? [API_FALLBACK_URL, API_BASE_URL] : [API_BASE_URL, API_FALLBACK_URL];
-  try {
+  // The second address answered: prefer it for a while (or, if that was
+  // the main address again, go back to it).
+  const secondWon = () => {
+    fallbackUntil = viaFallbackFirst ? 0 : Date.now() + FALLBACK_FOR_MS;
+  };
+
+  if (!canRepeat) {
     const response = await fetch(`${first}${path}`, init);
-    if (!refusedByProxy(response)) return response;
-    // A refusal page from Cloudflare means the server never saw the
-    // request, so even a change can safely go the other way; a 5xx page
-    // might have come after the server acted, so only a repeatable one.
-    if (response.status !== 429 && !canRepeat) return response;
-  } catch (err) {
-    if (!canRepeat) throw err;
+    // Cloudflare's own refusal of a change (its daily limit) means the
+    // server never saw it, so it can go the other way; any other error
+    // page might have come after the server acted.
+    if (!refusedByProxy(response) || response.status !== 429) return response;
+    secondWon();
+    return fetch(`${second}${path}`, init);
   }
-  if (!viaFallbackFirst) fallbackUntil = Date.now() + FALLBACK_FOR_MS;
-  else fallbackUntil = 0; // the server's own address failed: back to the main one
-  return fetch(`${second}${path}`, init);
+
+  // Reads and signing in: the first address, and the second as well if
+  // the first fails or is slow; the first good answer wins.
+  return new Promise<Response>((resolve, reject) => {
+    let settled = false;
+    let failures = 0;
+    let lastRefusal: Response | null = null;
+    let lastError: unknown = null;
+    let secondStarted = false;
+    const fail = (refusal: Response | null, err: unknown) => {
+      if (refusal) lastRefusal = refusal;
+      else lastError = err;
+      failures += 1;
+      if (failures === 2 && !settled) {
+        settled = true;
+        if (lastRefusal) resolve(lastRefusal);
+        else reject(lastError);
+      }
+    };
+    const run = (base: string, isSecond: boolean) =>
+      fetch(`${base}${path}`, init).then(
+        (response) => {
+          if (refusedByProxy(response)) {
+            fail(response, null);
+            if (!isSecond) startSecond();
+            return;
+          }
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (isSecond) secondWon();
+          resolve(response);
+        },
+        (err) => {
+          fail(null, err);
+          if (!isSecond) startSecond();
+        }
+      );
+    const startSecond = () => {
+      if (secondStarted) return;
+      secondStarted = true;
+      clearTimeout(timer);
+      void run(second, true);
+    };
+    const timer = setTimeout(startSecond, SECOND_TRY_AFTER_MS);
+    void run(first, false);
+  });
 }
+
 /**
  * The API as a full address, for links that leave the app (shared notices,
  * calendar entries). The web app reaches the API through its own site
