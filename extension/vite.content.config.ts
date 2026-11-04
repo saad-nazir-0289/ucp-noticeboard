@@ -21,6 +21,7 @@ const PRODUCTION = {
   VITE_API_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev/api",
   VITE_PWA_BASE_URL: "https://ucp-noticeboard.msndev.workers.dev",
 };
+const DIRECT_API_URL = "https://ucpnb-api.duckdns.org";
 const LOCAL = {
   VITE_API_BASE_URL: "http://localhost:5000",
   VITE_PWA_BASE_URL: "http://localhost:5173",
@@ -160,6 +161,9 @@ export default defineConfig(({ mode }) => {
   const outDir = outDirFor(mode);
   // Written back into process.env so Vite exposes them as import.meta.env.
   Object.assign(process.env, urls);
+  // The server's own address, if Cloudflare (the API's main address)
+  // refuses or can't be reached (shared/api/client.ts). Production only.
+  process.env.VITE_API_FALLBACK_URL = mode === "production" ? DIRECT_API_URL : "";
 
   return {
     plugins: [react(), extensionManifest(mode, outDir, urls.VITE_PWA_BASE_URL)],

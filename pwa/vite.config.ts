@@ -16,6 +16,7 @@ const sharedConfig = {
 // Production reaches the API through the app's own site (worker.js passes
 // /api on to the Oracle server, https://ucpnb-api.duckdns.org).
 const PRODUCTION_API_URL = "/api";
+const DIRECT_API_URL = "https://ucpnb-api.duckdns.org";
 const LOCAL_API_URL = "http://localhost:5000";
 
 // Which backend this build talks to, decided by Vite's --mode:
@@ -56,6 +57,9 @@ export default defineConfig(({ mode }) => {
   // exposes env vars: import.meta.env in code and %VITE_API_BASE_URL% in
   // index.html.
   process.env.VITE_API_BASE_URL = resolveApiUrl(mode);
+  // The server's own address, if Cloudflare (the /api proxy) refuses or
+  // can't be reached (shared/api/client.ts). Production only.
+  process.env.VITE_API_FALLBACK_URL = mode === "production" ? DIRECT_API_URL : "";
 
   return {
     plugins: [react()],
