@@ -13,7 +13,9 @@ const sharedConfig = {
   },
 };
 
-const PRODUCTION_API_URL = "https://ucpnb-api.duckdns.org";
+// Production reaches the API through the app's own site (worker.js passes
+// /api on to the Oracle server, https://ucpnb-api.duckdns.org).
+const PRODUCTION_API_URL = "/api";
 const LOCAL_API_URL = "http://localhost:5000";
 
 // Which backend this build talks to, decided by Vite's --mode:

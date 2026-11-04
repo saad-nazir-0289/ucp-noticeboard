@@ -22,8 +22,16 @@ async function check(): Promise<void> {
     try {
       const response = await fetch("/", { cache: "no-store" });
       if (!response.ok) return;
-      const current = scriptOf(await response.text());
+      const page = await response.text();
+      const current = scriptOf(page);
       newVersionWaiting = current !== null && current !== running;
+      // The app opens from its saved copy (public/sw.js): save the new page
+      // there too, so the reload below opens the new version.
+      if (newVersionWaiting && "caches" in window) {
+        const names = await caches.keys();
+        const shell = names.find((name) => name.startsWith("ucpnb-shell-"));
+        if (shell) await (await caches.open(shell)).put("/", new Response(page, { headers: { "Content-Type": "text/html; charset=utf-8" } }));
+      }
     } catch {
       return; // offline: try again next time
     }

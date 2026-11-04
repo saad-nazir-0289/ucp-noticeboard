@@ -110,7 +110,12 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             // Lets the clients see when their device unlock has lapsed.
-            .WithExposedHeaders(PinService.DeviceTokenStatusHeader);
+            .WithExposedHeaders(PinService.DeviceTokenStatusHeader)
+            // Browsers ask permission before each cross-site request (the
+            // extension on Horizon): remembered for 2 hours (the most
+            // Chrome keeps it), not the default 5 seconds, so each request
+            // is one trip to the server instead of two.
+            .SetPreflightMaxAge(TimeSpan.FromHours(2));
     });
 });
 

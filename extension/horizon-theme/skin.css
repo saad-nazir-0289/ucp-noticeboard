@@ -250,11 +250,10 @@ html.ucpnb-skin .md-card {
   border-radius: var(--sk-radius) !important;
   box-shadow: var(--sk-shadow-1) !important;
   /* No overflow: hidden here: menus that open inside a card (the
-     NoticeBoard panel's among them) must not be cut off. The entrance
-     animation is "backwards", not "both": an animation still holding a
-     transform afterwards makes the card the frame of fixed pop-ups inside
-     it, which put the notice view below the screen. */
-  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+     NoticeBoard panel's among them) must not be cut off. No entrance
+     animation either: cards show the moment Horizon draws them, and a
+     transform left on a card would make it the frame of fixed pop-ups
+     inside it (the notice view would open below the screen). */
 }
 html.ucpnb-skin .md-card .md-card-content,
 html.ucpnb-skin .md-card .md-card-toolbar {
@@ -407,14 +406,6 @@ html.ucpnb-skin #page_content_inner .card .card-title {
 html.ucpnb-skin #page_content_inner .card .card-body :is(span, b, div, h6) {
   color: var(--sk-text-2) !important;
 }
-html.ucpnb-skin #page_content_inner .uk-grid > * {
-  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
-}
-html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(2) { animation-delay: 0.05s; }
-html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(3) { animation-delay: 0.1s; }
-html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(4) { animation-delay: 0.15s; }
-html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(5) { animation-delay: 0.2s; }
-html.ucpnb-skin #page_content_inner .uk-grid > :nth-child(n + 6) { animation-delay: 0.25s; }
 
 /* Attendance bars. */
 html.ucpnb-skin .uk-progress {
@@ -629,7 +620,6 @@ html.ucpnb-skin .cd-schedule__event {
   box-sizing: border-box;
   padding: 2px 4px !important;
   z-index: 3;
-  animation: ucpnb-pop 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 html.ucpnb-skin .cd-schedule__event a {
   display: flex !important;
@@ -734,7 +724,6 @@ html.ucpnb-skin .ext .custom-card {
   border-radius: var(--sk-radius) !important;
   box-shadow: var(--sk-shadow-1) !important;
   color: var(--sk-text) !important;
-  animation: ucpnb-rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 html.ucpnb-skin .ext .custom-card :is(h1, h2, h3, h4, .h4) {
   font-family: var(--sk-font) !important;

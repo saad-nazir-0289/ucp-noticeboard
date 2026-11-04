@@ -2,6 +2,16 @@ import type { AddUserResult, AnalyticsSummary, BinNotice, AuthUser, Category, De
 
 // Set per build mode (production / staging / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+/**
+ * The API as a full address, for links that leave the app (shared notices,
+ * calendar entries). The web app reaches the API through its own site
+ * ("/api", proxied by pwa/worker.js), so its links get the site's address
+ * in front.
+ */
+export const PUBLIC_API_URL = new URL(
+  `${API_BASE_URL}/`,
+  typeof location !== "undefined" ? location.origin : "http://localhost"
+).href.replace(/\/$/, "");
 
 /**
  * A request that didn't succeed, with a message a person can act on.

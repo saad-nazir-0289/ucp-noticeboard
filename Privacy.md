@@ -1,6 +1,6 @@
 # Privacy Policy — UCP NoticeBoard
 
-**Last updated: November 1, 2026**
+**Last updated: November 4, 2026**
 
 This document explains what UCP NoticeBoard collects, why it collects it, and how the information is handled across both the Chrome extension and the standalone mobile-friendly website (the “PWA”). It is intended to reflect the application's actual implementation, not generic boilerplate.
 
@@ -93,7 +93,7 @@ This is a standard browser capability. Delivery is routed through the browser ve
 ## Where Your Data Is Stored
 
 - **Application data:** Accounts, notices, categories, dismissal records, and push subscriptions are stored in a PostgreSQL database on a server run by the project on Oracle Cloud infrastructure (oracle.com/cloud), a third-party cloud provider.
-- **Standalone website (PWA):** The website itself is served by Cloudflare (cloudflare.com).
+- **Standalone website (PWA):** The website itself is served by Cloudflare (cloudflare.com). Requests from the website and the extension to the NoticeBoard server pass through the same Cloudflare site on their way, so they are fast and reachable on networks that block the server's own address; Cloudflare passes them on and does not store them.
 - **Poster images:** Images uploaded by Publishers or Admins are hosted on Cloudinary (cloudinary.com), a third-party image hosting provider. These images may be publicly accessible through their hosted URLs.
 - **Chrome extension:** Settings, and Publisher Roll Numbers and server-issued sign-in tokens, are stored locally using `chrome.storage.local`; your profile picture is stored with `chrome.storage.sync`; the Submissions Due list and related items are kept in the portal page's own browser storage. All as described above.
 - **PWA:** Your Roll Number is saved locally by the application so you do not need to enter it again on that device.

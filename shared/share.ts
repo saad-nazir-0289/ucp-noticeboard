@@ -1,5 +1,5 @@
 import type { Notice } from "./types";
-import { API_BASE_URL } from "./api/client";
+import { PUBLIC_API_URL } from "./api/client";
 import { formatDateTime } from "./format";
 
 /**
@@ -12,7 +12,7 @@ import { formatDateTime } from "./format";
  * redirects an actual human straight into the real app instantly.
  */
 export function shareLink(notice: Notice): string {
-  return `${API_BASE_URL}/share/notice/${notice.id}`;
+  return `${PUBLIC_API_URL}/share/notice/${notice.id}`;
 }
 
 /**

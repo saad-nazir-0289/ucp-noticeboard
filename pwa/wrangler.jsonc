@@ -1,8 +1,15 @@
 {
     "name": "ucp-noticeboard-pwa",
     "compatibility_date": "2026-08-20",
+    // The app's files, plus /api passed on to the NoticeBoard server (worker.js).
+    "main": "./worker.js",
     "assets": {
-        "directory": "./dist"
+        "directory": "./dist",
+        "binding": "ASSETS",
+        "run_worker_first": ["/api/*", "/api"]
+    },
+    "vars": {
+        "API_ORIGIN": "https://ucpnb-api.duckdns.org"
     },
     // `npx wrangler deploy --env staging` publishes the staging build
     // (npm run build:staging → dist-staging/) as a separate Worker, so it
@@ -11,7 +18,9 @@
         "staging": {
             "name": "ucp-noticeboard-staging",
             "assets": {
-                "directory": "./dist-staging"
+                "directory": "./dist-staging",
+                "binding": "ASSETS",
+                "run_worker_first": ["/api/*", "/api"]
             }
         }
     }

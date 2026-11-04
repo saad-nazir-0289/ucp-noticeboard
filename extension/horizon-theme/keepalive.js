@@ -22,7 +22,27 @@
     setTimeout(() => {
       if (on && isOpen(modal)) stay.click();
       pressing = false;
+      // Closing it that quickly can leave the page's scroll lock behind.
+      setTimeout(unlockScroll, 700);
+      setTimeout(unlockScroll, 2000);
     }, 400);
+  }
+
+  // UIkit locks the page's scrolling while a dialog is open (uk-modal-page
+  // on <html>). If a dialog closed without undoing that, the page could no
+  // longer scroll: with no dialog open, it's undone here.
+  function unlockScroll() {
+    const root = document.documentElement;
+    if (!root.classList.contains("uk-modal-page")) return;
+    const anyOpen = [...document.querySelectorAll(".uk-modal")].some(
+      (m) => m.classList.contains("uk-open") && getComputedStyle(m).display !== "none"
+    );
+    if (anyOpen) return;
+    root.classList.remove("uk-modal-page");
+    for (const el of [root, document.body]) {
+      el.style.removeProperty("overflow");
+      el.style.removeProperty("padding-right");
+    }
   }
 
   let watched = null;
@@ -41,6 +61,7 @@
   setInterval(() => {
     watch();
     check();
+    unlockScroll();
   }, 5000);
 
   chrome.storage.local.get(KEY).then((saved) => {

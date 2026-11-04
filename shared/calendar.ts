@@ -1,5 +1,5 @@
 import type { Notice } from "./types";
-import { API_BASE_URL } from "./api/client";
+import { PUBLIC_API_URL } from "./api/client";
 
 // A notice's deadline as a calendar event: the hour leading up to it,
 // titled so it reads right in a busy calendar, with the notice's link
@@ -16,7 +16,7 @@ function utcStamp(date: Date): string {
 function eventDetails(notice: Notice) {
   const end = new Date(notice.deadline!);
   const start = new Date(end.getTime() - EVENT_LENGTH_MS);
-  const link = notice.linkUrl || `${API_BASE_URL}/share/notice/${notice.id}`;
+  const link = notice.linkUrl || `${PUBLIC_API_URL}/share/notice/${notice.id}`;
   return {
     title: `Deadline: ${notice.title}`,
     start,
