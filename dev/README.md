@@ -50,8 +50,8 @@ It only reproduces what the extension relies on — the name/Roll Number
 heading and the "Classes, Grades and Attendance" section it injects above —
 and loads the locally built `content.js` the way Chrome would. Layout
 details of the real portal (fonts, grid CSS) are approximated, so always
-give a UI change a final look on the real portal via a staging build
-(see `docs/STAGING.md`).
+give a UI change a final look on the real portal (load the local build,
+`npm run build:local`, as an unpacked extension).
 
 ## Screenshots
 

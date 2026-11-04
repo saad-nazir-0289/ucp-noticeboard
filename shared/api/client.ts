@@ -1,13 +1,13 @@
 import type { AddUserResult, AnalyticsSummary, BinNotice, AuthUser, Category, DeviceSession, LoginResult, Notice, PagedResult, UnlockDeviceResult, UpdateUserRoleResult, UserListItem, UserRole } from "../types";
 
-// Set per build mode (production / staging / local) in each app's Vite config.
+// Set per build mode (production / local) in each app's Vite config.
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 /**
  * The server's own address, used when the main one doesn't answer. In
  * production the main address goes through Cloudflare (pwa/worker.js),
  * whose free plan has a daily request limit: past it, or if Cloudflare
  * can't be reached, requests go straight to the server instead. Empty
- * (no fallback) in local and staging builds.
+ * (no fallback) in local builds.
  */
 const API_FALLBACK_URL = (import.meta.env.VITE_API_FALLBACK_URL ?? "").replace(/\/+$/, "");
 /** After a fallback, the server's own address is tried first for this long. */

@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite build --config vite.content.config.ts --mode development --watch",
     "build": "tsc -b && vite build --config vite.content.config.ts",
-    "build:local": "tsc -b && vite build --config vite.content.config.ts --mode development",
-    "build:staging": "tsc -b && vite build --config vite.content.config.ts --mode staging"
+    "build:local": "tsc -b && vite build --config vite.content.config.ts --mode development"
   },
   "dependencies": {
     "react": "^18.3.1",

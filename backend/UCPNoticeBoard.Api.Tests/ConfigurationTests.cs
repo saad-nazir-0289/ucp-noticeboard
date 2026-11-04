@@ -39,28 +39,28 @@ public class DefaultConfigurationTests : IClassFixture<ApiFactory>
     }
 }
 
-/// <summary>A staging deploy overrides both settings through configuration.</summary>
-public class StagingConfigurationTests : IClassFixture<StagingConfigurationTests.StagingApiFactory>
+/// <summary>Another deploy (a test copy) overrides both settings through configuration.</summary>
+public class OverriddenConfigurationTests : IClassFixture<OverriddenConfigurationTests.OverriddenApiFactory>
 {
-    public class StagingApiFactory : ApiFactory
+    public class OverriddenApiFactory : ApiFactory
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             base.ConfigureWebHost(builder);
-            builder.UseSetting("Cors:AllowedOrigins", "https://horizon.ucp.edu.pk, https://staging-pwa.example.com");
-            builder.UseSetting("Pwa:BaseUrl", "https://staging-pwa.example.com/");
+            builder.UseSetting("Cors:AllowedOrigins", "https://horizon.ucp.edu.pk, https://test-pwa.example.com");
+            builder.UseSetting("Pwa:BaseUrl", "https://test-pwa.example.com/");
         }
     }
 
-    private readonly StagingApiFactory _api;
+    private readonly OverriddenApiFactory _api;
 
-    public StagingConfigurationTests(StagingApiFactory api) => _api = api;
+    public OverriddenConfigurationTests(OverriddenApiFactory api) => _api = api;
 
     [Fact]
     public async Task Cors_UsesConfiguredOrigins()
     {
-        Assert.Equal("https://staging-pwa.example.com",
-            await CorsHelpers.AllowedOriginFor(_api, "https://staging-pwa.example.com"));
+        Assert.Equal("https://test-pwa.example.com",
+            await CorsHelpers.AllowedOriginFor(_api, "https://test-pwa.example.com"));
         Assert.Null(await CorsHelpers.AllowedOriginFor(_api, "https://ucp-noticeboard.msndev.workers.dev"));
     }
 
@@ -71,7 +71,7 @@ public class StagingConfigurationTests : IClassFixture<StagingConfigurationTests
 
         var html = await client.GetStringAsync("/share/notice/999999");
 
-        Assert.Contains("https://staging-pwa.example.com/?notice=999999", html);
+        Assert.Contains("https://test-pwa.example.com/?notice=999999", html);
     }
 }
 

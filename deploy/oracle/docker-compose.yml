@@ -1,4 +1,4 @@
-# NoticeBoard on one server: Postgres, the production and staging APIs,
+# NoticeBoard on one server: Postgres, the API,
 # and Caddy in front (HTTPS certificates are automatic). Run through
 # deploy.sh / setup.sh, which pass the right files; by hand:
 #   docker compose -f docker-compose.yml --env-file /opt/ucpnb/config/stack.env ...
@@ -35,29 +35,11 @@ services:
     environment:
       PORT: "8080"
       ASPNETCORE_ENVIRONMENT: Production
-      # Small heap, returned to the OS when idle: two APIs fit on a 1 GB server.
+      # Small heap, returned to the OS when idle: fits a 1 GB server.
       DOTNET_gcServer: "0"
       DOTNET_GCConserveMemory: "7"
       ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_production;Username=postgres;Password=${POSTGRES_PASSWORD}"
     profiles: ["production"]
-
-  api-staging:
-    image: ucpnb-api:staging
-    restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
-    env_file:
-      - path: /opt/ucpnb/config/staging.env
-        required: false
-    environment:
-      PORT: "8080"
-      ASPNETCORE_ENVIRONMENT: Production
-      # Small heap, returned to the OS when idle: two APIs fit on a 1 GB server.
-      DOTNET_gcServer: "0"
-      DOTNET_GCConserveMemory: "7"
-      ConnectionStrings__DefaultConnection: "Host=db;Database=ucpnb_staging;Username=postgres;Password=${POSTGRES_PASSWORD}"
-    profiles: ["staging"]
 
   caddy:
     image: caddy:2-alpine

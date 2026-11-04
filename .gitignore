@@ -19,7 +19,7 @@ context.md
 # TypeScript incremental build cache
 *.tsbuildinfo
 
-# Vite per-machine env overrides (e.g. .env.staging.local)
+# Vite per-machine env overrides (e.g. .env.local)
 .env*.local
 
 # Local preview runtime files (logs, pids)

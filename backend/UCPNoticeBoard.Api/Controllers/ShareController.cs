@@ -13,7 +13,7 @@ public class ShareController : ControllerBase
     private readonly AppDbContext _db;
 
     // Where a human following a share link ends up. Comes from
-    // Pwa:BaseUrl so a staging API redirects into the staging PWA.
+    // Pwa:BaseUrl so a test API redirects into its own PWA.
     private readonly string _pwaBaseUrl;
 
     public ShareController(AppDbContext db, IConfiguration configuration)

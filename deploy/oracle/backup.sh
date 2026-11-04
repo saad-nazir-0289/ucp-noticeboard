@@ -6,7 +6,7 @@
 set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/common.sh"
 
-env=${1:-production}; valid_env "$env" || die "usage: backup.sh production|staging [--stdout]"
+env=${1:-production}; valid_env "$env" || die "usage: backup.sh production [--stdout]"
 load_stack_env
 db=$(database_for "$env")
 

@@ -22,8 +22,8 @@ const LOCAL_API_URL = "http://localhost:5000";
 // Which backend this build talks to, decided by Vite's --mode:
 //   production (npm run build)          → the live API (Oracle server)
 //   development (npm run dev)           → a backend on this machine
-//   staging (npm run build:staging)     → VITE_API_BASE_URL, which must be
-//                                         set (env var or .env.staging.local)
+//   any other mode                      → VITE_API_BASE_URL, which must be
+//                                         set (env var or .env.<mode>.local)
 // An explicit VITE_API_BASE_URL always wins, in any mode.
 function resolveApiUrl(mode: string): string {
   const fromEnv = loadEnv(mode, process.cwd(), "VITE_").VITE_API_BASE_URL;
@@ -32,7 +32,7 @@ function resolveApiUrl(mode: string): string {
   if (mode === "development" || mode === "test") return LOCAL_API_URL;
   throw new Error(
     `VITE_API_BASE_URL must be set for --mode ${mode} (e.g. in .env.${mode}.local). ` +
-      "Refusing to guess, so a staging build can never silently talk to production."
+      "Refusing to guess, so a test build can never silently talk to production."
   );
 }
 
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
     server: { fs: { allow: [__dirname, resolve(__dirname, "../shared")] } },
     build: {
       // Only production builds land in dist/ (what wrangler deploys to
-      // the live site); staging goes to dist-staging/.
+      // the live site); other modes go to dist-<mode>/.
       outDir: mode === "production" ? "dist" : `dist-${mode}`,
     },
   };

@@ -193,7 +193,7 @@ public class NoticesController : ControllerBase
     /// <summary>
     /// Where tapping a notification about this notice lands: the PWA, with
     /// the notice open. Relative, so the service worker resolves it against
-    /// whichever PWA (production or staging) the subscription came from.
+    /// whichever PWA (the live one or a local test copy) the subscription came from.
     /// </summary>
     public static string NoticeLink(int noticeId) => $"/?notice={noticeId}";
 

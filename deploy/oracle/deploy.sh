@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # Builds and starts one environment's API from a git commit or branch.
-#   deploy.sh staging                 # latest staging branch
 #   deploy.sh production              # latest main branch
 #   deploy.sh production 3f2c1a9      # a specific commit
 # If the new version doesn't come up healthy, the previous one is put back.
 set -euo pipefail
 . "$(dirname "$(readlink -f "$0")")/common.sh"
 
-env=${1:-}; valid_env "$env" || die "usage: deploy.sh production|staging [git ref]"
-default_branch=$([ "$env" = production ] && echo main || echo staging)
-ref=${2:-origin/$default_branch}
+env=${1:-}; valid_env "$env" || die "usage: deploy.sh production [git ref]"
+ref=${2:-origin/main}
 [ -f "$CONFIG_DIR/$env.env" ] || die "$CONFIG_DIR/$env.env is missing: this environment isn't set up yet (see docs/ORACLE.md)."
 load_stack_env
 

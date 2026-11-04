@@ -6,7 +6,7 @@ namespace UCPNoticeBoard.Api.Services;
 
 /// <summary>
 /// Fills an EMPTY database with realistic sample content, so a local run
-/// or a staging deploy has something to look at and click through.
+/// or a test deploy has something to look at and click through.
 ///
 /// Opt-in only (SeedDemoData=true), and it refuses to touch a database
 /// that already has any users — so even a flag set by mistake on a real

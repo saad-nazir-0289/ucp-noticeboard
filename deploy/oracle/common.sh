@@ -1,8 +1,8 @@
 # Shared by the scripts in this folder. Everything lives under /opt/ucpnb:
 #   repo/          a clone of the GitHub repository (scripts run from here)
 #   src/<env>/     the code each environment was last deployed from
-#   config/        stack.env (database password, domains), production.env,
-#                  staging.env (each API's settings and secrets)
+#   config/        stack.env (database password, domains), production.env
+#                  (the API's settings and secrets)
 #   backups/       nightly database dumps
 UCPNB_ROOT=/opt/ucpnb
 UCPNB_REPO_URL=${UCPNB_REPO_URL:-https://github.com/saad-nazir-0289/ucp-noticeboard.git}
@@ -19,11 +19,10 @@ compose() {
   [ -f "$UCPNB_ROOT/src/production/deploy/oracle/docker-compose.yml" ] && dir=$UCPNB_ROOT/src/production/deploy/oracle
   local profiles=()
   [ -f "$CONFIG_DIR/production.env" ] && profiles+=(--profile production)
-  [ -f "$CONFIG_DIR/staging.env" ] && profiles+=(--profile staging)
   docker compose --project-directory "$dir" -f "$dir/docker-compose.yml" --env-file "$STACK_ENV" "${profiles[@]}" "$@"
 }
 
-valid_env() { [ "$1" = production ] || [ "$1" = staging ]; }
+valid_env() { [ "$1" = production ]; }
 database_for() { echo "ucpnb_$1"; }
 
 # Postgres client tools, on the stack's network. They can dump any server up
