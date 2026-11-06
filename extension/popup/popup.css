@@ -136,8 +136,8 @@ label.setting { cursor: pointer; }
   background: var(--card);
 }
 .developer-who { display: grid; flex: 1; min-width: 0; line-height: 1.25; }
-.developer-who small { color: var(--muted); font-size: 11.5px; }
 .developer-who strong { font-size: 14px; }
+.developer-who small { color: var(--muted); font-size: 12px; }
 .developer-link {
   display: flex; align-items: center; gap: 6px;
   padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px;
