@@ -1,37 +1,42 @@
 // "Submissions Due" on the Horizon dashboard, a section of its own just
-// before News and Announcements:
-// every assignment still open for submission, in every course on the
-// dashboard, soonest first, each linking to its submission page.
+// before News and Announcements: every assignment still open for
+// submission, in every course on the dashboard, soonest first, each linking
+// to its submission page.
 //
 // Each course card links to /student/course/info/<id>; its submission page
 // is /student/course/submission/<id>, with one row per assignment
 // (tr[submission_id]: title, start, due date, and an "Upload" button while
-// it can still be submitted). Those pages are read in the background, as
-// the student (same site, their own login), at most every 30 minutes, and
-// only once the dashboard has finished loading and the browser is idle, two
-// pages at a time, so Horizon itself is never slowed down; the last result
-// shows straight away meanwhile.
+// it can still be submitted).
+//
+// How it stays right:
+// - Whenever the student opens a course's submission page, that page is
+//   read as it is shown and remembered: no extra request, and the dashboard
+//   is right about that course straight away.
+// - On the dashboard, what is known shows at once. Courses not checked in
+//   the last 5 minutes are read in the background (as the student, same
+//   site, three pages at a time, low priority), each one shown as soon as
+//   it arrives. Again when the tab comes back into view after 2 minutes,
+//   every 5 minutes while it stays open, and on "Check now".
+// - A page that isn't a submission page (Horizon busy, logged out, an
+//   error) never counts as "nothing due": that course keeps what was last
+//   known, and the section says it couldn't be checked.
+//
+// Not every few seconds: each check opens one Horizon page per course, and
+// Horizon takes seconds to answer each, so checking constantly would slow
+// the portal down for the student; deadlines don't change that often.
 //
 // Left out: assignments past their due date, rows without an Upload button,
 // and, for half an hour, ones the student just submitted with the extension
 // watching (submit-watch.js notes those in ucpnb_submitted_ids), until
 // Horizon's page catches up.
 (() => {
-  if (!location.pathname.startsWith("/student/dashboard")) return;
-
-  const CACHE = "ucpnb_due_cache"; // page storage: { at, items }
+  const CACHE = "ucpnb_due_v2"; // page storage: { [courseId]: { at, name, items } }
   const DONE = "ucpnb_submitted_ids"; // page storage: { id: when }, from submit-watch.js
-  // Horizon takes the Upload button away once a submission is in ("You can
-  // not submit again"), so a submission seen here only needs hiding until
-  // Horizon's own page says so. After that, Horizon's page decides.
   const DONE_FOR_MS = 30 * 60 * 1000;
-  const recentlySubmitted = () => {
-    const done = read(DONE, {});
-    if (Array.isArray(done) || typeof done !== "object") return new Set(); // the old list: Horizon decides
-    const now = Date.now();
-    return new Set(Object.keys(done).filter((id) => now - done[id] < DONE_FOR_MS));
-  };
-  const FRESH_MS = 30 * 60 * 1000;
+  const STALE_MS = 5 * 60 * 1000; // a course checked longer ago than this is read again
+  const BACK_MS = 2 * 60 * 1000; // coming back to the tab: read again if older than this
+  const EVERY_MS = 5 * 60 * 1000; // while the dashboard stays open and in view
+
   const read = (key, fallback) => {
     try {
       return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback;
@@ -43,16 +48,78 @@
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      // Not cached: read again next time.
+      // Not saved: read again next time.
     }
   };
-
-  // "2026-11-06 23:59", Horizon's own (Pakistan) time.
-  const parseDate = (text) => {
-    const m = text.trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/);
-    return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5]).getTime() : NaN;
+  const recentlySubmitted = () => {
+    const done = read(DONE, {});
+    if (Array.isArray(done) || typeof done !== "object") return new Set(); // the old list: Horizon decides
+    const now = Date.now();
+    return new Set(Object.keys(done).filter((id) => now - done[id] < DONE_FOR_MS));
   };
 
+  // "2026-11-06 23:59" is Horizon's own time, Pakistan (UTC+5), whatever
+  // the device's time zone.
+  const parseDate = (text) => {
+    const m = (text ?? "").trim().match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2})/);
+    return m ? Date.UTC(+m[1], m[2] - 1, +m[3], +m[4] - 5, +m[5]) : NaN;
+  };
+  const clean = (text) => (text ?? "").replace(/\s+/g, " ").trim();
+
+  /**
+   * A course's assignments from its submission page, or null when the page
+   * isn't one (a login or error page): unknown, not empty.
+   */
+  function parseCourse(doc, courseId) {
+    const rows = [...doc.querySelectorAll("tr[submission_id]")];
+    // Columns by their headings, in case Horizon drops a class name.
+    const headings = [...doc.querySelectorAll("thead th")].map((th) => clean(th.textContent).toLowerCase());
+    const isSubmissionPage =
+      rows.length > 0 ||
+      headings.includes("due date") ||
+      Boolean(doc.querySelector(`a.md-btn-success[href*="/student/course/submission/${courseId}"]`));
+    if (!isSubmissionPage) return null;
+    const column = (row, name) => {
+      const i = headings.indexOf(name);
+      return i >= 0 ? row.children[i] : null;
+    };
+    return rows.map((row) => ({
+      id: row.getAttribute("submission_id"),
+      title:
+        clean((row.querySelector(".rec_submission_title") ?? column(row, "name"))?.textContent) || "Submission",
+      due: parseDate((row.querySelector(".rec_submission_due_date") ?? column(row, "due date"))?.textContent),
+      open: Boolean(
+        row.querySelector(".upload_submission") ||
+          [...row.querySelectorAll("a, button")].some((el) => /^upload\b/i.test(clean(el.textContent)))
+      ),
+    }));
+  }
+
+  function remember(courseId, name, items) {
+    const all = read(CACHE, {});
+    all[courseId] = { at: Date.now(), name: name || all[courseId]?.name || "", items };
+    write(CACHE, all);
+  }
+
+  // ---------- On a course's submission page: remember what it shows ----------
+  const onSubmissionPage = location.pathname.match(/^\/student\/course\/submission\/([^/?#]+)/);
+  if (onSubmissionPage) {
+    const courseId = onSubmissionPage[1];
+    const learn = () => {
+      const items = parseCourse(document, courseId);
+      if (!items) return;
+      // "Software Testing (CSSE4193-...)" in the page's tab.
+      const name = clean(document.querySelector(".uk-tab li a")?.textContent).replace(/\s*\(.*$/, "");
+      remember(courseId, name, items);
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", learn, { once: true });
+    else learn();
+    return;
+  }
+
+  if (!location.pathname.startsWith("/student/dashboard")) return;
+
+  // ---------- On the dashboard ----------
   // Course id to name, and to its card's header, whose colour the course's
   // submissions take.
   const headers = new Map();
@@ -62,7 +129,7 @@
       const id = link.getAttribute("href").split("/student/course/info/")[1]?.split(/[/?#]/)[0];
       if (!id || found.has(id)) continue;
       const header = link.querySelector(".card-header");
-      const name = header?.textContent.trim() || link.textContent.trim().split("\n")[0].trim();
+      const name = clean(header?.textContent) || clean(link.textContent.trim().split("\n")[0]);
       found.set(id, name);
       if (header) headers.set(id, header);
     }
@@ -77,22 +144,25 @@
     return style.backgroundImage !== "none" ? style.backgroundImage : style.backgroundColor;
   }
 
-  async function readCourse(id, name) {
-    const response = await fetch(`/student/course/submission/${id}`, { credentials: "same-origin" });
-    if (!response.ok) return [];
-    const page = new DOMParser().parseFromString(await response.text(), "text/html");
-    return [...page.querySelectorAll("tr[submission_id]")].map((row) => ({
-      id: row.getAttribute("submission_id"),
-      courseId: id,
-      course: name,
-      title: row.querySelector(".rec_submission_title")?.textContent.trim() || "Submission",
-      due: parseDate(row.querySelector(".rec_submission_due_date")?.textContent ?? ""),
-      open: Boolean(row.querySelector(".upload_submission")),
-    }));
+  async function readCourse(id) {
+    const response = await fetch(`/student/course/submission/${id}`, {
+      credentials: "same-origin",
+      cache: "no-store",
+      priority: "low",
+    });
+    if (!response.ok || !new URL(response.url).pathname.startsWith("/student/course/submission/")) return null;
+    return parseCourse(new DOMParser().parseFromString(await response.text(), "text/html"), id);
   }
 
   // ---------- Showing them ----------
-  const dueText = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const dueText = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Karachi",
+  });
   function countdown(due) {
     const ms = due - Date.now();
     const hours = ms / 3600000;
@@ -101,6 +171,13 @@
     const days = Math.floor(hours / 24);
     if (days < 3) return { text: days === 1 ? "1 day left" : `${days} days left`, level: "soon" };
     return { text: `${days} days left`, level: "later" };
+  }
+  function ago(at) {
+    const min = Math.round((Date.now() - at) / 60000);
+    if (min < 1) return "just now";
+    if (min < 60) return `${min} min ago`;
+    const h = Math.round(min / 60);
+    return h < 24 ? `${h} h ago` : "over a day ago";
   }
 
   // A section of its own, with a heading like Horizon's "News and
@@ -124,14 +201,25 @@
     return box;
   }
 
-  function show(items, { checking = false } = {}) {
+  let list = new Map(); // the dashboard's courses
+  const failed = new Set(); // courses whose last check got no submission page
+  let checking = 0; // courses being read right now
+
+  function show() {
     const box = section();
     if (!box) return;
+    const known = read(CACHE, {});
     const done = recentlySubmitted();
     const now = Date.now();
-    const due = items
-      .filter((i) => i.open && i.due > now && !done.has(String(i.id)))
-      .sort((a, b) => a.due - b.due);
+    const due = [];
+    for (const [courseId, name] of list) {
+      for (const item of known[courseId]?.items ?? []) {
+        if (item.open && item.due > now && !done.has(String(item.id))) due.push({ ...item, courseId, course: name });
+      }
+    }
+    due.sort((a, b) => a.due - b.due);
+    const unknown = [...list.keys()].filter((id) => !known[id]);
+
     const heading = box.querySelector("#ucpnb-due-heading");
     heading.textContent = "Submissions Due";
     if (due.length) {
@@ -144,15 +232,42 @@
     const body = document.createElement("div");
     body.className = "ucpnb-due-body";
     box.append(body);
+
+    // When it was last checked, and a way to check now.
+    const status = document.createElement("p");
+    status.className = "ucpnb-due-status";
+    status.setAttribute("aria-live", "polite");
+    const times = [...list.keys()].map((id) => known[id]?.at).filter(Boolean);
+    if (checking) status.textContent = "Checking your courses…";
+    else {
+      const parts = [];
+      if (times.length) parts.push(`Checked ${ago(Math.min(...times))}`);
+      if (failed.size) parts.push(`couldn't reach ${failed.size === 1 ? "1 course" : `${failed.size} courses`}`);
+      status.textContent = parts.join(", ");
+      const again = document.createElement("button");
+      again.type = "button";
+      again.className = "ucpnb-due-again";
+      again.textContent = failed.size ? "Try again" : "Check now";
+      again.addEventListener("click", () => refresh({ all: true }));
+      if (parts.length) status.append(" · ");
+      status.append(again);
+    }
+    body.append(status);
+
     if (!due.length) {
       const empty = document.createElement("p");
       empty.className = "ucpnb-due-empty";
-      empty.textContent = checking ? "Checking your courses…" : "Nothing due right now. 🎉";
+      empty.textContent =
+        checking && unknown.length
+          ? "Looking for assignments…"
+          : failed.size || unknown.length
+            ? "Nothing due in the courses checked."
+            : "Nothing due right now. 🎉";
       body.append(empty);
       return;
     }
-    const list = document.createElement("div");
-    list.className = "ucpnb-due-list";
+    const cards = document.createElement("div");
+    cards.className = "ucpnb-due-list";
     for (const item of due) {
       const { text, level } = countdown(item.due);
       const card = document.createElement("a");
@@ -179,48 +294,78 @@
       chip.className = "ucpnb-due-chip";
       chip.textContent = text;
       card.append(course, name, when, chip);
-      list.append(card);
+      cards.append(card);
     }
-    body.append(list);
+    body.append(cards);
   }
 
-  // After Horizon's own page has loaded and the browser has a quiet moment.
-  const pageSettled = () =>
-    new Promise((resolve) => {
-      const idle = () => (window.requestIdleCallback ? requestIdleCallback(() => resolve(), { timeout: 3000 }) : setTimeout(resolve, 1000));
-      if (document.readyState === "complete") idle();
-      else window.addEventListener("load", idle, { once: true });
-    });
+  let pending = 0;
+  const showSoon = () => {
+    if (!pending) pending = requestAnimationFrame(() => ((pending = 0), show()));
+  };
 
-  async function refresh() {
-    const list = courses();
-    if (list.size === 0) return;
-    const cached = read(CACHE, null);
-    if (cached?.items) show(cached.items);
-    else show([], { checking: true });
-    if (cached && Date.now() - cached.at < FRESH_MS) return;
-    await pageSettled();
-    const pairs = [...list];
-    const results = new Array(pairs.length).fill(null);
+  let running = false;
+  async function refresh({ all = false, olderThan = STALE_MS } = {}) {
+    if (running || list.size === 0) return;
+    const known = read(CACHE, {});
+    const now = Date.now();
+    const todo = [...list].filter(([id]) => all || !known[id] || now - known[id].at > olderThan);
+    if (!todo.length) return;
+    running = true;
+    checking = todo.length;
+    showSoon();
     let next = 0;
     const worker = async () => {
-      while (next < pairs.length) {
-        const i = next++;
-        results[i] = await readCourse(...pairs[i]).catch(() => null);
+      while (next < todo.length) {
+        const [id, name] = todo[next++];
+        const items = await readCourse(id).catch(() => null);
+        if (items) {
+          failed.delete(id);
+          remember(id, name, items);
+        } else failed.add(id);
+        checking--;
+        showSoon();
       }
     };
-    await Promise.all([worker(), worker()]);
-    // A course that couldn't be read keeps what was known about it.
-    const items = results.flatMap((r, i) => r ?? (cached?.items ?? []).filter((x) => x.courseId === [...list.keys()][i]));
-    write(CACHE, { at: Date.now(), items });
-    show(items);
+    await Promise.all([worker(), worker(), worker()]);
+    running = false;
+    showSoon();
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refresh, { once: true });
-  else refresh();
-  // Countdowns stay current on a dashboard left open.
-  setInterval(() => {
-    const cached = read(CACHE, null);
-    if (cached?.items && document.getElementById("ucpnb-due")) show(cached.items);
-  }, 60000);
+  function start() {
+    list = courses();
+    if (list.size === 0) return;
+    show();
+    // Right after Horizon's page is parsed; the requests are low priority,
+    // so Horizon's own images and scripts still come first.
+    (window.requestIdleCallback ?? ((fn) => setTimeout(fn, 200)))(() => refresh(), { timeout: 1500 });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refresh({ olderThan: BACK_MS });
+    });
+    setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+      else showSoon();
+    }, EVERY_MS);
+    // Countdowns and "checked … ago" stay current.
+    setInterval(showSoon, 60000);
+    // Another tab (a submission page, or the dashboard open twice) learnt
+    // something new.
+    window.addEventListener("storage", (e) => {
+      if (e.key === CACHE || e.key === DONE) showSoon();
+    });
+  }
+
+  // Coming back with the browser's Back button shows the page as it was:
+  // check again if it's been a while.
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted) refresh({ olderThan: BACK_MS });
+  });
+
+  try {
+    localStorage.removeItem("ucpnb_due_cache"); // the old all-or-nothing cache
+  } catch {
+    // Nothing to tidy.
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 })();
