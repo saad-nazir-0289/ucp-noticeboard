@@ -130,6 +130,12 @@ html.ucpnb-dark #ucpnb-due {
   font-size: 13px; font-weight: 700; line-height: 1.4;
 }
 #ucpnb-due .ucpnb-due-body { margin-top: 16px; }
+#ucpnb-due .ucpnb-due-status { margin: -8px 0 12px; color: var(--d-muted) !important; font-size: 12.5px; }
+#ucpnb-due .ucpnb-due-again {
+  padding: 0; border: 0; background: none !important; color: var(--d-later) !important;
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+#ucpnb-due .ucpnb-due-again:hover { text-decoration: underline; }
 #ucpnb-due .ucpnb-due-empty { margin: 0; color: var(--d-muted) !important; font-size: 14px; }
 #ucpnb-due .ucpnb-due-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
 #ucpnb-due .ucpnb-due-card {
