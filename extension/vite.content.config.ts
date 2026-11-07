@@ -76,7 +76,9 @@ const outDirFor = (mode: string) =>
 // loads nothing from the internet), and writes background.js: it tells Chrome which page to
 // open when the extension is removed (the PWA's one-question "why?" page),
 // and marks installs and updates for the introduction; neither needs a
-// permission. Generated here so it carries this build's PWA
+// permission. It also reads Horizon's submission pages for Submissions Due
+// (horizon-due-worker.js; the horizon.ucp.edu.pk permission the content
+// scripts already have). Generated here so it carries this build's PWA
 // address.
 function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Plugin {
   return {
@@ -98,7 +100,7 @@ function extensionManifest(mode: string, outDir: string, pwaBaseUrl: string): Pl
         copyFileSync(resolve(root, "popup", file), resolve(dist, file));
       }
       // Horizon's look (horizon-theme/): NoticeBoard style and dark mode.
-      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js", "keepalive.js", "due.js"]) {
+      for (const file of ["theme.js", "theme.css", "skin.css", "celebrate.js", "submit-watch.js", "keepalive.js", "due.js", "due-worker.js"]) {
         copyFileSync(resolve(root, "horizon-theme", file), resolve(dist, `horizon-${file}`));
       }
       writeFileSync(
@@ -150,6 +152,10 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && TOUR_KEY in changes && !changes[TOUR_KEY].newValue) showBadge(false);
 });
+
+// Submissions Due on the Horizon dashboard: Horizon's pages are read here
+// (horizon-theme/due-worker.js).
+importScripts("horizon-due-worker.js");
 `
       );
     },
