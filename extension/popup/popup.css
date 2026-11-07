@@ -11,7 +11,6 @@
   --accent-soft: rgba(107, 151, 255, 0.14);
   --switch-off: #3a475e;
   --hero: linear-gradient(135deg, #0a1730 0%, #16357f 58%, #2a5bd8 100%);
-  --whatsapp: #22b45d;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -129,18 +128,6 @@ label.setting { cursor: pointer; }
   background: var(--accent-soft); color: var(--accent);
 }
 .tiles button:hover { border-color: var(--accent); transform: translateY(-1px); }
-
-.whatsapp {
-  display: flex; align-items: center; gap: 12px; width: 100%;
-  padding: 12px 14px; border: 0; border-radius: 14px;
-  background: var(--whatsapp); color: #fff; text-align: left;
-  box-shadow: 0 8px 20px rgba(31, 168, 85, 0.28);
-  transition: transform 0.12s, filter 0.12s;
-}
-.whatsapp:hover { transform: translateY(-1px); filter: brightness(1.05); }
-.whatsapp svg { width: 26px; height: 26px; }
-.whatsapp span { display: grid; }
-.whatsapp small { opacity: 0.9; font-size: 12px; }
 
 footer {
   display: flex; justify-content: center; gap: 6px;

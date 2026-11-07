@@ -12,14 +12,16 @@ const STYLE_KEY = "ucpnb_style"; // "noticeboard" (default) or "original": Horiz
 const THEME_KEY = "ucpnb_theme"; // "dark" (default), "light" or "system": Horizon and the panel (this menu is always dark)
 const STORE_URL = "https://chromewebstore.google.com/detail/dmkdgckajefikfbbfblihmnamjiaemfg";
 const REPO_URL = "https://github.com/saad-nazir-0289/ucp-noticeboard";
-const WHATSAPP = "923254278463";
+const PORTFOLIO_URL = "https://saadnazir.msndev.workers.dev/";
+const LINKEDIN_URL = "https://www.linkedin.com/in/saad-nazir0289/";
 
 const destinations = {
   horizon: "https://horizon.ucp.edu.pk/student/dashboard",
   app: window.UCPNB_PWA_URL,
   review: `${STORE_URL}/reviews`,
   github: REPO_URL,
-  whatsapp: `https://wa.me/${WHATSAPP}?text=${encodeURIComponent("Hi! About UCP NoticeBoard: ")}`,
+  portfolio: PORTFOLIO_URL,
+  linkedin: LINKEDIN_URL,
   privacy: `${REPO_URL}/blob/main/Privacy.md`,
 };
 
