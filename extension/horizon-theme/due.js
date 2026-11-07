@@ -8,18 +8,25 @@
 // (tr[submission_id]: title, start, due date, and an "Upload" button while
 // it can still be submitted).
 //
-// How it stays right:
-// - Whenever the student opens a course's submission page, that page is
-//   read as it is shown and remembered: no extra request, and the dashboard
-//   is right about that course straight away.
-// - On the dashboard, what is known shows at once. Courses not checked in
-//   the last 5 minutes are read in the background (as the student, same
-//   site, three pages at a time, low priority), each one shown as soon as
-//   it arrives. Again when the tab comes back into view after 2 minutes,
-//   every 5 minutes while it stays open, and on "Check now".
-// - A page that isn't a submission page (Horizon busy, logged out, an
-//   error) never counts as "nothing due": that course keeps what was last
-//   known, and the section says it couldn't be checked.
+// The pages are read by the extension's background (due-worker.js), so a
+// read isn't lost when the student leaves the page, and all courses are
+// read at once. This script:
+// - on every Horizon page, as it opens and as it's left: asks the
+//   background to read any course not read in the last 5 minutes, so the
+//   reading is under way while Horizon is still preparing the dashboard;
+// - on a course's submission page: hands over what that page shows, so the
+//   dashboard is right about that course straight away;
+// - on the dashboard: tells the background which courses there are, shows
+//   what it knows at once and each course as it arrives (storage changes),
+//   and asks again every 5 minutes while open, on coming back to the tab,
+//   and on "Check now".
+// If the background can't read a course (no submission page, or Horizon's
+// sign-in page: some browsers don't let it use the student's sign-in), the
+// dashboard reads that course itself, as before, and hands it over.
+//
+// A page that isn't a submission page (Horizon busy, signed out, an error)
+// never counts as "nothing due": the course keeps what was last known, and
+// the section says it couldn't be checked.
 //
 // Not every few seconds: each check opens one Horizon page per course, and
 // Horizon takes seconds to answer each, so checking constantly would slow
@@ -30,29 +37,31 @@
 // watching (submit-watch.js notes those in ucpnb_submitted_ids), until
 // Horizon's page catches up.
 (() => {
-  const CACHE = "ucpnb_due_v2"; // page storage: { [courseId]: { at, name, items } }
+  const STORE = "ucpnb_due"; // chrome.storage.local, written by due-worker.js
   const DONE = "ucpnb_submitted_ids"; // page storage: { id: when }, from submit-watch.js
   const DONE_FOR_MS = 30 * 60 * 1000;
-  const STALE_MS = 5 * 60 * 1000; // a course checked longer ago than this is read again
-  const BACK_MS = 2 * 60 * 1000; // coming back to the tab: read again if older than this
   const EVERY_MS = 5 * 60 * 1000; // while the dashboard stays open and in view
 
-  const read = (key, fallback) => {
+  const ask = (message) => {
     try {
-      return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback;
+      chrome.runtime.sendMessage({ type: "ucpnb-due", ...message }).catch(() => {});
     } catch {
-      return fallback;
+      // The extension was updated or removed: this page is on its own.
     }
   };
-  const write = (key, value) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-      // Not saved: read again next time.
-    }
-  };
+
+  // Every Horizon page: get the reading started early, as it opens and as
+  // it's left (usually for the dashboard, which takes Horizon seconds).
+  ask({ refresh: true });
+  window.addEventListener("pagehide", () => ask({ refresh: true }));
+
   const recentlySubmitted = () => {
-    const done = read(DONE, {});
+    let done = {};
+    try {
+      done = JSON.parse(localStorage.getItem(DONE) ?? "{}") ?? {};
+    } catch {
+      // Nothing noted.
+    }
     if (Array.isArray(done) || typeof done !== "object") return new Set(); // the old list: Horizon decides
     const now = Date.now();
     return new Set(Object.keys(done).filter((id) => now - done[id] < DONE_FOR_MS));
@@ -68,7 +77,7 @@
 
   /**
    * A course's assignments from its submission page, or null when the page
-   * isn't one (a login or error page): unknown, not empty.
+   * isn't one (a sign-in or error page): unknown, not empty.
    */
   function parseCourse(doc, courseId) {
     const rows = [...doc.querySelectorAll("tr[submission_id]")];
@@ -95,22 +104,13 @@
     }));
   }
 
-  function remember(courseId, name, items) {
-    const all = read(CACHE, {});
-    all[courseId] = { at: Date.now(), name: name || all[courseId]?.name || "", items };
-    write(CACHE, all);
-  }
-
-  // ---------- On a course's submission page: remember what it shows ----------
+  // ---------- On a course's submission page: hand over what it shows ----------
   const onSubmissionPage = location.pathname.match(/^\/student\/course\/submission\/([^/?#]+)/);
   if (onSubmissionPage) {
-    const courseId = onSubmissionPage[1];
+    const id = onSubmissionPage[1];
     const learn = () => {
-      const items = parseCourse(document, courseId);
-      if (!items) return;
-      // "Software Testing (CSSE4193-...)" in the page's tab.
-      const name = clean(document.querySelector(".uk-tab li a")?.textContent).replace(/\s*\(.*$/, "");
-      remember(courseId, name, items);
+      const items = parseCourse(document, id);
+      if (items) ask({ learned: { id, items } });
     };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", learn, { once: true });
     else learn();
@@ -142,16 +142,6 @@
     if (!header) return null;
     const style = getComputedStyle(header);
     return style.backgroundImage !== "none" ? style.backgroundImage : style.backgroundColor;
-  }
-
-  async function readCourse(id) {
-    const response = await fetch(`/student/course/submission/${id}`, {
-      credentials: "same-origin",
-      cache: "no-store",
-      priority: "low",
-    });
-    if (!response.ok || !new URL(response.url).pathname.startsWith("/student/course/submission/")) return null;
-    return parseCourse(new DOMParser().parseFromString(await response.text(), "text/html"), id);
   }
 
   // ---------- Showing them ----------
@@ -202,23 +192,25 @@
   }
 
   let list = new Map(); // the dashboard's courses
-  const failed = new Set(); // courses whose last check got no submission page
-  let checking = 0; // courses being read right now
+  let state = null; // ucpnb_due, as last read
+  let selfChecking = 0; // courses this page is reading itself (fallback)
 
   function show() {
     const box = section();
-    if (!box) return;
-    const known = read(CACHE, {});
+    if (!box || !state) return;
+    const results = state.results ?? {};
+    const failed = [...list.keys()].filter((id) => state.failed?.[id] && !state.checking?.includes(id));
+    const checking = [...list.keys()].filter((id) => state.checking?.includes(id)).length + selfChecking;
     const done = recentlySubmitted();
     const now = Date.now();
     const due = [];
     for (const [courseId, name] of list) {
-      for (const item of known[courseId]?.items ?? []) {
+      for (const item of results[courseId]?.items ?? []) {
         if (item.open && item.due > now && !done.has(String(item.id))) due.push({ ...item, courseId, course: name });
       }
     }
     due.sort((a, b) => a.due - b.due);
-    const unknown = [...list.keys()].filter((id) => !known[id]);
+    const unknown = [...list.keys()].filter((id) => !results[id]);
 
     const heading = box.querySelector("#ucpnb-due-heading");
     heading.textContent = "Submissions Due";
@@ -237,18 +229,23 @@
     const status = document.createElement("p");
     status.className = "ucpnb-due-status";
     status.setAttribute("aria-live", "polite");
-    const times = [...list.keys()].map((id) => known[id]?.at).filter(Boolean);
-    if (checking) status.textContent = "Checking your courses…";
-    else {
+    const times = [...list.keys()].map((id) => results[id]?.at).filter(Boolean);
+    if (checking) {
+      const of = list.size - checking;
+      status.textContent = `Checking your courses… ${of} of ${list.size}`;
+    } else {
       const parts = [];
       if (times.length) parts.push(`Checked ${ago(Math.min(...times))}`);
-      if (failed.size) parts.push(`couldn't reach ${failed.size === 1 ? "1 course" : `${failed.size} courses`}`);
+      if (failed.length) parts.push(`couldn't reach ${failed.length === 1 ? "1 course" : `${failed.length} courses`}`);
       status.textContent = parts.join(", ");
       const again = document.createElement("button");
       again.type = "button";
       again.className = "ucpnb-due-again";
-      again.textContent = failed.size ? "Try again" : "Check now";
-      again.addEventListener("click", () => refresh({ all: true }));
+      again.textContent = failed.length ? "Try again" : "Check now";
+      again.addEventListener("click", () => {
+        fellBack.clear();
+        ask({ refresh: true, force: true });
+      });
       if (parts.length) status.append(" · ");
       status.append(again);
     }
@@ -260,7 +257,7 @@
       empty.textContent =
         checking && unknown.length
           ? "Looking for assignments…"
-          : failed.size || unknown.length
+          : failed.length || unknown.length
             ? "Nothing due in the courses checked."
             : "Nothing due right now. 🎉";
       body.append(empty);
@@ -304,65 +301,84 @@
     if (!pending) pending = requestAnimationFrame(() => ((pending = 0), show()));
   };
 
-  let running = false;
-  async function refresh({ all = false, olderThan = STALE_MS } = {}) {
-    if (running || list.size === 0) return;
-    const known = read(CACHE, {});
-    const now = Date.now();
-    const todo = [...list].filter(([id]) => all || !known[id] || now - known[id].at > olderThan);
+  // ---------- If the background couldn't read a course: read it from here ----------
+  const fellBack = new Set(); // courses this page already read itself
+  let backgroundRan = false; // a background read finished while this page was open
+  async function fallBack() {
+    // Even when the background got Horizon's sign-in page: the student is on
+    // the dashboard, so signed in; the browser may just not let the
+    // background use the sign-in.
+    if (!backgroundRan || !state || state.checking?.some((id) => list.has(id))) return;
+    const todo = [...list.keys()].filter((id) => state.failed?.[id] && !fellBack.has(id));
     if (!todo.length) return;
-    running = true;
-    checking = todo.length;
+    todo.forEach((id) => fellBack.add(id));
+    selfChecking += todo.length;
     showSoon();
-    let next = 0;
-    const worker = async () => {
-      while (next < todo.length) {
-        const [id, name] = todo[next++];
-        const items = await readCourse(id).catch(() => null);
-        if (items) {
-          failed.delete(id);
-          remember(id, name, items);
-        } else failed.add(id);
-        checking--;
-        showSoon();
-      }
-    };
-    await Promise.all([worker(), worker(), worker()]);
-    running = false;
+    await Promise.all(
+      todo.map(async (id) => {
+        try {
+          const response = await fetch(`/student/course/submission/${id}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+          });
+          if (response.ok && new URL(response.url).pathname.startsWith("/student/course/submission/")) {
+            const items = parseCourse(new DOMParser().parseFromString(await response.text(), "text/html"), id);
+            if (items) ask({ learned: { id, items } });
+          }
+        } catch {
+          // Stays "couldn't reach".
+        } finally {
+          selfChecking--;
+          showSoon();
+        }
+      })
+    );
+  }
+
+  async function load() {
+    try {
+      state = (await chrome.storage.local.get(STORE))[STORE] ?? { results: {}, failed: {}, checking: [] };
+    } catch {
+      state = { results: {}, failed: {}, checking: [] };
+    }
     showSoon();
+    fallBack();
   }
 
   function start() {
     list = courses();
     if (list.size === 0) return;
-    show();
-    // Right after Horizon's page is parsed; the requests are low priority,
-    // so Horizon's own images and scripts still come first.
-    (window.requestIdleCallback ?? ((fn) => setTimeout(fn, 200)))(() => refresh(), { timeout: 1500 });
+    // The courses on the page, and read whichever aren't fresh.
+    ask({ courses: [...list], refresh: true });
+    load();
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && STORE in changes) {
+        if (changes[STORE].oldValue?.checking?.length && !changes[STORE].newValue?.checking?.length) backgroundRan = true;
+        state = changes[STORE].newValue ?? state;
+        showSoon();
+        fallBack();
+      }
+    });
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") refresh({ olderThan: BACK_MS });
+      if (document.visibilityState === "visible") ask({ refresh: true });
+    });
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) ask({ refresh: true });
     });
     setInterval(() => {
-      if (document.visibilityState === "visible") refresh();
-      else showSoon();
+      if (document.visibilityState === "visible") ask({ refresh: true });
     }, EVERY_MS);
-    // Countdowns and "checked … ago" stay current.
+    // Countdowns and "checked … ago" stay current; another tab's
+    // submission noted (submit-watch.js).
     setInterval(showSoon, 60000);
-    // Another tab (a submission page, or the dashboard open twice) learnt
-    // something new.
     window.addEventListener("storage", (e) => {
-      if (e.key === CACHE || e.key === DONE) showSoon();
+      if (e.key === DONE) showSoon();
     });
   }
 
-  // Coming back with the browser's Back button shows the page as it was:
-  // check again if it's been a while.
-  window.addEventListener("pageshow", (e) => {
-    if (e.persisted) refresh({ olderThan: BACK_MS });
-  });
-
   try {
-    localStorage.removeItem("ucpnb_due_cache"); // the old all-or-nothing cache
+    localStorage.removeItem("ucpnb_due_cache"); // older versions' copies
+    localStorage.removeItem("ucpnb_due_v2");
   } catch {
     // Nothing to tidy.
   }
